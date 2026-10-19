@@ -4,8 +4,16 @@ Internal web app for seller research. A worker crawls trend sources on a schedul
 what it finds, and every morning it publishes a trend briefing with AI suggestions for ideas and keywords.
 Store staff save the ideas they want to their store's list.
 
-Status: no code yet. Phase 1 is specified in [docs/specs/phase-1.md](docs/specs/phase-1.md); the stack
-is proposed in [ADR 0001](docs/adr/0001-stack.md) and waits for owner approval.
+Status: phase 1 Step 2 (skeleton, schema and core rules) is in. Phase 1 is specified in
+[docs/specs/phase-1.md](docs/specs/phase-1.md) and planned in
+[docs/plans/ideas-hub-phase-1.md](docs/plans/ideas-hub-phase-1.md); the stack is
+[ADR 0001](docs/adr/0001-stack.md) and the data model [ADR 0002](docs/adr/0002-data-model.md).
+
+## Development
+
+Node 24 and pnpm 12. `cp .env.example .env`, then `pnpm install`, `docker compose up -d --wait`
+(Postgres on 5433, MinIO on 9300/9301) and `pnpm db:migrate`. Checks:
+`pnpm -r typecheck && pnpm -r lint && pnpm -r test`.
 
 ## Phase 1 scope
 
