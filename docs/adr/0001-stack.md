@@ -1,6 +1,6 @@
 # ADR 0001: Technology stack
 
-Status: proposed (2026-10-19)
+Status: accepted (2026-10-20)
 Deciders: owner
 
 ## Context

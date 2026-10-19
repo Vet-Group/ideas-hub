@@ -651,7 +651,7 @@ download; storing raw HTML; a dark theme, a second UI language, a native app or 
 ## Delivery order
 
 Riskiest first, as in the reviewed plan [docs/plans/ideas-hub-phase-1.md](../plans/ideas-hub-phase-1.md)
-(2026-10-19; awaiting owner approval):
+(2026-10-19; approved at Gate 0, 2026-10-20):
 
 1. A throwaway probe measures the Facebook block rate while the repo skeleton, schema and core rules
    (days_active, crawl day, trend score, permissions) are built.

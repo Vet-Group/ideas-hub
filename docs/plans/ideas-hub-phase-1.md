@@ -1,6 +1,7 @@
 # Plan: Ideas Hub phase 1 implementation
 
-Status: **pending approval** (v18g: v2 consensus of Architect SOUND WITH CHANGES and Critic APPROVE WITH
+Status: **approved at Gate 0 (2026-10-20), v18g** (v2 consensus of Architect SOUND WITH CHANGES and
+Critic APPROVE WITH
 IMPROVEMENTS, the owner's review of 2026-10-19, a spec–plan consistency pass, the MAJOR and selected
 MINOR findings of the v4 Critic review, the rest under "Open items", and the owner's follow-up on run
 rows, staleness and pagination; v8: empty payloads vs the 2-page rule, run-row upkeep, backoff and
@@ -24,7 +25,7 @@ Playwright 1.63.0 pin; v18f: v18e Critic findings: proxy matcher, shadcn color n
 rules, chart dates, and owner decisions on `running_ads` and the keyboard drop point; v18g: v18f narrow
 Critic findings: shadcn `white` and `black`, one size-refusal message, the `(app)` route group, upload
 route details, notify polling, KeywordDay `slot`). Planning only: no code, no commit.
-Inputs: `docs/specs/phase-1.md` (canonical spec), `docs/adr/0001-stack.md` (proposed),
+Inputs: `docs/specs/phase-1.md` (canonical spec), `docs/adr/0001-stack.md` (accepted),
 `docs/research/2026-10-19-sources-and-crawlers.md`.
 
 ## Requirements summary
@@ -69,10 +70,14 @@ residential-IP machine. Done = the 7 acceptance criteria in the spec.
 
 ## Gate 0 (owner, before any code)
 
-1. Approve ADR 0001 (status → accepted) or request changes.
+1. Approve ADR 0001 (status → accepted) or request changes. Decided 2026-10-20: approved, ADR 0001
+   accepted.
 2. Approve this delivery order (it replaces spec v1 "Delivery order"; the spec is already updated).
-3. Git remote: private GitHub repo name; whether the current docs become the first commit.
-4. Legal review: decide whether it must finish before the 14-day run (recommended: yes).
+   Decided 2026-10-20: approved.
+3. Git remote: private GitHub repo name; whether the current docs become the first commit. Decided
+   2026-10-20: private repo `anhtahaylove/ideas-hub`; the current docs are the first commit (c687ad8).
+4. Legal review: decide whether it must finish before the 14-day run (recommended: yes). Decided
+   2026-10-20: yes, it must finish before the 14-day run starts.
 
 Owner inputs needed later, as step prerequisites: seed keyword list (Step 1, the Vietmakers list as a
 draft), RSS feed list (Step 7), Lark bot app, shared group and test group (Step 7), staff names for
@@ -1493,8 +1498,8 @@ rect, so the page never scrolls.
   0001).
 - Calendar (minor 13): Step 6 grows by 1 day to 8.25, so Step 6 ends around day 49, Step 7 around day 59
   and the 14-day run around day 76 (59 + 17), still in week 11.
-- New UI strings for owner approval: "Chỉ nhận ảnh JPEG, PNG hoặc WebP", "Ảnh quá lớn (trên 50
-  megapixel)", "Không đọc được ảnh này".
+- New UI strings for owner approval (approved at Gate 0, 2026-10-20): "Chỉ nhận ảnh JPEG, PNG hoặc
+  WebP", "Ảnh quá lớn (trên 50 megapixel)", "Không đọc được ảnh này".
 
 ## Changelog (v18f → v18g, findings of the narrow v18f Critic)
 
@@ -1516,3 +1521,13 @@ rect, so the page never scrolls.
 - Left out, under "Open items (v18f narrow Critic, left out of v18g)": the font test detail and the
   ADR's 2x wording. No calendar change.
 - Pre-commit touch-ups: ShopDay slot type, plan Step 3 wording, ADR 141 item closed.
+
+## Changelog (v18g → Gate 0)
+
+- Owner decisions of 2026-10-20 recorded under "Gate 0": ADR 0001 approved (status accepted), the delivery
+  order approved, the remote is the private repo `anhtahaylove/ideas-hub` with the current docs as the
+  first commit (c687ad8), and the legal review finishes before the 14-day run starts.
+- Status: approved at Gate 0, v18g; the ADR input is listed as accepted; spec "Delivery order" no longer
+  awaits approval.
+- The three v18f UI strings ("Chỉ nhận ảnh JPEG, PNG hoặc WebP", "Ảnh quá lớn (trên 50 megapixel)",
+  "Không đọc được ảnh này") are approved.
