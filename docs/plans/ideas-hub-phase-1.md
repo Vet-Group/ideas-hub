@@ -178,6 +178,20 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   ranges); `access.test.ts` table-driven over admin / member × ticks × seed vs tracked keyword.
 - Write `docs/adr/0002-data-model.md` after the first migration.
 - Exit: `docker compose up -d && pnpm db:migrate` work on Windows; tests green.
+- Progress (2026-10-20): done on branch `step-2-skeleton`. Pins follow ADR 0001's rule with releases
+  at least 14 days old on 2026-10-20: next 16.4.0, better-auth 1.7.7 (telemetry gating re-checked in
+  `@better-auth/telemetry@1.7.7` and `@better-auth/core@1.7.7`: same as ADR 0001), pg-boss 12.37.0,
+  openai 7.30.0, zod 4.6.5, drizzle-orm 0.45.3, react, react-dom and react-is 19.3.0, playwright and
+  @playwright/test 1.63.0, geist 1.7.2; `engines` unchanged. Deviations, with reasons:
+  - The UI libraries, Tailwind and the S3 client are not pinned yet: `shadcn add` brings its own
+    dependencies, so they are pinned and checked against ADR 0001 in Step 5, when the components are
+    generated. `apps/web` and `apps/worker` hold only their `package.json` until Steps 5 and 3.
+  - ADR 0001 cites code in next 16.4.2 and pg-boss 12.38.0; the pins are 16.4.0 and 12.37.0, so Step 3
+    (pg-boss) and Step 5 (image optimizer, Server Action body cap) re-check those citations.
+  - Dev tools follow POD Studio's pins, except eslint 10.12.0 and @eslint/js 10.0.1, since eslint
+    9.39.5 is deprecated on npm.
+  - CI (`.github/workflows/ci.yml`) runs the step checks against a Postgres service, plus
+    `migration.test.ts` and a check that the schema generates no new migration.
 
 ### Step 3. Facebook Ad Library adapter and worker (week 2)
 - `packages/sources/fb-ad-library/src/{search,parse-embedded,parse-graphql,normalize,detect}.ts`,

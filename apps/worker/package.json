@@ -1,0 +1,15 @@
+{
+  "name": "@ideas-hub/worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ideas-hub/core": "workspace:*",
+    "@ideas-hub/db": "workspace:*",
+    "openai": "7.30.0",
+    "pg-boss": "12.37.0",
+    "playwright": "1.63.0",
+    "rss-parser": "3.13.0",
+    "sharp": "0.35.5",
+    "zod": "4.6.5"
+  }
+}
