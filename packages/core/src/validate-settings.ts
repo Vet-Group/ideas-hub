@@ -20,6 +20,8 @@ const DAY_MINUTES = 24 * 60;
 const MAX_EXPIRY_SECONDS = 24 * 3600;
 /** The global briefing job refreshes the RSS feeds (in parallel, each under this timeout) before its LLM calls. */
 export const FEED_TIMEOUT_SECONDS = 15;
+/** LLM calls one briefing may make (the worker's reservation limit); each may take the LLM call timeout. */
+export const MAX_LLM_CALLS = 2;
 
 export function validateSettings(s: Settings): SettingsProblem[] {
   const problems: SettingsProblem[] = [];
@@ -40,8 +42,8 @@ export function validateSettings(s: Settings): SettingsProblem[] {
   // One bounded wait writes no heartbeat, so it must stay under the threshold.
   if (Object.values(s.waitLimitsSeconds).some((v) => v >= s.heartbeatThresholdMinutes * 60)) problems.push('wait_limit_reaches_heartbeat');
 
-  if (2 * s.llmCallTimeoutSeconds > s.briefingJobExpirySeconds) problems.push('llm_timeout_over_job_expiry');
-  else if (FEED_TIMEOUT_SECONDS + 2 * s.llmCallTimeoutSeconds > s.briefingJobExpirySeconds) problems.push('feed_refresh_over_job_expiry');
+  if (MAX_LLM_CALLS * s.llmCallTimeoutSeconds > s.briefingJobExpirySeconds) problems.push('llm_timeout_over_job_expiry');
+  else if (FEED_TIMEOUT_SECONDS + MAX_LLM_CALLS * s.llmCallTimeoutSeconds > s.briefingJobExpirySeconds) problems.push('feed_refresh_over_job_expiry');
   if (s.briefingJobExpirySeconds > MAX_EXPIRY_SECONDS) problems.push('briefing_expiry_over_24h');
   // The page and the watchdog judge today's briefing at the ready time, so one build attempt must fit before it.
   if (minutesOf(s.briefingBuildTime) * 60 + s.briefingJobExpirySeconds > minutesOf(s.briefingReadyTime) * 60) problems.push('ready_before_build_ends');

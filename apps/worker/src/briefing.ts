@@ -10,6 +10,7 @@ import {
   type PromptInput,
   type Settings,
   BRIEFING_MAX_TOKENS,
+  MAX_LLM_CALLS,
   briefingPrompt,
   estimateCallUsd,
   fitsDailyCap,
@@ -40,7 +41,6 @@ import { type Ctx, loadSettings } from './context';
 import { type LlmClient } from './llm';
 import { BRIEFING, type BriefingJob, briefingKey, sendBriefingJob, sendLarkJob } from './queues';
 
-export const MAX_LLM_CALLS = 2;
 /** Serializes the daily-cap check and the reservation of a call across briefings. */
 const COST_LOCK = 4_242_002;
 /** Unconfigured clients already logged, so a day of keyword briefings logs it once. */

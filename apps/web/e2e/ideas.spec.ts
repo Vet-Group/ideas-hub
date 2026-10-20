@@ -126,22 +126,26 @@ test('a manual idea with a link from "Ý tưởng mới"; a 6 MB image is refuse
 
 test('a manual idea from "Ý tưởng mới" is in the store’s CSV export with source and via manual (AC 5)', async ({ page }) => {
   const link = 'https://example.com/csv-manual-idea';
-  await signIn(page, USERS.saver.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('table'))}`);
-  await page.getByRole('button', { name: 'Ý tưởng mới' }).click();
-  await page.getByLabel('Link').fill(link);
-  await page.getByRole('textbox', { name: 'Tiêu đề', exact: true }).fill('Áo "dog mom", làm tay');
-  await page.getByRole('button', { name: 'Lưu ý tưởng' }).click();
-  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Đã lưu vào Store A' })).toBeVisible();
+  try {
+    await signIn(page, USERS.saver.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('table'))}`);
+    await page.getByRole('button', { name: 'Ý tưởng mới' }).click();
+    await page.getByLabel('Link').fill(link);
+    await page.getByRole('textbox', { name: 'Tiêu đề', exact: true }).fill('Áo "dog mom", làm tay');
+    await page.getByRole('button', { name: 'Lưu ý tưởng' }).click();
+    await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Đã lưu vào Store A' })).toBeVisible();
 
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Xuất CSV' }).click()]);
-  expect(download.suggestedFilename()).toBe(`ideas-${STORES.a.id}-2026-10-21.csv`);
-  const lines = (await readFile(await download.path(), 'utf8')).split('\r\n');
-  expect(lines[0]).toBe('﻿id,title,status,source,source_ref,via,keyword,link,tags,notes,assignee,created_by,created_at,updated_at');
-  const row = lines.filter((l) => l.includes(link));
-  expect(row).toHaveLength(1);
-  expect(row[0]).toMatch(new RegExp(`^idea_[^,]+,"Áo ""dog mom"", làm tay",new,manual,${link},manual,,${link},,,,Saver E2E,`));
-  // The other ideas specs count store A's ideas.
-  const pool = e2ePool();
-  await pool.query(`delete from saved_ideas where source_ref = $1`, [link]);
-  await pool.end();
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Xuất CSV' }).click()]);
+    expect(download.suggestedFilename()).toBe(`ideas-${STORES.a.id}-2026-10-21.csv`);
+    const lines = (await readFile(await download.path(), 'utf8')).split('\r\n');
+    expect(lines[0]).toBe('﻿id,title,status,source,source_ref,via,keyword,link,tags,notes,assignee,created_by,created_at,updated_at');
+    const row = lines.filter((l) => l.includes(link));
+    expect(row).toHaveLength(1);
+    const esc = link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    expect(row[0]).toMatch(new RegExp(`^idea_[^,]+,"Áo ""dog mom"", làm tay",new,manual,${esc},manual,,${esc},,,,Saver E2E,`));
+  } finally {
+    // The other ideas specs count store A's ideas, so the row goes even on a failure.
+    const pool = e2ePool();
+    await pool.query(`delete from saved_ideas where source_ref = $1`, [link]);
+    await pool.end();
+  }
 });

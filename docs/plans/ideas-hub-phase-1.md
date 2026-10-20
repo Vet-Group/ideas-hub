@@ -1209,17 +1209,20 @@ or is a question for the owner.
 - Step 1, no block-rate threshold decides go or no-go after the probe: resolved. Step 4's decision
   point is the threshold: success (AC 1's definition) below 90% after tuning stops the plan and brings
   options to the owner (Step 4 "Decision point"; spec AC 1). The probe feeds that measurement, and
-  `docs/research/2026-10-20-block-rate.md` "Decision point" records it (≥ 90% so far). No code, so no
-  test.
+  `docs/research/2026-10-20-block-rate.md` "Decision point" records it (≥ 90% so far). Only the
+  threshold is settled: the go or no-go itself is still pending there until the scheduled runs of
+  Step 4 are in. No code, so no test.
 - Step 2, `days_active` of an active ad: resolved. Spec §1 "Measures" says `days_active` always uses
   the payload's `end_date`, which for an active ad is the Pacific day it was read, not the server's
   today. Code: `packages/db/src/queries/research.ts:80` and `packages/db/src/queries/briefing.ts:106`
-  call `daysActive(start_date, end_date)`; tests: `packages/core/src/measures.test.ts:36` ("counts an
-  active ad up to today", the read day) and `:53` (a run crossing Pacific midnight uses `end_date`).
-- Shop's running ad count as ad statuses change: resolved. `refreshShops`
-  (`apps/worker/src/run.ts:230`) recounts every shop's running ads, down to 0, in each run's final
-  transaction (`run.ts:173`); test: `apps/worker/test/run.test.ts`, "refreshes each shop's running ad
-  count …". Between two runs the count can lag by up to one slot, like KeywordDay.
+  call `daysActive(start_date, end_date)`; test: `packages/core/src/measures.test.ts` "keeps the start
+  date for a run that crosses Pacific midnight, while days_active uses end_date".
+- Shop's running ad count as ad statuses change: resolved. `refreshShops` (`apps/worker/src/run.ts`)
+  recounts every shop's running ads, down to 0, in the final transaction of each run that ends `done`
+  or `stopped` without `run_failed`; test: `apps/worker/test/run.test.ts`, "refreshes each shop's
+  running ad count …". A run closed by `failRunningRun` (the browser does not start, a run error, the
+  watchdog, a worker restart) leaves the count as it was, like KeywordDay, so it lags until the next
+  run that finishes, not only by one slot.
 - Which `via` a save from a keyword report page gets: partly resolved. A suggestion saved from the
   report's AI section gets `via = briefing` like every suggestion
   (`apps/web/src/app/(app)/ideas/actions.ts:48`, plan Step 7 "Save from suggestion … setting
