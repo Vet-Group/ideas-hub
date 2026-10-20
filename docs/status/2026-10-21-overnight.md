@@ -18,6 +18,8 @@ calendar time, and is listed under "Pending owner".
 | 8. Contract, Linux trial, onboarding, acceptance run (docs and scripts) | #8 | 2c6373f | merged |
 | Review fixes (Steps 6–8 critic findings) | #9 | a420d1e | merged |
 | Cleanup of the briefing web files | #10 | cbcdf70 | merged |
+| Status report | #11 | ab9e094 | merged; its main CI run failed on a flaky e2e test, fixed by the next row |
+| Fix the keyboard-move e2e race | #12 | see `git log` | this PR |
 
 No step was blocked. At the last check, `pnpm -r test` passed in every package: core 69, rss 3,
 db 38, fb-ad-library 39, worker 114, web 75. The full web e2e suite passed locally (100 tests) on
@@ -101,6 +103,10 @@ No `IdeasHub-Worker-*` task is registered.
   through the tunnel. Only `bash -n`, `shellcheck` and dry runs were done.
 - The seeded news feed URLs were never fetched, and the model prices were not checked against the
   providers.
+- The Step 6 keyboard-move e2e test pressed keys before the board hydrated and faster than dnd-kit
+  measures the columns (1 failure in 10 runs with only a hydration wait). It now waits for each
+  live-region announcement; 15 of 15 local runs pass. No user-facing fix was made, since a person
+  cannot press keys a few milliseconds apart.
 - The cause of one Step 5 axe flake was not found. The likely cause is the loading skeleton; it did
   not happen again.
 - Three MINOR critic findings are open:
