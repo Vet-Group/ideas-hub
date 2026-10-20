@@ -1,5 +1,5 @@
 import { ROLES } from '@ideas-hub/core';
-import { boolean, check, index, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, check, index, integer, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { createdAt, id, oneOf, tstz } from './columns';
 
@@ -75,6 +75,22 @@ export const verifications = pgTable(
   },
   (t) => [index('verifications_identifier_idx').on(t.identifier)],
 );
+
+/** better-auth's HTTP rate limiter (rateLimit.storage 'database'): one row per client IP and auth path. */
+export const rateLimits = pgTable('rate_limits', {
+  id: id('rl'),
+  key: text('key').notNull().unique(),
+  count: integer('count').notNull(),
+  // Epoch milliseconds, as better-auth writes it.
+  lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
+});
+
+/** Sign-in attempts of the login action per `ip:<address>` and `email:<lowercased>` (apps/web/src/lib/login-limit.ts). */
+export const loginFailures = pgTable('login_failures', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull(),
+  resetAt: tstz('reset_at').notNull(),
+});
 
 export const stores = pgTable('stores', {
   id: id('store'),
