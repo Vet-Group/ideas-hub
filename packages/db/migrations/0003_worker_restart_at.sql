@@ -1,0 +1,1 @@
+ALTER TABLE "crawler_state" ADD COLUMN "worker_restart_at" timestamp with time zone;
