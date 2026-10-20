@@ -3,13 +3,18 @@ import { CreateBucketCommand, HeadBucketCommand, PutObjectCommand, S3Client } fr
 import { type ObjectStore } from './context';
 
 export function s3StoreFromEnv(): ObjectStore {
-  const bucket = process.env.S3_BUCKET ?? 'ideas-hub';
-  const client = new S3Client({
-    endpoint: process.env.S3_ENDPOINT,
-    region: 'us-east-1',
-    forcePathStyle: true,
-    credentials: { accessKeyId: process.env.S3_ACCESS_KEY ?? '', secretAccessKey: process.env.S3_SECRET_KEY ?? '' },
-  });
+  return s3Store(
+    new S3Client({
+      endpoint: process.env.S3_ENDPOINT,
+      region: 'us-east-1',
+      forcePathStyle: true,
+      credentials: { accessKeyId: process.env.S3_ACCESS_KEY ?? '', secretAccessKey: process.env.S3_SECRET_KEY ?? '' },
+    }),
+    process.env.S3_BUCKET ?? 'ideas-hub',
+  );
+}
+
+export function s3Store(client: Pick<S3Client, 'send'>, bucket: string): ObjectStore {
   let ready: Promise<void> | null = null;
   const ensureBucket = async () => {
     try {
@@ -20,7 +25,11 @@ export function s3StoreFromEnv(): ObjectStore {
   };
   return {
     async put(key, body, contentType) {
-      ready ??= ensureBucket();
+      // A failed check is not kept, so the next put tries again (MinIO down for a moment).
+      ready ??= ensureBucket().catch((e: unknown) => {
+        ready = null;
+        throw e;
+      });
       await ready;
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
     },

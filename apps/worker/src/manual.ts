@@ -51,7 +51,9 @@ export async function requestRun(pool: pg.Pool, boss: PgBoss, s: Settings, req: 
       return { ok: true as const, runId, deadline };
     });
   } catch (e) {
-    if ((e as { code?: string }).code === UNIQUE_VIOLATION) return { ok: false, reason: 'manual_pending' };
+    // drizzle wraps the pg error, so the code can sit on `cause`.
+    const pgError = e as { code?: string; cause?: { code?: string } };
+    if ((pgError.code ?? pgError.cause?.code) === UNIQUE_VIOLATION) return { ok: false, reason: 'manual_pending' };
     throw e;
   }
 }

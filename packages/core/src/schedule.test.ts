@@ -29,7 +29,7 @@ describe('slots', () => {
   });
 
   it('finds the next slot and the Vietnam date', () => {
-    expect(nextSlotAfter(S.runTimes, new Date('2026-10-20T06:00:00Z')).toISOString()).toBe('2026-10-20T18:00:00.000Z');
+    expect(nextSlotAfter(S.runTimes, new Date('2026-10-20T06:00:00Z'))?.toISOString()).toBe('2026-10-20T18:00:00.000Z');
     expect(vietnamDate(new Date('2026-10-20T18:00:00Z'))).toBe('2026-10-21');
     expect(vietnamInstant('2026-10-21', '01:00').toISOString()).toBe('2026-10-20T18:00:00.000Z');
   });
@@ -109,5 +109,15 @@ describe('validateSettings', () => {
   it('rejects an LLM timeout whose two attempts exceed the briefing job expiry, accepts 120 s', () => {
     expect(validateSettings(with_({ llmCallTimeoutSeconds: 451 }))).toContain('llm_timeout_over_job_expiry');
     expect(validateSettings(with_({ llmCallTimeoutSeconds: 120 }))).toEqual([]);
+  });
+});
+
+describe('no run times', () => {
+  it('slotsBetween and nextSlotAfter return nothing instead of looping, and a manual run keeps its deadline', () => {
+    const t = new Date('2026-10-21T00:00:00Z');
+    expect(slotsBetween([], t, new Date(t.getTime() + 86_400_000))).toEqual([]);
+    expect(nextSlotAfter([], t)).toBeNull();
+    const s = { ...(DEFAULT_SETTINGS as unknown as Settings), runTimes: [] };
+    expect(manualDeadline(t, s)).toEqual(new Date(t.getTime() + s.runDeadlineMinutes * 60_000));
   });
 });

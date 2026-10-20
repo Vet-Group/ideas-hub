@@ -19,10 +19,11 @@ left join lateral (
 where r.trigger = 'schedule' and r.scheduled_for <= now() and r.scheduled_for > now() - interval '14 days';
 
 -- name: ac2_violations
--- AC 2: every ok search has embedded_count > 0; pages_read >= 1 when embedded_has_next; fewer than 100
+-- AC 2: every ok search has embedded_count > 0; pages_read >= 1 when embedded_has_next; fewer than the cap (100)
 -- ads only with last_has_next false or stop_reason = no_new_ads. Interrupted searches are not ok.
 select
   count(*) filter (where coalesce(embedded_count, 0) = 0)::int as ok_without_embedded,
   count(*) filter (where embedded_has_next and pages_read < 1)::int as has_next_without_page,
-  count(*) filter (where ads_found < 100 and not (last_has_next is false or stop_reason = 'no_new_ads'))::int as silent_stops
+  count(*) filter (where ads_found < (select (value #>> '{}')::int from settings where key = 'adsPerSearchCap')
+    and not (last_has_next is false or stop_reason = 'no_new_ads'))::int as silent_stops
 from crawl_searches where status = 'ok';

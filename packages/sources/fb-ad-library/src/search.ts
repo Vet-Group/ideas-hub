@@ -99,6 +99,24 @@ class Interrupted extends Error {
   }
 }
 
+/** A heartbeat write that failed: a database error, not a search error, so runSearch rethrows it. */
+class BeatFailed extends Error {
+  constructor(override cause: unknown) {
+    super('heartbeat write failed');
+  }
+}
+
+function isEmptyPayload(body: string): boolean {
+  const text = body.replace(/^for \(;;\);/, '').trim();
+  if (text === '') return true;
+  try {
+    const o = JSON.parse(text) as Record<string, unknown> | null;
+    return !!o && typeof o === 'object' && 'errors' in o && !('data' in o && o.data);
+  } catch {
+    return false;
+  }
+}
+
 type Attempt = Omit<SearchResult, 'attempts' | 'retries' | 'browserRestarts' | 'waitLimitHits'>;
 
 async function attempt(page: SearchPage, query: string, country: string, deps: SearchDeps): Promise<Attempt> {
@@ -117,10 +135,17 @@ async function attempt(page: SearchPage, query: string, country: string, deps: S
     ads: [],
   };
   const blocked = (reason: BlockReason, signal: Signal) => Object.assign(r, { status: 'blocked' as const, signal, reason });
+  const beat = async () => {
+    try {
+      await deps.beat();
+    } catch (e) {
+      throw new BeatFailed(e);
+    }
+  };
 
-  await deps.beat();
+  await beat();
   await page.open(searchUrl(query, country), w.pageLoad * 1000);
-  await deps.beat();
+  await beat();
   const embedded = await page.embeddedData(w.embeddedData * 1000);
   if (await page.loginWall()) return blocked('login_wall', 'captcha');
   if (embedded === null) throw new TransientError('embeddedData', 'embedded data did not arrive');
@@ -162,20 +187,22 @@ async function attempt(page: SearchPage, query: string, country: string, deps: S
     }
     if (deps.deadlinePassed()) throw new Interrupted(r.ads);
     await deps.sleep(deps.scrollDelayMs());
-    await deps.beat();
+    await beat();
     const bodies = await page.scroll(w.scrollResponse * 1000);
     if (bodies === null) throw new TransientError('scrollResponse', 'no pagination response');
     for (const body of bodies) {
       r.pagesRead += 1;
       let ads: RawAd[] = [];
       let pageHasNext: boolean | undefined;
-      try {
+      // An empty body or a payload of only `errors` is an empty payload (block detection); anything
+      // else unreadable throws ParseError, which makes the search a parse_error.
+      if (!isEmptyPayload(body)) {
         const pc = parseGraphql(body);
+        if (pc.captcha) return blocked('captcha', 'captcha');
         ads = pc.ads;
         pageHasNext = pc.hasNext;
-      } catch {
-        // An unreadable scroll payload counts as empty, toward block detection.
       }
+      if (seen.size >= s.adsPerSearchCap) break;
       if (ads.length === 0) {
         // Empty payloads go to block detection only, never to the 2-page rule.
         emptyInRow += 1;
@@ -189,7 +216,7 @@ async function attempt(page: SearchPage, query: string, country: string, deps: S
       if (pageHasNext !== undefined) hasNext = pageHasNext;
       noNewInRow = add(ads) === 0 ? noNewInRow + 1 : 0;
     }
-    if (noNewInRow >= s.noNewAdsPagesToStop) {
+    if (seen.size < s.adsPerSearchCap && noNewInRow >= s.noNewAdsPagesToStop) {
       r.stopReason = 'no_new_ads';
       break;
     }
@@ -221,6 +248,7 @@ export async function runSearch(query: string, country: string, deps: SearchDeps
       const res = await attempt(await deps.session.page(), query, country, deps);
       return { ...res, ...counters };
     } catch (e) {
+      if (e instanceof BeatFailed) throw e.cause;
       if (e instanceof Interrupted) {
         return { ...emptyResult('interrupted', 'neutral', 'run deadline'), ads: e.ads, ...counters };
       }

@@ -140,14 +140,16 @@ async function pass(ctx: Ctx, deps: WatchdogDeps) {
   }
 
   // heartbeat_lost: one open incident from a missing heartbeat only, resolved by a fresh one.
+  let newIncident = false;
   if (stale && heartbeatAt !== null) {
-    await insertAlert(ctx.db, { kind: 'heartbeat_lost', detail: `last heartbeat ${heartbeatAt.toISOString()}`, at: now });
+    newIncident = await insertAlert(ctx.db, { kind: 'heartbeat_lost', detail: `last heartbeat ${heartbeatAt.toISOString()}`, at: now });
     result.heartbeatLost = true;
   } else if (!stale) {
     await ctx.db.execute(sql`update alerts set resolved_at = ${now} where kind = 'heartbeat_lost' and resolved_at is null`);
   }
-  // Restart once: after closing a hung run, or when the worker hung while idle.
-  if (result.hungRuns > 0 || (stale && heartbeatAt !== null)) {
+  // Restart once: after closing a hung run, or when a heartbeat_lost incident opens (the worker hung
+  // while idle); later passes of the same incident leave a worker that may still be starting alone.
+  if (result.hungRuns > 0 || newIncident) {
     await deps.restartWorker();
     result.restarted = true;
   }

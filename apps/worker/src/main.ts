@@ -43,11 +43,18 @@ await ctx.boss.work<CrawlJob>(CRAWL, { localConcurrency: 1, batchSize: 1 }, asyn
 });
 
 const tick = () => schedulerPass(ctx).then((r) => r.problems.length || ctx.log('scheduler', r), (e) => ctx.log('scheduler error', { error: String(e) }));
-await tick();
-const scheduler = setInterval(tick, 60_000);
+// The next pass is timed from the end of the last one, so two passes never overlap.
+let scheduler: NodeJS.Timeout | undefined;
+let stopping = false;
+const loop = async () => {
+  await tick();
+  if (!stopping) scheduler = setTimeout(() => void loop(), 60_000);
+};
+await loop();
 
 const shutdown = async () => {
-  clearInterval(scheduler);
+  stopping = true;
+  clearTimeout(scheduler);
   idle.stop();
   await ctx.stop();
   process.exit(0);

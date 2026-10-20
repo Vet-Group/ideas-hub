@@ -7,7 +7,7 @@ import { type Db, withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
 import { type Ctx, loadSettings } from './context';
 import { sleepWithBeats, writeHeartbeat } from './heartbeat';
-import { type ActivePair, activePairs, closeNotStarted, failRunningRun, insertAlert } from './runs';
+import { type ActivePair, activePairs, closeNotStarted, failRunningRun, insertAlert, markSearchRunning } from './runs';
 import { downloadThumbnails } from './thumbnails';
 import { missingThumbnails, upsertAds } from './upsert';
 
@@ -84,11 +84,7 @@ export async function runCrawl(ctx: Ctx, runId: string, deps: RunDeps): Promise<
     let ran = 0;
     for (const [i, search] of searches.entries()) {
       if (now() >= deadline) break;
-      const marked = await ctx.db.execute(sql`
-        update crawl_searches set status = 'running', started_at = ${now()}
-        where id = ${search.id} and status = 'pending'
-          and exists (select 1 from crawl_runs where id = ${runId} and status = 'running') returning id`);
-      if (marked.rows.length === 0) throw new Dropped();
+      if (!(await markSearchRunning(ctx.pool, runId, search.id, now()))) throw new Dropped();
 
       const res = await runSearch(search.text, search.country, {
         settings: s,
@@ -147,7 +143,9 @@ export async function runCrawl(ctx: Ctx, runId: string, deps: RunDeps): Promise<
       });
       if (thumbs.limitHits) addHits({ thumbnailDownload: thumbs.limitHits });
       for (const t of thumbs.stored) {
-        await ctx.db.execute(sql`update ads set thumbnail_key = ${t.key} where ad_archive_id = ${t.adArchiveId}`);
+        await ctx.db.execute(sql`
+          update ads set thumbnail_key = ${t.key} where ad_archive_id = ${t.adArchiveId}
+            and exists (select 1 from crawl_runs where id = ${runId} and status = 'running')`);
       }
       if (!last) {
         const pause = decision?.pauseMs ?? 0;
@@ -157,6 +155,8 @@ export async function runCrawl(ctx: Ctx, runId: string, deps: RunDeps): Promise<
     }
 
     const status = stop ? 'stopped' : 'done';
+    // Closed before the final update, so a close over its limit is counted on the run.
+    await session.close().catch(() => {});
     await withTx(ctx.pool, async ({ db }) => {
       await ensureRunning(db, runId);
       await db.execute(sql`update crawl_searches set status = 'skipped' where run_id = ${runId} and status = 'pending'`);

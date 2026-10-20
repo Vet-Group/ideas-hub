@@ -238,6 +238,16 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect(s.slice(1).every((x) => x.status === 'skipped')).toBe(true);
   });
 
+  it('counts a final browser close over its limit on the run', async () => {
+    const id = await scheduled();
+    const site = fakeSite((q, c) => ({ kind: 'ok', ids: ids(`${q}${c}-`, 2) }));
+    const deps = runDeps(h, site, {
+      createSession: (_s, onCloseTimeout) => ({ ...site.session(), close: async () => onCloseTimeout() }),
+    });
+    expect(await runCrawl(h, id, deps)).toBe('done');
+    expect((await runRow(id)).wait_limit_hits).toEqual({ browserClose: 1 });
+  });
+
   it('a late finish after a watchdog close writes no snapshot, Alert or blocked_until, and the run is dropped', async () => {
     const id = await scheduled();
     // A block found after the close: its Alert and cool-down must not be written.

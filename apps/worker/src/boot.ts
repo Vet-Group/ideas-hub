@@ -4,9 +4,7 @@ import { PgBoss } from 'pg-boss';
 import { type Ctx, type ObjectStore, consoleLog, systemClock } from './context';
 import { s3StoreFromEnv } from './s3';
 
-/** pg-boss polling stays at its defaults (2 s and 30 s); 120 s or more would starve the idle heartbeat. */
-export const MAX_POLLING_SECONDS = 120;
-
+// pg-boss polling stays at its defaults (2 s and 30 s); 120 s or more would starve the idle heartbeat.
 export async function boot(opts: { store?: ObjectStore; poolSize?: number } = {}): Promise<Ctx & { stop: () => Promise<void> }> {
   const url = databaseUrl();
   const pool = createPool(url, opts.poolSize ?? 5);

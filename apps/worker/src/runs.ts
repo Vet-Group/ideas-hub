@@ -1,20 +1,22 @@
 // Run-row helpers shared by the crawl job, crash recovery, the scheduler and the watchdog.
 import { type Settings, plannedSearches } from '@ideas-hub/core';
-import { type Db } from '@ideas-hub/db/client';
+import { type Db, withTx } from '@ideas-hub/db/client';
+import { type Pool } from 'pg';
 import { sql } from 'drizzle-orm';
 
 export type AlertKind = 'blocked' | 'network_error' | 'parse_error' | 'missed_run' | 'run_failed' | 'heartbeat_lost' | 'briefing_late' | 'lark_send_failed';
 
-/** Inserts an Alert unless its dedupe key already has one (spec §2 "Alert"). */
+/** Inserts an Alert unless its dedupe key already has one (spec §2 "Alert"); true when it inserted. */
 export async function insertAlert(
   db: Db,
   a: { kind: AlertKind; runId?: string | null; briefingId?: string | null; cooldownSeq?: number | null; affected?: number | null; detail?: string | null; at: Date },
-) {
-  await db.execute(sql`
+): Promise<boolean> {
+  const { rowCount } = await db.execute(sql`
     insert into alerts (id, kind, run_id, briefing_id, cooldown_seq, affected_searches, detail, created_at)
     values (${`alert_${crypto.randomUUID().replace(/-/g, '').slice(0, 21)}`}, ${a.kind}, ${a.runId ?? null}, ${a.briefingId ?? null},
       ${a.cooldownSeq ?? null}, ${a.affected ?? null}, ${a.detail ?? null}, ${a.at})
     on conflict do nothing`);
+  return (rowCount ?? 0) > 0;
 }
 
 export interface ActivePair {
@@ -33,9 +35,19 @@ export async function plannedForSchedule(db: Db, s: Settings): Promise<number> {
   return plannedSearches(s.searchBudget, (await activePairs(db, s)).length);
 }
 
-export async function blockedUntil(db: Db): Promise<Date | null> {
-  const { rows } = await db.execute<{ blocked_until: Date | null }>(sql`select blocked_until from crawler_state where id = 1`);
-  return rows[0]?.blocked_until ?? null;
+/**
+ * Marks a search `running` while its run is `running`. The run row is locked first, so a close in
+ * progress (failRunningRun) finishes before this reads the status, and no search stays `running` on a
+ * stopped run.
+ */
+export async function markSearchRunning(pool: Pool, runId: string, searchId: string, at: Date): Promise<boolean> {
+  return withTx(pool, async ({ db }) => {
+    const run = await db.execute(sql`select 1 from crawl_runs where id = ${runId} and status = 'running' for update`);
+    if (run.rows.length === 0) return false;
+    const { rows } = await db.execute(sql`
+      update crawl_searches set status = 'running', started_at = ${at} where id = ${searchId} and status = 'pending' returning id`);
+    return rows.length > 0;
+  });
 }
 
 /**

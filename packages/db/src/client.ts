@@ -31,16 +31,18 @@ const bossDbOf = (client: pg.PoolClient | pg.Pool): BossDb => ({
 /** One transaction on one connection, for drizzle queries and pg-boss calls alike. */
 export async function withTx<T>(pool: pg.Pool, fn: (tx: Tx) => Promise<T>): Promise<T> {
   const client = await pool.connect();
+  let broken: Error | undefined;
   try {
     await client.query('begin');
     const result = await fn({ db: drizzle(client, { schema }), client, bossDb: bossDbOf(client) });
     await client.query('commit');
     return result;
   } catch (e) {
-    await client.query('rollback').catch(() => {});
+    // A connection that cannot roll back is destroyed instead of going back to the pool.
+    await client.query('rollback').catch((err: Error) => (broken = err));
     throw e;
   } finally {
-    client.release();
+    client.release(broken);
   }
 }
 

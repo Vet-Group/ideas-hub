@@ -109,6 +109,38 @@ describe('runSearch pagination', () => {
     expect(r.ads).toHaveLength(40);
   });
 
+  it('an empty body or a payload of errors counts as empty; 3 in a row are blocked', async () => {
+    const errors = JSON.stringify({ errors: [{ message: 'Rate limit exceeded' }] });
+    const { session } = fakeSession([{ scrolls: [[page(range('a', 10))], [''], [errors], ['  ']] }]);
+    expect(await runSearch('q', 'US', deps(session).d)).toMatchObject({ status: 'blocked', reason: 'empty_payloads' });
+  });
+
+  it('an unreadable scroll payload is a parse_error, not an empty payload', async () => {
+    const { session } = fakeSession([{ scrolls: [[page(range('a', 10))], ['<html>not json']] }]);
+    const r = await runSearch('q', 'US', deps(session).d);
+    expect(r).toMatchObject({ status: 'parse_error', signal: 'neutral', attempts: 1 });
+    const noConn = fakeSession([{ scrolls: [[JSON.stringify({ data: { something_else: {} } })]] }]);
+    expect((await runSearch('q', 'US', deps(noConn.session).d)).status).toBe('parse_error');
+  });
+
+  it('a captcha flag in a scroll payload stops the search as captcha', async () => {
+    const captcha = JSON.stringify({ data: { ad_library_main: conn(range('a', 10), true), xfb_ad_library_is_captcha_required: true } });
+    const { session } = fakeSession([{ scrolls: [[captcha]] }]);
+    expect(await runSearch('q', 'US', deps(session).d)).toMatchObject({ status: 'blocked', signal: 'captcha', reason: 'captcha' });
+  });
+
+  it('reaching the cap inside one scroll stops as cap even when later bodies bring nothing new', async () => {
+    const scrolls: Step[] = [[page(range('a', 40)), page(range('b', 40)), page(range('c', 10)), page(range('d', 10))]];
+    const { session } = fakeSession([{ scrolls }]);
+    expect(await runSearch('q', 'US', deps(session).d)).toMatchObject({ status: 'ok', stopReason: 'cap', signal: 'ok' });
+  });
+
+  it('a failing heartbeat write is not a search error: it propagates', async () => {
+    const { session } = fakeSession([{}]);
+    const dbDown = new Error('Connection terminated unexpectedly');
+    await expect(runSearch('q', 'US', deps(session, { beat: () => Promise.reject(dbDown) }).d)).rejects.toBe(dbDown);
+  });
+
   it('waits the page delay after load and a scroll delay before each scroll', async () => {
     const { session } = fakeSession([{ scrolls: [[page(range('a', 10), false)]] }]);
     const { d, sleeps } = deps(session);

@@ -113,12 +113,13 @@ describe.skipIf(!testDatabaseAvailable())('watchdog', () => {
     expect(await all(h, sql`select kind from alerts where run_id = ${id}`)).toEqual([{ kind: 'run_failed' }]);
   });
 
-  it('a stale heartbeat with no run opens one heartbeat_lost incident and restarts the worker; a fresh one resolves it', async () => {
+  it('a stale heartbeat with no run opens one heartbeat_lost incident and restarts the worker once; a fresh one resolves it', async () => {
     await h.db.execute(sql`update crawler_state set heartbeat_at = ${new Date(h.clock.t - 40 * MIN)}`);
     await watchdogPass(h, deps);
+    h.clock.advance(5 * MIN);
     await watchdogPass(h, deps);
     expect(await all(h, sql`select resolved_at from alerts where kind = 'heartbeat_lost'`)).toEqual([{ resolved_at: null }]);
-    expect(restarts).toBe(2);
+    expect(restarts).toBe(1);
     await fresh();
     await watchdogPass(h, deps);
     const open = await all(h, sql`select 1 from alerts where kind = 'heartbeat_lost' and resolved_at is null`);

@@ -162,17 +162,16 @@ export class PlaywrightSession implements BrowserSession {
     this.server = null;
     this.current = null;
     if (!server) return;
-    const closed = await Promise.race([
+    const outcome = await Promise.race([
       (async () => {
         await browser?.close();
         await server.close();
-        return true;
-      })().catch(() => false),
-      sleep(this.o.closeTimeoutMs).then(() => false),
+        return 'closed' as const;
+      })().catch(() => 'error' as const),
+      sleep(this.o.closeTimeoutMs).then(() => 'timeout' as const),
     ]);
-    if (!closed) {
-      this.o.onCloseTimeout?.();
-      await server.kill();
-    }
+    // Only a close over its limit is a wait-limit hit; a failed close is killed all the same.
+    if (outcome === 'timeout') this.o.onCloseTimeout?.();
+    if (outcome !== 'closed') await server.kill();
   }
 }

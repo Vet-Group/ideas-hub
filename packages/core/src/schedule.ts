@@ -39,6 +39,7 @@ export function morningRunTime(s: Pick<ScheduleSettings, 'runTimes' | 'briefingB
 /** Every slot in [from, to), in time order. */
 export function slotsBetween(runTimes: readonly string[], from: Date, to: Date): Date[] {
   const out: Date[] = [];
+  if (runTimes.length === 0) return out;
   for (let day = vietnamDate(new Date(from.getTime() - DAY)); ; ) {
     for (const t of [...runTimes].sort((a, b) => minutesOf(a) - minutesOf(b))) {
       const slot = vietnamInstant(day, t);
@@ -49,9 +50,9 @@ export function slotsBetween(runTimes: readonly string[], from: Date, to: Date):
   }
 }
 
-/** The first slot strictly after `t`. */
-export function nextSlotAfter(runTimes: readonly string[], t: Date): Date {
-  return slotsBetween(runTimes, new Date(t.getTime() + 1), new Date(t.getTime() + 2 * DAY))[0]!;
+/** The first slot strictly after `t`; null without run times. */
+export function nextSlotAfter(runTimes: readonly string[], t: Date): Date | null {
+  return slotsBetween(runTimes, new Date(t.getTime() + 1), new Date(t.getTime() + 2 * DAY))[0] ?? null;
 }
 
 /** Earlier of slot + run deadline and, for the morning run, the hard stop of that day. */
@@ -65,8 +66,9 @@ export function scheduledDeadline(slot: Date, s: ScheduleSettings): Date {
 
 /** A Run now or `cli` row: earlier of the run deadline after the request and the margin before the next slot. */
 export function manualDeadline(requestedAt: Date, s: ScheduleSettings): Date {
-  const next = nextSlotAfter(s.runTimes, requestedAt).getTime() - s.manualRunMarginMinutes * MINUTE;
-  return new Date(Math.min(requestedAt.getTime() + s.runDeadlineMinutes * MINUTE, next));
+  const byDeadline = requestedAt.getTime() + s.runDeadlineMinutes * MINUTE;
+  const next = nextSlotAfter(s.runTimes, requestedAt);
+  return new Date(next ? Math.min(byDeadline, next.getTime() - s.manualRunMarginMinutes * MINUTE) : byDeadline);
 }
 
 /** `crawl.run` expiry: run deadline + grace + the watchdog period (17400 s by default). */
