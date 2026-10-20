@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS } from '@ideas-hub/core';
 import { describe, expect, it } from 'vitest';
 import { FIELDS, fieldValue, parseSettingsForm } from './settings-form';
+import { t } from './strings.vi';
 
 /** The form as the page renders it from the defaults, with some fields overridden. */
 function form(over: Record<string, string> = {}) {
@@ -72,5 +73,14 @@ describe('settings form', () => {
 
   it('returns the cross-field problems of validateSettings', () => {
     expect(parseSettingsForm(form({ runTimes: '01:00, 03:00' })).problems).toContain('slots_too_close');
+    expect(parseSettingsForm(form({ llmCallTimeoutSeconds: '443' })).problems).toEqual(['feed_refresh_over_job_expiry']);
+    expect(parseSettingsForm(form({ briefingReadyTime: '06:40' })).problems).toEqual(['ready_before_build_ends']);
+  });
+
+  it('has its own Vietnamese message for each new problem', () => {
+    const p = t.admin.settings.problems;
+    expect(p.feed_refresh_over_job_expiry).toMatch(/RSS/);
+    expect(p.ready_before_build_ends).toMatch(/sẵn sàng/);
+    expect(p.feed_refresh_over_job_expiry).not.toBe(p.llm_timeout_over_job_expiry);
   });
 });

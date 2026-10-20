@@ -1,12 +1,14 @@
 // RSS refresh (spec §1 "Sources"): the global briefing.build fetches the enabled feeds right before it
 // builds section 5, once a day, so news is fresh at 06:30 and feeds see one request a day each. Each feed
 // has its own timeout and error; a failed feed keeps the items it had.
+import { FEED_TIMEOUT_SECONDS } from '@ideas-hub/core';
 import { newsFeeds, newsItems } from '@ideas-hub/db';
 import { type FetchOptions, fetchFeeds } from '@ideas-hub/rss';
 import { eq, sql } from 'drizzle-orm';
 import { type Ctx } from './context';
 
-export const FEED_TIMEOUT_MS = 15_000;
+// validateSettings counts this timeout in the briefing job's expiry.
+export const FEED_TIMEOUT_MS = FEED_TIMEOUT_SECONDS * 1000;
 
 export async function refreshFeeds(ctx: Pick<Ctx, 'db' | 'clock' | 'log'>, o: Partial<FetchOptions> = {}) {
   const feeds = await ctx.db.select({ id: newsFeeds.id, url: newsFeeds.url }).from(newsFeeds).where(eq(newsFeeds.enabled, true));
