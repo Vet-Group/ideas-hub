@@ -22,6 +22,20 @@ const MAX_EXPIRY_SECONDS = 24 * 3600;
 export const FEED_TIMEOUT_SECONDS = 15;
 /** LLM calls one briefing may make (the worker's reservation limit); each may take the LLM call timeout. */
 export const MAX_LLM_CALLS = 2;
+/** lark.send retries after the first attempt (pg-boss retryLimit), each after a fixed delay. */
+export const LARK_RETRY_LIMIT = 3;
+export const LARK_RETRY_DELAY_SECONDS = 30;
+/** pg-boss work() poll interval of briefing.build and lark.send (the pg-boss 12.37.0 default, set explicitly in main.ts). */
+export const QUEUE_POLL_SECONDS = 2;
+
+/**
+ * Room after build time + job expiry for the global briefing's Lark post, which the watchdog also judges
+ * at the ready time: one pickup of the lark.send job per attempt (first + retries), each attempt bounded
+ * by the Lark send timeout, the retry delays, and the briefing job's own pickup.
+ * Decided by the owner's delegate on 2026-10-21, reversible.
+ */
+export const briefingReadyMarginSeconds = (s: Pick<Settings, 'larkSendTimeoutSeconds'>) =>
+  QUEUE_POLL_SECONDS + (LARK_RETRY_LIMIT + 1) * (QUEUE_POLL_SECONDS + s.larkSendTimeoutSeconds) + LARK_RETRY_LIMIT * LARK_RETRY_DELAY_SECONDS;
 
 export function validateSettings(s: Settings): SettingsProblem[] {
   const problems: SettingsProblem[] = [];
@@ -45,7 +59,9 @@ export function validateSettings(s: Settings): SettingsProblem[] {
   if (MAX_LLM_CALLS * s.llmCallTimeoutSeconds > s.briefingJobExpirySeconds) problems.push('llm_timeout_over_job_expiry');
   else if (FEED_TIMEOUT_SECONDS + MAX_LLM_CALLS * s.llmCallTimeoutSeconds > s.briefingJobExpirySeconds) problems.push('feed_refresh_over_job_expiry');
   if (s.briefingJobExpirySeconds > MAX_EXPIRY_SECONDS) problems.push('briefing_expiry_over_24h');
-  // The page and the watchdog judge today's briefing at the ready time, so one build attempt must fit before it.
-  if (minutesOf(s.briefingBuildTime) * 60 + s.briefingJobExpirySeconds > minutesOf(s.briefingReadyTime) * 60) problems.push('ready_before_build_ends');
+  // The page and the watchdog judge today's briefing and its Lark post at the ready time, so one build attempt and the post must fit before it.
+  if (minutesOf(s.briefingBuildTime) * 60 + s.briefingJobExpirySeconds + briefingReadyMarginSeconds(s) > minutesOf(s.briefingReadyTime) * 60) {
+    problems.push('ready_before_build_ends');
+  }
   return problems;
 }

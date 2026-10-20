@@ -1,6 +1,7 @@
 // The worker process: crash recovery, then the three queues, the scheduler every minute and the idle
 // heartbeat timer. briefing.build and lark.send write no heartbeat; they are bounded by their timeouts
 // and job.signal. Started by the Task Scheduler wrapper loop on Windows (Step 4), systemd on Linux.
+import { QUEUE_POLL_SECONDS } from '@ideas-hub/core';
 import { PlaywrightSession } from '@ideas-hub/fb-ad-library/playwright';
 import { boot } from './boot';
 import { loadSettings } from './context';
@@ -53,11 +54,11 @@ const briefingDeps: BriefingDeps = {
   refreshFeeds: (signal) => refreshFeeds(ctx, { signal }).then((r) => ctx.log('feeds', r)),
   sharedChat: lark?.sharedChat ?? null,
 };
-await ctx.boss.work<BriefingJob>(BRIEFING, { localConcurrency: 1, batchSize: 1 }, async ([job]) => {
+await ctx.boss.work<BriefingJob>(BRIEFING, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {
   ctx.log('briefing', { data: job!.data, outcome: await buildBriefing(ctx, job!.data, briefingDeps, job!.signal) });
 });
 const larkClient = lark ? larkHttpClient(lark) : null;
-await ctx.boss.work<LarkJob>(LARK, { localConcurrency: 1, batchSize: 1 }, async ([job]) => {
+await ctx.boss.work<LarkJob>(LARK, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {
   // Without the bot app nothing can be posted; the watchdog still flags the global briefing (lark_send_failed).
   if (!larkClient) return ctx.log('lark: LARK_APP_ID and LARK_APP_SECRET are not set, post skipped', { data: job!.data });
   ctx.log('lark', { data: job!.data, outcome: await larkSend(ctx, job!, { lark: larkClient, appUrl: process.env.APP_URL ?? '' }, job!.signal) });

@@ -1,14 +1,15 @@
 // The scheduler (plan Step 3): every minute it keeps 14 days of `schedule` rows written with their
 // deadline, planned searches and job, records run-time changes, and rewrites future rows (and re-sends
 // their jobs, cancel and send in one transaction) when settings change. It also sends the briefing
-// builds of the next build time (briefing.ts scheduleBriefings).
+// builds of the next build time (briefing.ts scheduleBriefings). Settings that fail validation stop all of
+// this and write a `settings_invalid` Alert.
 import { crawlJobExpirySeconds, plannedSearches, scheduledDeadline, slotsBetween, validateSettings } from '@ideas-hub/core';
 import { withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
 import { scheduleBriefings } from './briefing';
 import { type Ctx, SOURCE, loadSettings } from './context';
 import { CRAWL, jobState, sendCrawlJob } from './queues';
-import { activePairs } from './runs';
+import { activePairs, insertAlert } from './runs';
 
 const DAY = 86_400_000;
 export const SCHEDULE_DAYS = 14;
@@ -26,6 +27,8 @@ export async function schedulerPass(ctx: Ctx, hooks: SchedulerHooks = {}) {
   const problems = validateSettings(s);
   if (problems.length) {
     ctx.log('scheduler: settings rejected, rows left as they are', { problems });
+    // One per local day (alerts_settings_invalid_day_key); the watchdog sends it to Lark.
+    await insertAlert(ctx.db, { kind: 'settings_invalid', detail: problems.join(', '), at: now });
     return { problems };
   }
   const planned = plannedSearches(s.searchBudget, (await activePairs(ctx.db, s)).length);

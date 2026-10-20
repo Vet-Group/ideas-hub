@@ -12,7 +12,7 @@ import {
   vietnamInstant,
 } from './schedule';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
-import { validateSettings } from './validate-settings';
+import { briefingReadyMarginSeconds, validateSettings } from './validate-settings';
 
 const S = DEFAULT_SETTINGS as unknown as Settings;
 const with_ = (over: Partial<Settings>): Settings => ({ ...S, ...over });
@@ -118,11 +118,22 @@ describe('validateSettings', () => {
     expect(validateSettings(with_({ llmCallTimeoutSeconds: 451 }))).toEqual(['llm_timeout_over_job_expiry']);
   });
 
-  it('rejects a ready time before one briefing build attempt can end (06:30 + 15 min), accepts 06:45', () => {
+  it('rejects a ready time before one briefing build attempt can end (06:30 + 15 min)', () => {
     expect(validateSettings(with_({ briefingReadyTime: '06:44' }))).toEqual(['ready_before_build_ends']);
     expect(validateSettings(with_({ briefingReadyTime: '06:00' }))).toEqual(['ready_before_build_ends']);
-    expect(validateSettings(with_({ briefingReadyTime: '06:45' }))).toEqual([]);
     expect(validateSettings(with_({ briefingJobExpirySeconds: 1860 }))).toEqual(['ready_before_build_ends']);
+  });
+
+  it('keeps the ready margin after build + expiry: 2 s pickup + 4 Lark attempts of (2 s pickup + 30 s) + 3 retry delays of 30 s = 220 s', () => {
+    expect(briefingReadyMarginSeconds(S)).toBe(220);
+    expect(briefingReadyMarginSeconds(with_({ larkSendTimeoutSeconds: 60 }))).toBe(340);
+    // Exactly build + expiry (06:45) leaves no room for the queue and the Lark send.
+    expect(validateSettings(with_({ briefingReadyTime: '06:45' }))).toEqual(['ready_before_build_ends']);
+    // 06:49 = 06:30 + 920 s + 220 s: passes; one more second of expiry fails.
+    expect(validateSettings(with_({ briefingReadyTime: '06:49', briefingJobExpirySeconds: 920 }))).toEqual([]);
+    expect(validateSettings(with_({ briefingReadyTime: '06:49', briefingJobExpirySeconds: 921 }))).toEqual(['ready_before_build_ends']);
+    // A longer Lark send timeout widens the margin.
+    expect(validateSettings(with_({ briefingReadyTime: '06:49', briefingJobExpirySeconds: 920, larkSendTimeoutSeconds: 31 }))).toEqual(['ready_before_build_ends']);
   });
 });
 

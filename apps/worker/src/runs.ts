@@ -4,7 +4,7 @@ import { type Db, withTx } from '@ideas-hub/db/client';
 import { type Pool } from 'pg';
 import { sql } from 'drizzle-orm';
 
-export type AlertKind = 'blocked' | 'network_error' | 'parse_error' | 'missed_run' | 'run_failed' | 'heartbeat_lost' | 'briefing_late' | 'lark_send_failed';
+export type AlertKind = 'blocked' | 'network_error' | 'parse_error' | 'missed_run' | 'run_failed' | 'heartbeat_lost' | 'briefing_late' | 'lark_send_failed' | 'settings_invalid';
 
 /** Inserts an Alert unless its dedupe key already has one (spec §2 "Alert"); true when it inserted. */
 export async function insertAlert(

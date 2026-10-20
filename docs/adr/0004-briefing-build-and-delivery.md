@@ -52,6 +52,11 @@ fixes the rules (at most 2 LLM calls per briefing, cost committed before each ca
   `LARK_ADMIN_CHAT_ID` (environment, not settings); store chats are `stores.lark_chat_id`. Without the
   app id and secret nothing is posted. The watchdog gets the Lark sender for Alerts and checks the global
   briefing (`briefing_late`, `lark_send_failed`) once today's ready time has passed.
+- **Ready margin.** Settings are rejected when the ready time is before the build time plus the briefing
+  job expiry plus `briefingReadyMarginSeconds` (`packages/core/src/validate-settings.ts`): one 2 s queue
+  pickup for the build, then 4 `lark.send` attempts (first + `LARK_RETRY_LIMIT` 3) of a 2 s pickup plus
+  the Lark send timeout each, and 3 retry delays of 30 s; 220 s with the defaults (06:30 + 900 s +
+  220 s = 06:48:40, before 07:00). No setting of its own.
 - **Alert cut-off.** The watchdog sends only unsent Alerts created in the last 24 h
   (`ALERT_MAX_AGE_MS` in `apps/worker/src/watchdog-pass.ts`, next to the 60 s `ALERT_BUDGET_MS`).
   Before sending, it sets `alerts.lark_skipped_at` on every unsent Alert older than that, so a backlog
@@ -79,3 +84,7 @@ fixes the rules (at most 2 LLM calls per briefing, cost committed before each ca
 - 2026-10-21: added "Alert cut-off" (option B of the morning status question 2, with a 24 h cut-off).
   Decided by the owner's delegate on 2026-10-21, reversible: dropping the cut-off and clearing
   `lark_skipped_at` sends those Alerts again.
+- 2026-10-21: added "Ready margin" (PR #24 "needs a product decision"). Decided by the owner's delegate
+  on 2026-10-21, reversible: dropping `briefingReadyMarginSeconds` from the check restores the old rule.
+- 2026-10-21: stored settings that fail validation write a `settings_invalid` Alert, one per local day,
+  sent by the watchdog like any Alert. Decided by the owner's delegate on 2026-10-21, reversible.

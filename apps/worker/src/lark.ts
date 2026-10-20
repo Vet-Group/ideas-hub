@@ -3,12 +3,12 @@
 // dedupe field (first 32 hex characters of a SHA-256), and a briefing post's `lark_messages` row is
 // inserted before the call, so a retry never posts twice.
 import { createHash } from 'node:crypto';
-import { type BriefingSections, type Delta } from '@ideas-hub/core';
+import { type BriefingSections, type Delta, LARK_RETRY_LIMIT } from '@ideas-hub/core';
 import { larkMessages } from '@ideas-hub/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { bounded } from './bounded';
 import { type Ctx, loadSettings } from './context';
-import { LARK_RETRY_LIMIT, type LarkJob } from './queues';
+import { type LarkJob } from './queues';
 import { insertAlert } from './runs';
 import { type AlertRow } from './watchdog-pass';
 
@@ -114,6 +114,7 @@ const ALERT_LABELS: Record<string, string> = {
   heartbeat_lost: 'Worker mất tín hiệu',
   briefing_late: 'Briefing chưa sẵn sàng đúng giờ',
   lark_send_failed: 'Gửi Lark thất bại',
+  settings_invalid: 'Cài đặt không hợp lệ, đã dừng lập lịch',
 };
 
 export function alertMessage(a: AlertRow): string {

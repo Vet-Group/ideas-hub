@@ -124,6 +124,34 @@ describe.skipIf(!testDatabaseAvailable())('scheduler', () => {
     expect(await all(h, sql`select 1 from run_time_changes`)).toHaveLength(1);
   });
 
+  describe('settings_invalid Alert', () => {
+    const alerts = () => all<{ detail: string }>(h, sql`select detail from alerts where kind = 'settings_invalid' order by created_at`);
+
+    it('rejected settings write one settings_invalid Alert with the problem codes, once per local day', async () => {
+      const start = h.clock.t;
+      try {
+        await setSettings(h, { runTimes: ['01:00', '05:00'], morningHardStop: '06:10' });
+        await schedulerPass(h);
+        expect(await alerts()).toEqual([{ detail: 'hard_stop_too_late, slots_too_close' }]);
+        // Later the same local day (23:59 Asia/Ho_Chi_Minh): still one.
+        h.clock.t = Date.parse('2026-10-21T16:59:00Z');
+        await schedulerPass(h);
+        expect(await alerts()).toHaveLength(1);
+        // 00:30 local on 2026-10-22 (still 2026-10-21 in UTC): a new local day, a second Alert.
+        h.clock.t = Date.parse('2026-10-21T17:30:00Z');
+        await schedulerPass(h);
+        expect(await alerts()).toHaveLength(2);
+      } finally {
+        h.clock.t = start;
+      }
+    });
+
+    it('valid settings write none', async () => {
+      await schedulerPass(h);
+      expect(await alerts()).toEqual([]);
+    });
+  });
+
   it('the scheduler and the watchdog backfill writing the same slot leave one row', async () => {
     // The watchdog backfills a past slot; the scheduler never writes past slots, and both use ON CONFLICT.
     // Pin the history start so the backfill window is 2026-10-20 13:00 and 2026-10-21 01:00 whenever the DB was migrated.
