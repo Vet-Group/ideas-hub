@@ -12,8 +12,10 @@ import { t } from '@/lib/strings.vi';
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 /** The image plus room for the multipart framing and the other fields. */
 export const MAX_BODY_BYTES = MAX_IMAGE_BYTES + 64 * 1024;
-/** Longer links would not fit the (store, source, source_ref) btree index. */
-const MAX_LINK_CHARS = 2048;
+/** Longer links would not fit the (store, source, source_ref) btree index, which counts bytes. */
+const MAX_LINK_BYTES = 2048;
+/** The form's maxLength. */
+const MAX_TITLE_CHARS = 140;
 
 export interface ManualIdeaDeps {
   db: Db;
@@ -62,6 +64,10 @@ async function readLimited(body: ReadableStream<Uint8Array> | null): Promise<Buf
 const field = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v.trim() : '');
 
 export async function handleManualIdea(request: Request, deps: ManualIdeaDeps): Promise<Response> {
+  if (!URL.canParse(deps.appUrl)) {
+    console.error('APP_URL is not set');
+    return fail(500, t.upload.failed);
+  }
   if (request.headers.get('origin') !== new URL(deps.appUrl).origin && request.headers.get('sec-fetch-site') !== 'same-origin') {
     return fail(403, t.upload.crossOrigin);
   }
@@ -86,7 +92,8 @@ export async function handleManualIdea(request: Request, deps: ManualIdeaDeps): 
   const title = field(form.get('title'));
   const entry = form.get('image');
   const file = entry instanceof Blob && entry.size > 0 ? entry : null;
-  if (link && (link.length > MAX_LINK_CHARS || !isHttpUrl(link))) return fail(400, t.upload.badLink);
+  if (link && (Buffer.byteLength(link) > MAX_LINK_BYTES || !isHttpUrl(link))) return fail(400, t.upload.badLink);
+  if ([...title].length > MAX_TITLE_CHARS) return fail(400, t.upload.titleTooLong);
   if (!link && !file) return fail(400, t.upload.needLinkOrImage);
 
   let webp: Buffer | null = null;

@@ -444,6 +444,7 @@ export const t = {
     needStore: 'Hãy chọn ít nhất một store.',
     needLinkOrImage: 'Hãy dán một link hoặc chọn một ảnh.',
     badLink: 'Link không hợp lệ.',
+    titleTooLong: 'Tiêu đề dài quá 140 ký tự.',
     failed: 'Không lưu được. Hãy thử lại.',
     imageTitle: 'Ý tưởng từ ảnh',
   },

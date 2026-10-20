@@ -5,7 +5,7 @@ import { undoSave } from '@ideas-hub/db/queries';
 import { createTestDatabase, testDatabaseAvailable } from '@ideas-hub/db/testing';
 import { sql } from 'drizzle-orm';
 import sharp from 'sharp';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ObjectStore } from '@/lib/object-store';
 import { t } from '@/lib/strings.vi';
 import { type ManualIdeaDeps, handleManualIdea } from './handler';
@@ -291,6 +291,30 @@ describe.skipIf(!testDatabaseAvailable())('POST /api/ideas/manual', () => {
     for (const [parts, status, error] of cases) {
       const res = await handleManualIdea(await post(parts), deps(admin));
       expect([res.status, await errorOf(res)]).toEqual([status, error]);
+    }
+  });
+
+  it('limits the title to 140 characters after trim and the link to 2048 UTF-8 bytes', async () => {
+    const before = await rows();
+    const long = await handleManualIdea(await post([['storeIds', 'store_A'], ['link', 'https://example.com/t1'], ['title', 'x'.repeat(141)]]), deps());
+    expect([long.status, await errorOf(long)]).toEqual([400, t.upload.titleTooLong]);
+    // 1 120 characters but 2 220 bytes.
+    const wide = await handleManualIdea(await post([['storeIds', 'store_A'], ['link', `https://example.com/${'é'.repeat(1100)}`]]), deps());
+    expect([wide.status, await errorOf(wide)]).toEqual([400, t.upload.badLink]);
+    expect(await rows()).toBe(before);
+    const ok = await handleManualIdea(await post([['storeIds', 'store_A'], ['link', `https://example.com/${'a'.repeat(2048 - 20)}`], ['title', `  ${'y'.repeat(140)}  `]]), deps());
+    expect(ok.status).toBe(200);
+    expect(await rows()).toBe(before + 1);
+  });
+
+  it('answers 500 and logs when APP_URL is not set', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const res = await handleManualIdea(await post([['storeIds', 'store_A'], ['link', 'https://example.com/no-app-url']]), { ...deps(), appUrl: '' });
+      expect([res.status, await errorOf(res)]).toEqual([500, t.upload.failed]);
+      expect(log).toHaveBeenCalledWith('APP_URL is not set');
+    } finally {
+      log.mockRestore();
     }
   });
 });
