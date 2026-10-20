@@ -323,6 +323,9 @@ importers:
       '@ideas-hub/fb-ad-library':
         specifier: workspace:*
         version: link:../../packages/sources/fb-ad-library
+      '@ideas-hub/rss':
+        specifier: workspace:*
+        version: link:../../packages/sources/rss
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.1)
@@ -355,7 +358,11 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
 
-  packages/core: {}
+  packages/core:
+    dependencies:
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
 
   packages/db:
     dependencies:
@@ -390,6 +397,12 @@ importers:
       playwright:
         specifier: 1.63.0
         version: 1.63.0
+
+  packages/sources/rss:
+    dependencies:
+      rss-parser:
+        specifier: 3.13.0
+        version: 3.13.0
 
   spikes/fb-ad-library-probe:
     dependencies:

@@ -1,6 +1,7 @@
 // Crash recovery at worker startup, before it takes any job (spec §1 "Crash recovery").
 import { withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
+import { resendUnfinished } from './briefing';
 import { type Ctx, loadSettings } from './context';
 import { BRIEFING, CRAWL, LARK, activeJobIds, sendCrawlJob } from './queues';
 import { closeNotStarted, failRunningRun, insertAlert } from './runs';
@@ -48,5 +49,7 @@ export async function recoverAtStartup(ctx: Ctx) {
   if (briefing.length) await ctx.boss.cancel(BRIEFING, briefing);
   const lark = await activeJobIds(pool, LARK);
   if (lark.length) await ctx.boss.fail(LARK, lark, { reason: 'crash recovery' });
-  return { failedRuns: running.length, briefingCancelled: briefing.length, larkFailed: lark.length };
+  // Then today's briefings without ready_at are built again, once today's build time has passed.
+  const briefingResent = await resendUnfinished(ctx, s, now);
+  return { failedRuns: running.length, briefingCancelled: briefing.length, larkFailed: lark.length, briefingResent };
 }

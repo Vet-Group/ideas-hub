@@ -1,0 +1,36 @@
+import { type BriefingCount } from '@ideas-hub/core';
+import Link from 'next/link';
+import { DeltaLabel } from '@/components/states/delta-label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { t } from '@/lib/strings.vi';
+
+/** Sections 3 and 4: running ads per keyword or domain, with the change and its baseline label. */
+export function CountTable({ rows, head, href }: { rows: BriefingCount[]; head: string; href: (key: string) => string }) {
+  if (rows.length === 0) return <p className="text-fg-2 text-sm">{t.briefing.empty}</p>;
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{head}</TableHead>
+          <TableHead className="text-right">{t.shops.runningAds}</TableHead>
+          <TableHead>{t.charts.count}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((r) => (
+          <TableRow key={r.key}>
+            <TableCell>
+              <Link href={href(r.key)} className="underline-offset-2 hover:underline">
+                {r.label}
+              </Link>
+            </TableCell>
+            <TableCell className="text-right font-mono">{r.runningAds}</TableCell>
+            <TableCell>
+              <DeltaLabel delta={r.delta} />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}

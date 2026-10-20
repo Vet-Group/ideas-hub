@@ -13,7 +13,7 @@ export async function createQueues(boss: PgBoss, s: Settings) {
   // retryLimit 0: the pg-boss default of 2 (dist/plans.js QUEUE_DEFAULTS) would run an expired run again.
   await boss.createQueue(CRAWL, { policy: 'singleton', retryLimit: 0, expireInSeconds: crawlJobExpirySeconds(s) });
   await boss.createQueue(BRIEFING, { policy: 'exclusive', retryLimit: 1, expireInSeconds: s.briefingJobExpirySeconds });
-  await boss.createQueue(LARK, { policy: 'standard', retryLimit: 3, retryDelay: 30 });
+  await boss.createQueue(LARK, { policy: 'standard', retryLimit: LARK_RETRY_LIMIT, retryDelay: 30 });
 }
 
 export interface CrawlJob {
@@ -30,6 +30,41 @@ export async function sendCrawlJob(boss: PgBoss, db: BossDb, runId: string, star
   });
   if (!id) throw new Error(`crawl.run job for ${runId} was not queued`);
   return id;
+}
+
+export interface BriefingJob {
+  /** Asia/Ho_Chi_Minh date of the briefing. */
+  date: string;
+  scope: 'global' | 'keyword';
+  keywordId?: string;
+}
+
+export const briefingKey = (j: BriefingJob) => (j.scope === 'global' ? `${j.date}:global` : `${j.date}:kw:${j.keywordId}`);
+
+/** pg-boss fetches by priority desc, then created_on, so the global job goes first even when sent together. */
+export const GLOBAL_PRIORITY = 10;
+
+/** Sends one briefing's build (exclusive queue): null while a job of the same key is queued or active. */
+export async function sendBriefingJob(boss: PgBoss, db: BossDb, job: BriefingJob, startAfter: Date, s: Settings): Promise<string | null> {
+  return boss.send(BRIEFING, job, {
+    singletonKey: briefingKey(job),
+    priority: job.scope === 'global' ? GLOBAL_PRIORITY : 0,
+    startAfter,
+    retryLimit: 1,
+    expireInSeconds: s.briefingJobExpirySeconds,
+    db,
+  });
+}
+
+export interface LarkJob {
+  briefingId: string;
+  chat: string;
+}
+
+export const LARK_RETRY_LIMIT = 3;
+
+export async function sendLarkJob(boss: PgBoss, db: BossDb, job: LarkJob): Promise<string | null> {
+  return boss.send(LARK, job, { retryLimit: LARK_RETRY_LIMIT, retryDelay: 30, db });
 }
 
 /** Ids of a queue's active jobs (pg-boss keeps them in pgboss.job). */

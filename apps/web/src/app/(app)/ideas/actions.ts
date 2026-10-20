@@ -1,8 +1,8 @@
 'use server';
 
-import { type IdeaStatus, IdeaAccessError, getAd, lastSaveStoreIds, saveIdea, setIdeaStatus, updateIdea } from '@ideas-hub/db/queries';
-import { stores } from '@ideas-hub/db';
-import { inArray } from 'drizzle-orm';
+import { type IdeaStatus, IdeaAccessError, getAd, getKeyword, keywordBriefingFor, lastSaveStoreIds, saveIdea, setIdeaStatus, updateIdea } from '@ideas-hub/db/queries';
+import { briefings, stores, suggestions } from '@ideas-hub/db';
+import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { undoIdeas } from '@/lib/ideas-server';
@@ -12,7 +12,52 @@ import { statusOptions } from '@/lib/settings';
 import { t } from '@/lib/strings.vi';
 
 /** What is saved; the server builds the title and snapshot from its own data, never from the client. */
-export type SaveSource = { kind: 'ad'; adArchiveId: string; via: 'ads' | 'briefing'; keyword?: string };
+export type SaveSource = { kind: 'ad'; adArchiveId: string; via: 'ads' | 'briefing'; keyword?: string } | { kind: 'suggestion'; suggestionId: string };
+
+type NewIdea = Parameters<typeof saveIdea>[3];
+
+async function adIdea(source: Extract<SaveSource, { kind: 'ad' }>): Promise<NewIdea | null> {
+  const ad = await getAd(db, await statusOptions(), source.adArchiveId);
+  if (!ad) return null;
+  return {
+    source: 'ad',
+    sourceRef: ad.adArchiveId,
+    via: source.via,
+    title: (ad.caption ?? ad.title ?? ad.pageName ?? ad.adArchiveId).replace(/\s+/g, ' ').trim().slice(0, 140),
+    snapshot: {
+      thumbnailKey: ad.thumbnailKey,
+      caption: ad.caption,
+      link: ad.link,
+      adLibraryUrl: `https://www.facebook.com/ads/library/?id=${ad.adArchiveId}`,
+      pageName: ad.pageName,
+      landingDomain: ad.landingDomain,
+      keyword: source.keyword ?? ad.keywords[0]?.text ?? null,
+      trendScore: ad.trendScore,
+      mediaType: ad.mediaType,
+    },
+  };
+}
+
+/** An AI suggestion, only when the user may see it: a keyword report's AI sections follow §4 (AC 4). */
+async function suggestionIdea(user: Awaited<ReturnType<typeof requireUser>>, suggestionId: string): Promise<NewIdea | null> {
+  const [s] = await db
+    .select({ id: suggestions.id, kind: suggestions.kind, text: suggestions.text, reason: suggestions.reason, evidence: suggestions.evidence, keywordId: briefings.keywordId, date: briefings.date })
+    .from(suggestions)
+    .innerJoin(briefings, eq(briefings.id, suggestions.briefingId))
+    .where(eq(suggestions.id, suggestionId))
+    .limit(1);
+  if (!s) return null;
+  // A keyword briefing's suggestion only when keywordBriefingFor would show it to this user.
+  if (s.keywordId && !(await keywordBriefingFor(db, user, s.keywordId, s.date))?.suggestions.some((x) => x.id === s.id)) return null;
+  const keyword = s.keywordId ? await getKeyword(db, s.keywordId) : null;
+  return {
+    source: 'suggestion',
+    sourceRef: s.id,
+    via: 'briefing',
+    title: s.text.replace(/\s+/g, ' ').trim().slice(0, 140),
+    snapshot: { kind: s.kind, text: s.text, reason: s.reason, evidence: s.evidence, keyword: keyword?.text ?? null },
+  };
+}
 
 export type SaveOutcome =
   | { ok: true; results: { storeId: string; storeName: string; ideaId: string; created: boolean }[] }
@@ -21,33 +66,10 @@ export type SaveOutcome =
 export async function saveAction(source: SaveSource, storeIds: string[]): Promise<SaveOutcome> {
   const user = await requireUser();
   if (storeIds.length === 0) return { ok: false, error: t.save.noStore };
-  const ad = await getAd(db, await statusOptions(), source.adArchiveId);
-  if (!ad) return { ok: false, error: t.save.failed };
-  const keyword = source.keyword ?? ad.keywords[0]?.text ?? null;
+  const idea = source.kind === 'ad' ? await adIdea(source) : await suggestionIdea(user, source.suggestionId);
+  if (!idea) return { ok: false, error: t.save.failed };
   try {
-    const results = await saveIdea(
-      db,
-      user,
-      storeIds,
-      {
-        source: 'ad',
-        sourceRef: ad.adArchiveId,
-        via: source.via,
-        title: (ad.caption ?? ad.title ?? ad.pageName ?? ad.adArchiveId).replace(/\s+/g, ' ').trim().slice(0, 140),
-        snapshot: {
-          thumbnailKey: ad.thumbnailKey,
-          caption: ad.caption,
-          link: ad.link,
-          adLibraryUrl: `https://www.facebook.com/ads/library/?id=${ad.adArchiveId}`,
-          pageName: ad.pageName,
-          landingDomain: ad.landingDomain,
-          keyword,
-          trendScore: ad.trendScore,
-          mediaType: ad.mediaType,
-        },
-      },
-      now(),
-    );
+    const results = await saveIdea(db, user, storeIds, idea, now());
     const names = new Map((await db.select({ id: stores.id, name: stores.name }).from(stores).where(inArray(stores.id, storeIds))).map((s) => [s.id, s.name]));
     revalidatePath('/ideas');
     return { ok: true, results: results.map((r) => ({ ...r, storeName: names.get(r.storeId) ?? r.storeId })) };

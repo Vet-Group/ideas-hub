@@ -1,7 +1,7 @@
 // One watchdog pass (spec §1 "Missed run", "Hung run", "Blocked slot"; plan Step 3 "Watchdog"): closes,
 // marks, backfill and the heartbeat check first, then Alerts within a 60 s budget. Two passes never
 // overlap (pg_try_advisory_lock).
-import { type Settings, plannedSearches, rotate, slotsBetween } from '@ideas-hub/core';
+import { type Settings, plannedSearches, rotate, slotsBetween, vietnamDate, vietnamInstant } from '@ideas-hub/core';
 import { type Db, withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
 import { type Ctx, SOURCE, loadSettings } from './context';
@@ -25,8 +25,10 @@ export type AlertRow = {
 export interface WatchdogDeps {
   /** Restarts the worker service (its Task Scheduler task on Windows, the systemd unit on Linux). */
   restartWorker(): Promise<void>;
-  /** Sends one Alert to Lark and returns its message id; Step 7 wires the Lark bot. */
+  /** Sends one Alert to Lark and returns its message id (the Lark bot, lark.ts alertSender). */
   sendAlert?(alert: AlertRow): Promise<string | null>;
+  /** The global briefing checks (spec §3 "Delivery"), with the shared group the briefing is posted to. */
+  briefings?: { sharedChat: string | null };
 }
 
 export async function watchdogPass(ctx: Ctx, deps: WatchdogDeps) {
@@ -154,6 +156,8 @@ async function pass(ctx: Ctx, deps: WatchdogDeps) {
     result.restarted = true;
   }
 
+  if (deps.briefings) await checkGlobalBriefing(ctx, s, now, deps.briefings.sharedChat);
+
   if (deps.sendAlert) {
     const started = ctx.clock.now().getTime();
     const { rows: unsent } = await ctx.db.execute<AlertRow>(sql`
@@ -171,6 +175,31 @@ async function pass(ctx: Ctx, deps: WatchdogDeps) {
     }
   }
   return result;
+}
+
+/**
+ * Once today's ready time has passed: `briefing_late` when the global briefing has no `ready_at` by then
+ * (its row is created if no build started, since the Alert points at it), else `lark_send_failed` when the
+ * shared group has no Lark message id (retries run out, an expired or a cancelled job). One of each per
+ * briefing (alerts_briefing_kind_key).
+ */
+async function checkGlobalBriefing(ctx: Ctx, s: Settings, now: Date, sharedChat: string | null) {
+  const today = vietnamDate(now);
+  const readyBy = vietnamInstant(today, s.briefingReadyTime);
+  if (now < readyBy) return;
+  await ctx.db.execute(sql`
+    insert into briefings (id, date, scope, created_at) values (${`brf_${crypto.randomUUID().replace(/-/g, '').slice(0, 21)}`}, ${today}, 'global', ${now})
+    on conflict on constraint briefings_date_scope_key do nothing`);
+  const { rows } = await ctx.db.execute<{ id: string; ready_at: Date | null; posted: boolean }>(sql`
+    select b.id, b.ready_at, exists (select 1 from lark_messages m where m.briefing_id = b.id and m.message_id is not null
+      and (${sharedChat}::text is null or m.chat = ${sharedChat})) as posted
+    from briefings b where b.date = ${today} and b.scope = 'global'`);
+  const b = rows[0]!;
+  if (!b.ready_at || new Date(b.ready_at) > readyBy) {
+    await insertAlert(ctx.db, { kind: 'briefing_late', briefingId: b.id, detail: `global briefing ${today} not ready by ${s.briefingReadyTime}`, at: now });
+  } else if (!b.posted) {
+    await insertAlert(ctx.db, { kind: 'lark_send_failed', briefingId: b.id, detail: `global briefing ${today} has no Lark message id for the shared group by ${s.briefingReadyTime}`, at: now });
+  }
 }
 
 /**

@@ -6,7 +6,8 @@
     ".": "./src/schema/index.ts",
     "./client": "./src/client.ts",
     "./testing": "./src/testing.ts",
-    "./queries": "./src/queries/index.ts"
+    "./queries": "./src/queries/index.ts",
+    "./seed-data": "./src/seed-data.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -1,0 +1,16 @@
+{
+  "name": "@ideas-hub/rss",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "rss-parser": "3.13.0"
+  }
+}

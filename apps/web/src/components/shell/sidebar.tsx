@@ -13,7 +13,8 @@ import { type StoreOption, StoreSwitcher } from './store-switcher';
 const KEY = 'ih.sidebar.collapsed';
 
 /** The dark sidebar (spec §6): 248 px, 60 px collapsed, the state kept in local storage. */
-export function Sidebar({ isAdmin, stores, storeId }: { isAdmin: boolean; stores: StoreOption[]; storeId: string | null }) {
+/** `badges` by href: the shown briefing's date on Briefing, the store's New ideas on "Ý tưởng". */
+export function Sidebar({ isAdmin, stores, storeId, badges = {} }: { isAdmin: boolean; stores: StoreOption[]; storeId: string | null; badges?: Record<string, string> }) {
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     try {
@@ -52,7 +53,7 @@ export function Sidebar({ isAdmin, stores, storeId }: { isAdmin: boolean; stores
         </button>
       </div>
       <nav className="flex-1 overflow-y-auto px-2" aria-label={t.nav.main}>
-        <NavGroup items={MAIN_NAV} collapsed={collapsed} />
+        <NavGroup items={MAIN_NAV} collapsed={collapsed} badges={badges} />
         {isAdmin ? <NavGroup label={t.nav.admin} items={ADMIN_NAV} collapsed={collapsed} /> : null}
       </nav>
       <div className="p-2">
@@ -62,7 +63,7 @@ export function Sidebar({ isAdmin, stores, storeId }: { isAdmin: boolean; stores
   );
 }
 
-function NavGroup({ label, items, collapsed }: { label?: string; items: NavItem[]; collapsed: boolean }) {
+function NavGroup({ label, items, collapsed, badges = {} }: { label?: string; items: NavItem[]; collapsed: boolean; badges?: Record<string, string> }) {
   const pathname = usePathname();
   return (
     <div className="mb-3">
@@ -86,7 +87,8 @@ function NavGroup({ label, items, collapsed }: { label?: string; items: NavItem[
                     )}
                   >
                     <item.icon className="size-4 shrink-0" aria-hidden />
-                    {collapsed ? null : <span className="truncate">{item.label}</span>}
+                    {collapsed ? null : <span className="flex-1 truncate">{item.label}</span>}
+                    {collapsed || !badges[item.href] ? null : <span className="rounded-pill border border-current px-1.5 font-mono text-[11px]">{badges[item.href]}</span>}
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">{item.label}</TooltipContent>

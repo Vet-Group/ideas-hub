@@ -10,6 +10,7 @@
     "@ideas-hub/core": "workspace:*",
     "@ideas-hub/db": "workspace:*",
     "@ideas-hub/fb-ad-library": "workspace:*",
+    "@ideas-hub/rss": "workspace:*",
     "drizzle-orm": "0.45.3",
     "openai": "7.30.0",
     "pg": "8.23.1",
@@ -25,7 +26,8 @@
     "test": "vitest run",
     "start": "tsx src/main.ts",
     "crawl:run": "tsx src/cli.ts",
-    "watchdog": "tsx src/watchdog.ts"
+    "watchdog": "tsx src/watchdog.ts",
+    "briefing:build": "tsx src/briefing-cli.ts"
   },
   "devDependencies": {
     "@types/pg": "8.23.1",
