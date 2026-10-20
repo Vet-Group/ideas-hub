@@ -1,0 +1,1298 @@
+{
+ "data": {
+  "ad_library_main": {
+   "search_results_connection": {
+    "edges": [
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "2038625010194810",
+         "collation_count": 1,
+         "collation_id": "1342924867977387",
+         "is_active": true,
+         "page_id": "741158495752115",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "741158495752115",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/61579740967890/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "Goallory",
+          "page_profile_picture_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/723103296_1558385835893840_1825412633400762197_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=101&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=2zv08rKbLS4Q7kNvwGkg8Ec&_nc_oc=AdroXnTl_PW00hLai2e8fdEMUB0U_rTFORZe5qgDYcaEkBBydStK6sbNaXrs34mqJg4&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMy4Vlxkby3T1IT8mCmBPJKP9fIF5Z8ciOzKV0t3tU-Og&oe=6ADC6B59",
+          "event": null,
+          "caption": "goallory.com",
+          "cta_text": "Shop now",
+          "cards": [],
+          "body": {
+           "text": "Game Day Looks Better in Metallic. ✨\nPersonalized numbers, vintage washed style, and team colors made to shine under the stadium lights."
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "IMAGE",
+          "link_description": "Product DetailsIdeal for daily wear and effortless layering, this piece features a classic unisex fit that complements a variety of styles and occasions. Fabric Features Composition: 80% Cotton, 20% Polyester Feel Finish: Super soft, pre-shrunk fabric for lasting comfort and shape Care Advantage: Co...",
+          "link_url": "https://www.goallory.com/products/custom-metallic-puff-number-washed-t-shirt-personalized-team-name-game-day-tee-vintage-school-spirit-shirt",
+          "images": [
+           {
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/725664726_856219190470834_415171316014900191_n.jpg?_nc_cat=110&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=m85d6CRWhfcQ7kNvwGhz62H&_nc_oc=Adrd1Ydyzl_PMBLv1rX1yTC8kEYafAH5PlniuMtM5Fl8HigGevw-zHo6s1cznEhV0cA&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMiz2tRcvr9IZppotX8oPi7CTmkW4lK1aB__RIpsd3wQQ&oe=6ADC7E07",
+            "resized_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/725518929_987831763987365_6792555042194569542_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=110&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=MDK40cMfs3QQ7kNvwFQUQtl&_nc_oc=AdosI0m035SnEQ8pt_NGCiLVIsVYpuNoq0-qdvGRKzV35Xblu8GiuA89k_NfkqbW_7E&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNUpV6wtPzSs2VnudTcixdIeWUuSp-98aRXtxZ9QzUNtw&oe=6ADC881A",
+            "watermarked_resized_image_url": ""
+           }
+          ],
+          "page_categories": [
+           "Gifts"
+          ],
+          "page_like_count": 1075,
+          "title": "Custom Metallic Puff Number Washed T-Shirt | Personalized Team Name Game Day Tee | Vintage School Spirit Shirt",
+          "videos": [],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "Goallory",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1781679600,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1262254056044392",
+         "collation_count": 1,
+         "collation_id": "852912767151268",
+         "is_active": true,
+         "page_id": "391497280935749",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "391497280935749",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/UltraPressHQ/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "UltraPress",
+          "page_profile_picture_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/653706302_961229849582253_6523612344455378655_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=_AWGH7zk4DMQ7kNvwHUqdK_&_nc_oc=Adru7TzFSoq60hr_z2UQVDjvuriXBXgE7J-kTWMhjS4akcRm1xL-EI_h4a_3ZqFkEzI&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOBiIE8K5sbHf98by9--yM2_6kIO1LJHnKWIzkt92x8qg&oe=6ADC613A",
+          "event": null,
+          "caption": "ultrapress.com",
+          "cta_text": "Learn more",
+          "cards": [],
+          "body": {
+           "text": "\"We could afford to give them away if they sucked... but what a surprise.\" 😲\n\nWe get it. At $3.95/shirt, you’re probably thinking there’s a catch. Scratchy fabric? Hidden setup fees? $50 shipping?\n\nNope. Just the best deal for businesses that want to maximize ROI on their custom merch.\n\nThe \"No-Brainer\" Deal (⭐1,800+ Five Star Reviews): \n\n✅ $395 for 100 Custom Printed Gildan SoftStyle® Tees\n✅ Comes with your design in 1 ink color on the front or back\n✅ High quality screenprinting in our USA facility 🇺🇸\n✅ Mix youth sizes and adult S-XL for free (2XL+ extra)\n✅ FREE SHIPPING (lower 48 states)\n\nPlus, all orders come with free proofs and professional design review.\n\nSee why 12,000+ business owners switched to UltraPress: https://ultrapress.com/products/gildan-softstyle%C2%AE-64000-t-shirt-package-100-pieces"
+          },
+          "cta_type": "LEARN_MORE",
+          "display_format": "IMAGE",
+          "link_description": "Our best value blank t-shirt for all occasions! Made with soft, 100% ring-spun cotton. Heathered colors are 65/35 poly/cotton. Guaranteed to deliver the best bang for your buck.",
+          "link_url": "https://ultrapress.com/products/gildan-softstyle%C2%AE-64000-t-shirt-package-100-pieces",
+          "images": [
+           {
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/653714842_2689962461360468_8645420023300882840_n.jpg?_nc_cat=109&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=btX0RgUpVpYQ7kNvwEnXVlc&_nc_oc=Adqr_uwsDGbB7bEhGOxDyYI8w8YYMGol33751vkUYsteRwI6kpK0476Cn8qjJMfeizI&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM6MIOp0XPcZFWvzHmYjHI-HU7tO-kIyZAD4kvMTR87nQ&oe=6ADC7AA6",
+            "resized_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/653054798_946320017852969_6264831929449030997_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=109&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=LXVw1Bi7NDgQ7kNvwEJMccN&_nc_oc=AdrnfIA1fJsnEDXlCRxjb9R8cVBk_VUaDCrM9hCzWxcaKydABlqECSKkkClMLBaUqF0&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM58XyFkJhryapS-gZ1_vYcdNEECB5AE_Dnpj-8UIWc_g&oe=6ADC6BBE",
+            "watermarked_resized_image_url": ""
+           }
+          ],
+          "page_categories": [
+           "Printing"
+          ],
+          "page_like_count": 11506,
+          "title": "$3.95 Custom Shirt Deal - 1,800+ Five Star Reviews",
+          "videos": [],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "UltraPress",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1773730800,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "930736622873965",
+         "collation_count": null,
+         "collation_id": null,
+         "is_active": true,
+         "page_id": "391497280935749",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "391497280935749",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/UltraPressHQ/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "UltraPress",
+          "page_profile_picture_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/651286028_1194337632775792_7937552358531754150_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=Zsxpb7ivczAQ7kNvwH94ZGR&_nc_oc=Adomhcl_fxOQRDqj4_GCXfiEj2ItyjkF6BuLsMXia1ht9uFDRotCnlDHvOyQ0MK5l-c&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPjj8eqCzKwsQkPXfTvytjGK6zwx68x6sSmEWj4j1dZvQ&oe=6ADC5501",
+          "event": null,
+          "caption": "ultrapress.com",
+          "cta_text": "Learn more",
+          "cards": [],
+          "body": {
+           "text": "Still overpaying for custom shirts? \n\nWe compared our pricing to national online vendors. Same shirt, same print, same specs. The difference? You save over $400 with UltraPress.\n\nRepresenting your brand with quality custom apparel shouldn't break the bank. That’s why we’re disrupting the industry by offering 100 custom printed Gildan SoftStyle® tees for just $3.95 each, all in. \n\nBacked by 2,100+ 5 Star Reviews, this deal includes:\n\n✅ Your design in 1 ink color on the front or back\n✅ Professional screenprinting in our USA facility \n✅ Free proof mockups - every order reviewed before production\n✅ Huge selection of 60+ shirt colors, with soft 100% ringspun cotton and blended options\n✅ Adult S-XL and Youth sizes available for free\n✅ FREE SHIPPING to lower 48 states (2 to 3 week turnaround after art approval)\n\nStop leaving $400+ on the table and join 13,000+ business owners who’ve taken advantage of this deal!\n\nGet started today: https://ultrapress.com/products/gildan-softstyle%C2%AE-64000-t-shirt-package-100-pieces\n\n(Need plus sizes or more ink colors? Click the link to customize!)"
+          },
+          "cta_type": "LEARN_MORE",
+          "display_format": "IMAGE",
+          "link_description": "Our best value blank t-shirt for all occasions! Made with soft, 100% ring-spun cotton. Heathered colors are 65/35 poly/cotton. Guaranteed to deliver the best bang for your buck.",
+          "link_url": "https://ultrapress.com/products/gildan-softstyle%C2%AE-64000-t-shirt-package-100-pieces",
+          "images": [
+           {
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/653696064_959745573153130_8426276653591900531_n.jpg?_nc_cat=104&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=x0NNF-YXA-wQ7kNvwHkr9Du&_nc_oc=AdpYRtkHQnKs3hGUGYHvjayVQEUcalQ7oeF6FNMsmFsfnry-BFbqQQWO2LMBR1GmbzY&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQP2uyeORMopNtvbUNWW-T5Gr0T86t4oHoGkfBpx9RXw0g&oe=6ADC75D1",
+            "resized_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/652541860_1272374728350050_8540010189776979133_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=101&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=n6BU01-A_PwQ7kNvwEGOPCB&_nc_oc=AdqOInBnoE8Qcc_Jp0BtzlrQR6vpIXQ5QO5rnEjOWWqVco1GoqgaNvte3YPRhvu2uLQ&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPnw9Skeq3Q6sPaIjSujVp4mXTA6FEHRKGMXPqIk2X-zg&oe=6ADC637A",
+            "watermarked_resized_image_url": ""
+           }
+          ],
+          "page_categories": [
+           "Printing"
+          ],
+          "page_like_count": 11506,
+          "title": "$3.95 Custom Shirt Deal - 2,100+ Five Star Reviews",
+          "videos": [],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "UltraPress",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1773730800,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1248303537345309",
+         "collation_count": null,
+         "collation_id": null,
+         "is_active": true,
+         "page_id": "5699478389",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "5699478389",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/customink/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "Custom Ink",
+          "page_profile_picture_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/753164350_916247824117821_6282810702546806730_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=100&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=GheJYOUohFgQ7kNvwHkOA8T&_nc_oc=AdqduH9JIKHI1AC-2GEaccfUu-8DmzJC9yLkj_qYrLohS-3Pe1SZeLagLQKdTR_DnGY&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQObjsuGeI1T-H2Nl9WhyUVxCk6c7Sfzfxt0wbRK8zDSUQ&oe=6ADC7038",
+          "event": null,
+          "caption": "customink.com",
+          "cta_text": "Shop now",
+          "cards": [
+           {
+            "body": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today.",
+            "cta_type": "SHOP_NOW",
+            "caption": "customink.com",
+            "link_description": "Customize the perfect products to connect your crew, build your brand, or elevate your event. Get start-to-finish help, amazing art, and tons of inspiration. Start designing now!",
+            "link_url": "https://www.customink.com/products/t-shirts/short-sleeve-t-shirts/hanes-beefy-t-crewneck-t-shirt/1100?PK=1122",
+            "title": "Hanes Beefy-T Crewneck T-shirt - Maroon",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/752833247_1668328787574749_6204718010519698342_n.jpg?_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=TEbMnc_M8nIQ7kNvwEBRvom&_nc_oc=Adow1QOROqWg7E4JIq6k1TK4Ry1Wnom41YpoXUOw4uGKz4oixPbS9Gs7tWr1BhhFbac&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM8zfA6ytc-RlKvh7jn2JyTNZyJyqD_eZYlDUqunWKhrQ&oe=6ADC72D4",
+            "resized_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/752833247_1668328787574749_6204718010519698342_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=TEbMnc_M8nIQ7kNvwEBRvom&_nc_oc=Adow1QOROqWg7E4JIq6k1TK4Ry1Wnom41YpoXUOw4uGKz4oixPbS9Gs7tWr1BhhFbac&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPmOlWi7N4LAcg-e-XCrqfoOBpu4gg1wzhlP71kvadwsA&oe=6ADC72D4",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today.",
+            "cta_type": "SHOP_NOW",
+            "caption": "customink.com",
+            "link_description": "Customize the perfect products to connect your crew, build your brand, or elevate your event. Get start-to-finish help, amazing art, and tons of inspiration. Start designing now!",
+            "link_url": "https://www.customink.com/products/t-shirts/short-sleeve-t-shirts/hanes-beefy-t-crewneck-t-shirt/1100?PK=1161",
+            "title": "Hanes Beefy-T Crewneck T-shirt - Clean Mint",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/753282339_1359367399581801_2935722104158589788_n.jpg?_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=zIpa1WnTVbsQ7kNvwEnbQq_&_nc_oc=Ado8R7IxIpqDo0dAhiSQHZ-3g__NzkFFB02G5nta8s6qKwkHxWYMEW25IxUDzBkjz_Q&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPv5fxa-t7kgmSK8S9Ccfbi5woTWJn7TIB1T4WNhcdlSg&oe=6ADC7D4A",
+            "resized_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/753282339_1359367399581801_2935722104158589788_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=zIpa1WnTVbsQ7kNvwEnbQq_&_nc_oc=Ado8R7IxIpqDo0dAhiSQHZ-3g__NzkFFB02G5nta8s6qKwkHxWYMEW25IxUDzBkjz_Q&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQN-Iw709hqu39BEOCRvATStM8WZ-eClTtj6GVrZua5FAg&oe=6ADC7D4A",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today.",
+            "cta_type": "SHOP_NOW",
+            "caption": "customink.com",
+            "link_description": "Customize the perfect products to connect your crew, build your brand, or elevate your event. Get start-to-finish help, amazing art, and tons of inspiration. Start designing now!",
+            "link_url": "https://www.customink.com/products/t-shirts/short-sleeve-t-shirts/hanes-beefy-t-crewneck-t-shirt/1100?PK=1102",
+            "title": "Hanes Beefy-T Crewneck T-shirt - Yellow",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/755105115_1073492392023602_248273754354091798_n.jpg?_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=afR_kGwTwOQQ7kNvwFBhe-p&_nc_oc=AdqpFxewLWusHht1o8Dcg89t8Q2Ioer9atwO1xU61SRLMw7sV3e4NsZapux4xx2C7bQ&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOlIBwP2_SKZ6wy9RPjjvy8fYOA3ZupMGZ2ECUYmbTCAA&oe=6ADC5FCD",
+            "resized_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/755105115_1073492392023602_248273754354091798_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=afR_kGwTwOQQ7kNvwFBhe-p&_nc_oc=AdqpFxewLWusHht1o8Dcg89t8Q2Ioer9atwO1xU61SRLMw7sV3e4NsZapux4xx2C7bQ&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQN9Z79c6rtdQDPKJSypmuVjpnzA135IKqkJUNMx7Pnkww&oe=6ADC5FCD",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today.",
+            "cta_type": "SHOP_NOW",
+            "caption": "customink.com",
+            "link_description": "Customize the perfect products to connect your crew, build your brand, or elevate your event. Get start-to-finish help, amazing art, and tons of inspiration. Start designing now!",
+            "link_url": "https://www.customink.com/products/t-shirts/short-sleeve-t-shirts/hanes-beefy-t-crewneck-t-shirt/1100?PK=1128",
+            "title": "Hanes Beefy-T Crewneck T-shirt - Sand",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/753018764_1043206068163023_8786778085430539349_n.jpg?_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=0QfW8ELToqsQ7kNvwGn16Fc&_nc_oc=Adr2fxcajY4gH3lUmZdMZKNEtOUOhRDA-GaInuPlWtytJHG5xplOelYh2Xwch_fTNeI&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMtsseoJfgX0J9vmnoQmLQhLI0jC9Ana5rUF8_zbTGLnQ&oe=6ADC7320",
+            "resized_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/753018764_1043206068163023_8786778085430539349_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=0QfW8ELToqsQ7kNvwGn16Fc&_nc_oc=Adr2fxcajY4gH3lUmZdMZKNEtOUOhRDA-GaInuPlWtytJHG5xplOelYh2Xwch_fTNeI&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNsty6lEjunUUB-8Uj13RHCrqdyqTUbSNfgat1Bbo1O1g&oe=6ADC7320",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today.",
+            "cta_type": "SHOP_NOW",
+            "caption": "customink.com",
+            "link_description": "Customize the perfect products to connect your crew, build your brand, or elevate your event. Get start-to-finish help, amazing art, and tons of inspiration. Start designing now!",
+            "link_url": "https://www.customink.com/products/t-shirts/short-sleeve-t-shirts/hanes-beefy-t-crewneck-t-shirt/1100?PK=1167",
+            "title": "Hanes Beefy-T Crewneck T-shirt - Heather Red",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/753007684_3085874924942217_7374256300909033463_n.jpg?_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=3J8G7WnaY6MQ7kNvwGvli2o&_nc_oc=Adp5Ed8sfqClJ5mxP6vup36y5kcjuaDQ4aydmEXJlyXgXk4b0YhYGdKvg6Zk40vhLQM&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQP7ILw-ahoOvdYDaWKtBlp180PbDdnq9s4E6HT4rOsV2Q&oe=6ADC5BB6",
+            "resized_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/753007684_3085874924942217_7374256300909033463_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=3J8G7WnaY6MQ7kNvwGvli2o&_nc_oc=Adp5Ed8sfqClJ5mxP6vup36y5kcjuaDQ4aydmEXJlyXgXk4b0YhYGdKvg6Zk40vhLQM&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPJZKNfUCuTp7m6ZLgRTDLTxVFsqIc6w6TVg08Yy617lw&oe=6ADC5BB6",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today.",
+            "cta_type": "SHOP_NOW",
+            "caption": "customink.com",
+            "link_description": "Customize the perfect products to connect your crew, build your brand, or elevate your event. Get start-to-finish help, amazing art, and tons of inspiration. Start designing now!",
+            "link_url": "https://www.customink.com/products/t-shirts/short-sleeve-t-shirts/hanes-beefy-t-crewneck-t-shirt/1100?PK=1108",
+            "title": "Hanes Beefy-T Crewneck T-shirt - Light Steel",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/754825052_1331973985759998_2218376288038992277_n.jpg?_nc_cat=104&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=SwJEyt-JkjgQ7kNvwHiSnuN&_nc_oc=Adp3nIQK8Uwas2DJwdKjkN3sGkg-rmf5QDXFDaCUPkmhkIVV07iV4HBadZwBJq37ZGo&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNy_5GZnRxmld8gGK54PlDim8m-mZc3uIrCXD_2WbfrLg&oe=6ADC66A6",
+            "resized_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/754825052_1331973985759998_2218376288038992277_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=104&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=SwJEyt-JkjgQ7kNvwHiSnuN&_nc_oc=Adp3nIQK8Uwas2DJwdKjkN3sGkg-rmf5QDXFDaCUPkmhkIVV07iV4HBadZwBJq37ZGo&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOltlLYbSa78svqudd4ulg5zQUZZdluoHfiIqqzsYFUEg&oe=6ADC66A6",
+            "watermarked_resized_image_url": ""
+           }
+          ],
+          "body": {
+           "text": "Get custom products to help you feel more connected to all of your groups. Upload your logo or start your design today."
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "DPA",
+          "link_description": null,
+          "link_url": "http://www.customink.com/",
+          "images": [],
+          "page_categories": [
+           "Product/service"
+          ],
+          "page_like_count": 383481,
+          "title": "{{product.name}}",
+          "videos": [],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "Custom Ink",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1784703600,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1123604090322687",
+         "collation_count": 1,
+         "collation_id": "1611430877113864",
+         "is_active": true,
+         "page_id": "1132593423280714",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "1132593423280714",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/61591774720265/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "Everloma",
+          "page_profile_picture_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/817135079_28490708983893726_2709971223718986466_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=100&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=fxWjZq6H1H8Q7kNvwE0WENg&_nc_oc=AdpVT6SyRAsx58budUOjzvuuM1Yp5MddrAbx2UVw7RYVNmH2YazUv9MsB-twlVPUiHg&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOIzXuFpuIPu6LLJHd0t-xpI1hdCrHbwNV8pO1Ej5qukw&oe=6ADC82BD",
+          "event": null,
+          "caption": "everloma.com",
+          "cta_text": "Shop now",
+          "cards": [],
+          "body": {
+           "text": "Custom EST.Year \nBoomer I May Be Old But I Got To See America Vintage Eagle USA Flag T-Shirt\n>>>https://everloma.com/products/boomer-i-may-be-old-but-i-got-to-see-america-vintage-eagle-usa-flag-t-shirt-evtx091801"
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "VIDEO",
+          "link_description": null,
+          "link_url": "https://everloma.com/products/boomer-i-may-be-old-but-i-got-to-see-america-vintage-eagle-usa-flag-t-shirt-evtx091801",
+          "images": [],
+          "page_categories": [
+           "Clothing (Brand)"
+          ],
+          "page_like_count": 198,
+          "title": "🛒SHOP NOW",
+          "videos": [
+           {
+            "video_hd_url": "https://video.fdad3-5.fna.fbcdn.net/o1/v/t2/f2/m366/AQOKXjb2HGnqYpw1OQJ1Uu4L-Dt_kOgFWFuE_7uZCuQO7BepwLPsUYdLeokmR4gERwtrIwGL2_9r_NcQensqBtr52zzZ0DNo8V2PlLvnnYhNjg.mp4?_nc_cat=101&_nc_oc=AdrrRWl_vkMfPe4olBDszqJ3-Loc-VzHczGnnGHahOMKDXHGzBqPzRc3GJsHct2lZPo&_nc_sid=b66105&_nc_ht=video.fdad3-5.fna.fbcdn.net&_nc_ohc=bbzHCuIZkvAQ7kNvwF-0RNp&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuNzIwLmRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHAiLCJ4cHZfYXNzZXRfaWQiOjE0MTE3MTE5NzQzNTk0MTQsImFzc2V0X2FnZV9kYXlzIjoyOCwidmlfdXNlY2FzZV9pZCI6MTAxMzksImR1cmF0aW9uX3MiOjE1LCJ1cmxnZW5fc291cmNlIjoid3d3In0%3D&ccb=17-1&vs=79636e34c09c259&_nc_vs=HBksFQIYRWZiX2VwaGVtZXJhbC8yMTREQzEwMDk0MjBGQTc4MjlBNUE1MjhCNjAyMEE5MF9tdF8xX3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhAZmJfcGVybWFuZW50LzIyNDU0NjA5REU4RDlCQUUwQkE4Qzc2RTlCQUE2NjlEX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACbshY7sufyBBRUCKAJDMywXQC5mZmZmZmYYGWRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHARAHUAZbaeAQA&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQPDm0y8sQ_0qydU7sujH9uliBstZoX01P-sfqgz94QFKg&oe=6ADC879F",
+            "video_preview_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/818941718_2118950702343626_4227517679785481979_n.jpg?_nc_cat=107&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=bTr3Vg5mYd4Q7kNvwGVUgyD&_nc_oc=Adr50LZTfNFjBGfY6sJv0sYraksC3ev_qX0fs1b6sX0UN8LHmblTt04UzPiP4xK9OYE&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNFYB7_L8UaRnIx2Pi2HbYlbVWLuJTtsR9bPn58AFXhzA&oe=6ADC633A",
+            "video_sd_url": "https://video.fdad3-8.fna.fbcdn.net/o1/v/t2/f2/m412/AQN6KDfvkSQOpIVJExLw4aoRedY0LpISg6Bk6upfihfVxsOG0mjSiSzBqSVKdoo0O3mFa-CkRXwko-B9hYJJ2E03BvNWOF5oo7nBNyWlWg.mp4?_nc_cat=107&_nc_oc=Adq9H2-4XKjxGCoh2rCOKcbjv54ma4XRildsTL_U0DvxQbJXgydvl_NnT74AXFwdZc4&_nc_sid=ef5aa3&_nc_ht=video.fdad3-8.fna.fbcdn.net&_nc_ohc=UHDGGfA-xDQQ7kNvwGPbXZP&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuMzYwLnN2ZV9zZCIsInhwdl9hc3NldF9pZCI6MTQxMTcxMTk3NDM1OTQxNCwiYXNzZXRfYWdlX2RheXMiOjI4LCJ2aV91c2VjYXNlX2lkIjoxMDEzOSwiZHVyYXRpb25fcyI6MTUsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQOn-w96wCHcPvxCwWK7FKxjXCNXQZc2YI_GKBSB-j8KOA&oe=6ADC6973",
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null
+           }
+          ],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "Everloma",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "WHATSAPP",
+          "THREADS"
+         ],
+         "start_date": 1790060400,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1199627565690739",
+         "collation_count": 3,
+         "collation_id": "1272351697682661",
+         "is_active": true,
+         "page_id": "104247294997243",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "104247294997243",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/thepawfecthouse/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "The Pawfect House Store",
+          "page_profile_picture_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/777150531_2244217166420896_1832818576802497620_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=nVuVK7S3gzIQ7kNvwE7MIZj&_nc_oc=AdqcagA0YgUy_C4vu25RO3lRwgy6V5sBRTshmNZp7F962GnbaIPDvhYeMqOw6-R5s1U&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNUS3Qyj3wsNsjBPmvqr9KjSP4Q8iJOFMwvXivfegEFsQ&oe=6ADC7A49",
+          "event": null,
+          "caption": "pawfecthouse.com",
+          "cta_text": "Shop now",
+          "cards": [],
+          "body": {
+           "text": "Perfect personalized gift for your grandpa ❤️\nUS & International shipping✈️\n#pawfecthouse #gifts #personalized #family #dad #father #kids #son #daughter #grandpa #grandkids #grandson #granddaughter"
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "VIDEO",
+          "link_description": null,
+          "link_url": "https://pawfecthouse.com/TS-YL0506",
+          "images": [],
+          "page_categories": [
+           "Gifts"
+          ],
+          "page_like_count": 181027,
+          "title": "Custom Unisex T-shirt, Premium T-shirt, Hoodie",
+          "videos": [
+           {
+            "video_hd_url": "https://video.fdad3-5.fna.fbcdn.net/o1/v/t2/f2/m366/AQM1mPDdTIiyhxCLNycH3ccr5UCYHGJ5UKgBfORh4t7eVdSbhgwwzzhJByvWPjh-kV-BYyRF0JHkTmZP7SLFBHuC-wIZ1jFmcgEil3fI-gKzjw.mp4?_nc_cat=110&_nc_oc=AdprkfVuI1rm3DA5gFhxdGplin6iQddly_NNuXfUnVYcgaiEQ82NgRsK74crDEXaYRs&_nc_sid=b66105&_nc_ht=video.fdad3-5.fna.fbcdn.net&_nc_ohc=LzNtX5R33lcQ7kNvwF3yOmD&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuNzIwLmRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHAiLCJ4cHZfYXNzZXRfaWQiOjEyODM5MTg5OTMzMjkzNDcsImFzc2V0X2FnZV9kYXlzIjo0NTEsInZpX3VzZWNhc2VfaWQiOjEwMTM5LCJkdXJhdGlvbl9zIjoxNiwidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&vs=3e129a562fdfd5cd&_nc_vs=HBksFQIYRWZiX2VwaGVtZXJhbC81MzQzNUY1MDhBM0Y4MTE0OTI1RTUxQkI5QjNBRjVCRV9tdF8xX3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhAZmJfcGVybWFuZW50L0U3NEM4MkJGMDI2NDcyRURGNDFDNDlDMDE4M0EyQ0FCX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACaGs6T49e3HBBUCKAJDMywXQDBmZmZmZmYYGWRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHARAHUAZbaeAQA&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQOJ38v6r9jntag2jwNysQ3wiuENrhuZrE92HH7VYkXttg&oe=6ADC5506",
+            "video_preview_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/777800908_1661125821617492_8818644694095294587_n.jpg?_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=pc11k7HvPa0Q7kNvwFe48k3&_nc_oc=AdoLUyhS-3Mcv__SbLPXsuEzt4op7b7_fVrL9RiV5MnyD9RekXNDMQ0BjKlbEgv7yms&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNfQEaDeY4POv4JK3GTzaJTpl90lukW5_Nkud9kYYH-ZA&oe=6ADC6997",
+            "video_sd_url": "https://video.fdad3-8.fna.fbcdn.net/o1/v/t2/f2/m412/AQMimSAs5GZNp-N7A9kQreaNYpOCd0rfGDCozKL9yEoY74qjnFricBi7j04BCA80qlu_QEprmbTdFwwM6rsZZ1CcFL6swfujDY1OFIsa9g.mp4?_nc_cat=106&_nc_oc=Ado4mXMyEKiGapnA-m5DiVcs71jtLH4zMCgDu89-FWUDbghn_5F2YrN9Yb96gtxrdYQ&_nc_sid=ef5aa3&_nc_ht=video.fdad3-8.fna.fbcdn.net&_nc_ohc=cNF1s_ioqDcQ7kNvwHnDZHz&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuMzYwLnN2ZV9zZCIsInhwdl9hc3NldF9pZCI6MTI4MzkxODk5MzMyOTM0NywiYXNzZXRfYWdlX2RheXMiOjQ1MSwidmlfdXNlY2FzZV9pZCI6MTAxMzksImR1cmF0aW9uX3MiOjE2LCJ1cmxnZW5fc291cmNlIjoid3d3In0%3D&ccb=17-1&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQM-bfpBosalLQnX8t3Xe0kN-Iq2RINdb33AcIT9uRi0gw&oe=6ADC8540",
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null
+           }
+          ],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "The Pawfect House Store",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "MESSENGER",
+          "WHATSAPP",
+          "THREADS"
+         ],
+         "start_date": 1786950000,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1016172867958787",
+         "collation_count": null,
+         "collation_id": null,
+         "is_active": true,
+         "page_id": "568777919655283",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "568777919655283",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/61573217502975/",
+          "root_reshared_post": null,
+          "byline": "",
+          "disclaimer_label": null,
+          "page_name": "MinoCustom",
+          "page_profile_picture_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/748016040_1348452326712661_571877488708035861_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=100&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=0i6AMfZAkeMQ7kNvwFglirs&_nc_oc=AdogvELzIMw_ZtQuOAUtHJ-ZgXHGBlgANHIitNNhuD_ATuIIbu9HZgbX0296uujwgYI&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQP33FVng1h6xJ4gm1Fsdl36-wWjEp4Z7zg3v5d14dFcYw&oe=6ADC7755",
+          "event": null,
+          "caption": "minocustom.com",
+          "cta_text": "Shop now",
+          "cards": [
+           {
+            "body": "Your new favorite tee is here🔥Say goodbye to boring T-shirts 👕Not basic. Never boring.👉 minocustom.com",
+            "cta_type": "SHOP_NOW",
+            "caption": "minocustom.com",
+            "link_description": "",
+            "link_url": "https://minocustom.com/products/funny-doll-face-meme-t-shirt-31373",
+            "title": "Funny Doll Face Meme T-shirt",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/745525005_2890958764577708_8034863416052741507_n.jpg?_nc_cat=101&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=cia_ikaX9AoQ7kNvwGRCorY&_nc_oc=Adq3Qxc06Q9GBHfB32zFCqR3EG0KbDsWz_DKDuk78zoVsFIAqtFIX5MaEt1kygYgjTs&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMWlM6pJqcdPvx_ovdeFdnQGTzRn_iNZ-r1tOYEauZkkQ&oe=6ADC7DFC",
+            "resized_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/745525005_2890958764577708_8034863416052741507_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=101&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=cia_ikaX9AoQ7kNvwGRCorY&_nc_oc=Adq3Qxc06Q9GBHfB32zFCqR3EG0KbDsWz_DKDuk78zoVsFIAqtFIX5MaEt1kygYgjTs&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMQ9stiBNYZ-ogprAlS92MEnYf7zo2j35mn67sgqUHXXg&oe=6ADC7DFC",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Your new favorite tee is here🔥Say goodbye to boring T-shirts 👕Not basic. Never boring.👉 minocustom.com",
+            "cta_type": "SHOP_NOW",
+            "caption": "minocustom.com",
+            "link_description": "",
+            "link_url": "https://minocustom.com/products/ghostbusters-who-ya-gonna-call-vintage-washed-t---shirt?sku=18071883308848812245950585&sl_source_ad_platform=fb&sl_source_campaign_id={{campaign.id}}&sl_source_placement={{placement}}&sl_source_ad_id={{ad.id}}&utm_source=sl_smartads&utm_medium=facebook&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{ad.id}}",
+            "title": "Ghostbusters \"Who Ya Gonna Call?\" Vintage Washed T - Shirt",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/747653168_4517825451877779_3210381454934162924_n.jpg?_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=Y-YIMNPobmoQ7kNvwEYIB2Z&_nc_oc=AdpboV-WahXkZxpd3aGeKVpD0gq0tqS1Tu7KcFzjEKSzRxGIoAQkuRBSBk65MQ660vc&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMAG7b76E4s-bjYhVePRXYittSx_9-PeoI-8H7CevN9vA&oe=6ADC585E",
+            "resized_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/747653168_4517825451877779_3210381454934162924_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=106&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=Y-YIMNPobmoQ7kNvwEYIB2Z&_nc_oc=AdpboV-WahXkZxpd3aGeKVpD0gq0tqS1Tu7KcFzjEKSzRxGIoAQkuRBSBk65MQ660vc&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQObpGUnu7kLRMXAJLSwPJPjnqO-DUOR6MI9UAszVfYyZg&oe=6ADC585E",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Your new favorite tee is here🔥Say goodbye to boring T-shirts 👕Not basic. Never boring.👉 minocustom.com",
+            "cta_type": "SHOP_NOW",
+            "caption": "minocustom.com",
+            "link_description": "",
+            "link_url": "https://minocustom.com/products/music-by-john-williams-geek-cotton-t-shirt?sku=18070765057370741218800585&sl_source_ad_platform=fb&sl_source_campaign_id={{campaign.id}}&sl_source_placement={{placement}}&sl_source_ad_id={{ad.id}}&utm_source=sl_smartads&utm_medium=facebook&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{ad.id}}",
+            "title": "Music by John Williams Geek Cotton T-shirt",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/745441879_1351352623672481_5860926881652116369_n.jpg?_nc_cat=107&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=aUko8mdm0nIQ7kNvwHbhB5L&_nc_oc=AdrMGUG2iyMcwIp7L9OegdQRDs-wm9EhXipRw8SnYziJTYL2g1BJgYFNlPVSzD6bd40&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOewiL0Wigm5QYqU19vQ67EgTn1UyO_zvzxMQg2uoLRFQ&oe=6ADC64DF",
+            "resized_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/745441879_1351352623672481_5860926881652116369_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=107&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=aUko8mdm0nIQ7kNvwHbhB5L&_nc_oc=AdrMGUG2iyMcwIp7L9OegdQRDs-wm9EhXipRw8SnYziJTYL2g1BJgYFNlPVSzD6bd40&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM1lRvJuvIbQYWo_bAALbTeDx5gJPUpxl_8HCG8L6vzRQ&oe=6ADC64DF",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Your new favorite tee is here🔥Say goodbye to boring T-shirts 👕Not basic. Never boring.👉 minocustom.com",
+            "cta_type": "SHOP_NOW",
+            "caption": "minocustom.com",
+            "link_description": "",
+            "link_url": "https://minocustom.com/products/evolution-washed-t-shirt",
+            "title": "Evolution Washed T-Shirt",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/747290259_1547100553707016_2556636927176092364_n.jpg?_nc_cat=100&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=QXymN5jb4ecQ7kNvwEHnzt7&_nc_oc=Adrr2pSpz98YCurnCcKq7mGP_al7999y2RK8oKdaanzTl5VhsOfvwy3_xBdS86p44L0&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQP03YkMS23Gs6j1CHMdxGXyIBQ1U2Ohmf1NfEu_sZh1WQ&oe=6ADC66FA",
+            "resized_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/747290259_1547100553707016_2556636927176092364_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=100&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=QXymN5jb4ecQ7kNvwEHnzt7&_nc_oc=Adrr2pSpz98YCurnCcKq7mGP_al7999y2RK8oKdaanzTl5VhsOfvwy3_xBdS86p44L0&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM1GFmfra1yzh5-3MIn231CXNSCMbD6oUX1tKb4L4zNxw&oe=6ADC66FA",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Your new favorite tee is here🔥Say goodbye to boring T-shirts 👕Not basic. Never boring.👉 minocustom.com",
+            "cta_type": "SHOP_NOW",
+            "caption": "minocustom.com",
+            "link_description": "",
+            "link_url": "https://minocustom.com/products/retro-raccoon-if-im-moody-give-me-foody-t-shirt",
+            "title": "Retro Raccoon If I'm Moody Give Me Foody T-shirt",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/744869993_1643521920042318_5772327511128978863_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=JaP2wvGdWBcQ7kNvwGIYLzg&_nc_oc=Adq_p33-UnOWf6SnEluRoBmPR5KlOc6XMx6ONLD1zXgXACstAbMbGSRdhjKGyOFYdtw&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOulziSERNEsxCs9OXbFP3Ohg7huXun9CyYJRzoP1hALg&oe=6ADC5AC8",
+            "resized_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/744869993_1643521920042318_5772327511128978863_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=JaP2wvGdWBcQ7kNvwGIYLzg&_nc_oc=Adq_p33-UnOWf6SnEluRoBmPR5KlOc6XMx6ONLD1zXgXACstAbMbGSRdhjKGyOFYdtw&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQP05acWAU0wZjSmrGNGUsMfNJa3TYm4dvZpnKdo1T2rkA&oe=6ADC5AC8",
+            "watermarked_resized_image_url": ""
+           }
+          ],
+          "body": {
+           "text": "Your new favorite tee is here🔥Say goodbye to boring T-shirts 👕Not basic. Never boring.👉 minocustom.com"
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "DPA",
+          "link_description": null,
+          "link_url": "https://minocustom.com/collections/hot-sale",
+          "images": [],
+          "page_categories": [
+           "Clothing (Brand)"
+          ],
+          "page_like_count": 7696,
+          "title": "{{product.name}}",
+          "videos": [],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "MinoCustom",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": true,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1784271600,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1702819994265812",
+         "collation_count": 2,
+         "collation_id": "1809771353339244",
+         "is_active": true,
+         "page_id": "145963862751924",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "145963862751924",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/100053360956163/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "Houdini Holster",
+          "page_profile_picture_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/747369676_930570330057424_7542663824824481120_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=100&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=4qvnbCIzd2YQ7kNvwGI6PVI&_nc_oc=AdrwSfmITQew6wlS7F1YycPi8qlXJOCxi4uNIEAHuo9jQtFOhlilrAOdrYdiQ7vsQzQ&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQMFviIIp4JmdlnsRxKguYeG-pwaLIyaiJUDRUEPfmRurg&oe=6ADC6823",
+          "event": null,
+          "caption": "houdiniholsters.com",
+          "cta_text": "Shop now",
+          "cards": [],
+          "body": {
+           "text": "Buy One Get One Free 🔥\nGet 2 Breakout 2.0 Holsters for just $99.99 — our biggest deal of the year.\n\nPerfect for:\n🔁 Two different carry setups\n🛡️ Backup holster\n👫 Sharing with a spouse or partner\n🏠✈️ Keeping one for home, one for travel\n\nHere’s why 50,000+ carriers trust the Breakout:\n\n✅ Fast access in close quarters – The patent-pending Breakout Channel lets you draw fast with just a flick of the wrist — no awkward “up and out” motion\n\n✅ Ultra-concealable – Slim, low-profile design helps eliminate printing under any shirt\n\n✅ All-day comfort – Smooth edges, minimalist build, and ergonomic curve for zero digging, pinching, or shifting\n\nCarry with confidence wherever you go — comfortable, concealed, and ready.\n\n✅ 30-Day Money-Back Guarantee\n✅ Lifetime Warranty\n\n⏰ Limited-time BOGO offer. Stock is moving fast.\n👉 Order now and save on your second holster"
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "VIDEO",
+          "link_description": "Veteran-Owned. Family-Operated.",
+          "link_url": "https://houdiniholsters.com/products/breakout-2-0-holster-built-for-maximum-concealment-copy",
+          "images": [],
+          "page_categories": [
+           "Local business"
+          ],
+          "page_like_count": 33881,
+          "title": "Buy One, Get One — Breakout 2.0",
+          "videos": [
+           {
+            "video_hd_url": "https://video.fdad3-5.fna.fbcdn.net/o1/v/t2/f2/m366/AQMaUqnK663CofWaTzZ6Muil7Xx4zP0YxCf7YefYOfsf3YwCwLHkwZPWpFKYvz7lA3JVDoMJtoXsiUb7urO1tPXxtkMgnfhsQV_jswECU4uMUQ.mp4?_nc_cat=110&_nc_oc=AdqfLCvLyuyiRymvsbVVcMj0JDmSRNqrSjaC5W10HrbJM4ZTReDdPtu55HZp1-CjAEc&_nc_sid=b66105&_nc_ht=video.fdad3-5.fna.fbcdn.net&_nc_ohc=UYcO0NozqLcQ7kNvwFCR-9-&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuNzIwLmRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHAiLCJ4cHZfYXNzZXRfaWQiOjI2Mzg3NjYxMzY1NDEzNzIsImFzc2V0X2FnZV9kYXlzIjo5NiwidmlfdXNlY2FzZV9pZCI6MTA3OTksImR1cmF0aW9uX3MiOjI0OSwidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&vs=13803e7bb969373b&_nc_vs=HBksFQIYRWZiX2VwaGVtZXJhbC9EMDRDRTg2OEM2NkRDREJERjZEQzMyMDIzQTNFQUZCRF9tdF8xX3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhAZmJfcGVybWFuZW50L0RBNDUwQTY2RDJBQTBBREM0Mzc1RTM3N0RGMDRDNEJFX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACb4grbjs_yvCRUCKAJDMywXQG8lT987ZFoYGWRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHARAHUAZd6oAQA&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQP-nn9uwfapNVYv6hWs3GO_ntxDRfItylIhv98DG0998A&oe=6ADC869E",
+            "video_preview_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/747752915_1015421167786501_5511269034520828940_n.jpg?_nc_cat=109&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=aKo5kyhuI9kQ7kNvwGUO-WW&_nc_oc=Adrlvhq165yH_YWPFg3DHgNzk-KpE6KXsyJ4CJp3MNMI0eeLuhmyFnm7A-b43Gvc4_Y&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPaLjhMQcuNqkgh3NPd2FTY2Bk7sS40NyW51u6-hKPnDA&oe=6ADC5AD3",
+            "video_sd_url": "https://video.fdad3-8.fna.fbcdn.net/o1/v/t2/f2/m412/AQOvvOpXfihTLYRNnPT_s5EsU6xrYEPmvPiDgGXwkYOigb6MRUwyo5-4d-HW0yvsTmp1SD_1bPGqcrrLKibH7H6xH2OrNGh6dYM7xRyP5g.mp4?_nc_cat=111&_nc_oc=AdqY92cjKIb8uT5bhU07dT_BO4VNWdvaDkC9F-G7COtDbcw1rFhIUbwVblv7RWcttSA&_nc_sid=ef5aa3&_nc_ht=video.fdad3-8.fna.fbcdn.net&_nc_ohc=IRkUMXHY-s8Q7kNvwG7Q_JW&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuMzYwLnN2ZV9zZCIsInhwdl9hc3NldF9pZCI6MjYzODc2NjEzNjU0MTM3MiwiYXNzZXRfYWdlX2RheXMiOjk2LCJ2aV91c2VjYXNlX2lkIjoxMDc5OSwiZHVyYXRpb25fcyI6MjQ5LCJ1cmxnZW5fc291cmNlIjoid3d3In0%3D&ccb=17-1&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQM2lGf77KvQIP3hjhFANXVoOYYy3BdzdyBWdIsaNQhrOw&oe=6ADC70EF",
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null
+           }
+          ],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "Houdini Holster",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1784098800,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "2274580589777713",
+         "collation_count": 3,
+         "collation_id": "983016584809562",
+         "is_active": true,
+         "page_id": "106304538820984",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "106304538820984",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/pawfectcustomgifts/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "Pawfect House Custom",
+          "page_profile_picture_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/821523379_928533693277200_415898136230635435_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=101&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=MEytjPcNJkEQ7kNvwGHSbaH&_nc_oc=Adq75YxVejuDz6Ru7OWNba7MEx2ED0UtXTjiWAmZ_l9_faV3YgH7p4jqwfmpQ3wR0jE&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM93xyfPHmq46_ch47IqPQuNq7MS__6iPSc3sfXp3AHoA&oe=6ADC825D",
+          "event": null,
+          "caption": "pawfecthouse.com",
+          "cta_text": "Shop now",
+          "cards": [],
+          "body": {
+           "text": "Custom photo funny T-shirt made for pet parents who love playful adventures with their furry best friend 🐾👣\nOrder here 👉 https://pawfecthouse.com/FCF-MQ7014\nUS & International shipping ✈️\n#pawfecthouse #personalized #gifts #petlovers #tshirt #pet"
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "VIDEO",
+          "link_description": null,
+          "link_url": "https://pawfecthouse.com/FCF-MQ7014",
+          "images": [],
+          "page_categories": [
+           "Gifts"
+          ],
+          "page_like_count": 16950,
+          "title": null,
+          "videos": [
+           {
+            "video_hd_url": "https://video.fdad3-8.fna.fbcdn.net/o1/v/t2/f2/m366/AQP-Pw8nS6zZ0kJP1PPreD2oMVqB8VQcqE6RBptUoP-TO1IWGJlOWjT_laxvCRL9Vc9cqBUv08sT8k-YvAMk-vugfsEuuuSxpOTgHIG6lHo0Dw.mp4?_nc_cat=103&_nc_oc=Ado58QTOTEKCOh_eXYgMToCdx9N80P8K9pS05uNcOkYxQs6Yc73Vst7QjcOsZqUl2iA&_nc_sid=b66105&_nc_ht=video.fdad3-8.fna.fbcdn.net&_nc_ohc=1r_EhJiayuIQ7kNvwHDJTnx&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuNzIwLmRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHAiLCJ4cHZfYXNzZXRfaWQiOjE1NTQ3NTQ1MDU5NzQwMTIsImFzc2V0X2FnZV9kYXlzIjoyNiwidmlfdXNlY2FzZV9pZCI6MTAxMzksImR1cmF0aW9uX3MiOjE5LCJ1cmxnZW5fc291cmNlIjoid3d3In0%3D&ccb=17-1&vs=a24e19c5b2e97c25&_nc_vs=HBksFQIYRWZiX2VwaGVtZXJhbC80QzQ3OTQ1ODFEOTE0RUMzMzY2QjQ1NzAyNTNEQjQ5Rl9tdF8xX3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhAZmJfcGVybWFuZW50L0I2QkQyQ0JBQzU3MjQ3MUE5MkQzNTE1QjRFMUExODNGX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACb4g9Xgz4LDBRUCKAJDMywXQDM9cKPXCj0YGWRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHARAHUAZbaeAQA&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQNf47K6eXkrLH-3vVltJAFaxGprKtP5TF5cF2Cs2YmeaA&oe=6ADC79A9",
+            "video_preview_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/819175836_1101362055617511_1784378619447201754_n.jpg?_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=a0tiWMpnP_8Q7kNvwEprFcL&_nc_oc=Adp4-bYEcKnA0-NhYmzw2AjdZdw9Xg2pHQSO4qYrM_U1sENxwPwO2RhR-vk1LP3wv9E&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNKi8Ldfj3sjfq2DjSwcWiSudae3ndUTpLFjhylI4SZCw&oe=6ADC873A",
+            "video_sd_url": "https://video.fdad3-8.fna.fbcdn.net/o1/v/t2/f2/m412/AQPsOLNFO564DyWQePVMV2e3-qgd4CGu5UJr4Tfgeljv1VqJavxSV-YR4D2a7xTQRpZHK11-d0KtWTWt1U_ZEeU0RbYG7msVc1gce5j8PQ.mp4?_nc_cat=105&_nc_oc=AdrLrm98yYqJLaad3o2Lj8ewfJxB_yUAFxVbb9CrYwLzk_eiwoGLKQDhhYWvG2UT_us&_nc_sid=ef5aa3&_nc_ht=video.fdad3-8.fna.fbcdn.net&_nc_ohc=An2HNe8jgOsQ7kNvwGLP0WG&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuMzYwLnN2ZV9zZCIsInhwdl9hc3NldF9pZCI6MTU1NDc1NDUwNTk3NDAxMiwiYXNzZXRfYWdlX2RheXMiOjI2LCJ2aV91c2VjYXNlX2lkIjoxMDEzOSwiZHVyYXRpb25fcyI6MTksInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&_nc_map=urlgen_bucketless&_nc_zt=28&oh=00_AQPis3ixWp1nWUa3gs-0ycqeBqsnD3e-N7acMIT9hdc1gQ&oe=6ADC6251",
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null
+           }
+          ],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "Pawfect House Custom",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "WHATSAPP",
+          "THREADS"
+         ],
+         "start_date": 1790146800,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     },
+     {
+      "node": {
+       "collated_results": [
+        {
+         "ad_archive_id": "1381205977152269",
+         "collation_count": 5,
+         "collation_id": "1367372768635231",
+         "is_active": true,
+         "page_id": "151226798258064",
+         "page_is_deleted": false,
+         "snapshot": {
+          "branded_content": null,
+          "page_id": "151226798258064",
+          "page_is_deleted": false,
+          "page_profile_uri": "https://www.facebook.com/ProjectRepat/",
+          "root_reshared_post": null,
+          "byline": null,
+          "disclaimer_label": null,
+          "page_name": "Project Repat",
+          "page_profile_picture_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/721369283_1521872939335310_8989162336947703526_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=108&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=qgZ-VG4rWNwQ7kNvwFaOUgw&_nc_oc=AdobggtRqRgY963E9nypMsU-pdj8ymdRcOf5FVCuX80sEUujcRGFJ2phqMOYYDA6Kxw&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQO348JpHghSiYYMf205GY8LpeT7CniXajvn8uqYZNlcrQ&oe=6ADC8720",
+          "event": null,
+          "caption": "projectrepat.com",
+          "cta_text": "Shop now",
+          "cards": [
+           {
+            "body": "Save 30% on quilts today!",
+            "cta_type": "SHOP_NOW",
+            "caption": "projectrepat.com",
+            "link_description": "Save 30% on quilts today!",
+            "link_url": "https://www.projectrepat.com/discount/REPATQUILT30?redirect=/products/project-repat-t-shirt-quilt",
+            "title": "Custom T-shirt Quilts",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/720634496_1537147401370522_5713214475457111667_n.jpg?_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=Wh0kTNwIQSIQ7kNvwHaAuqk&_nc_oc=Adq7WCpvG-6jqyTaIoP-iW2WJSio6zNl9oc-TDFU5O-J13Ma3anWpjOrLwrCzMeaus0&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNqTa_lq0aL0DUntxnBGcw6BkWciSpmDlAzMnR95Ay03Q&oe=6ADC61DC",
+            "resized_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/721576184_1703153070878311_4864884519144516478_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=110&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=yLIsZOUnvkAQ7kNvwEh8HaX&_nc_oc=Adqk3Locxk8OL0dfcBkjE6qcLd9MZL0M61ckjGZcGWAZnnFXv_t5otvW7tbvOvwGkCE&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQNhAuDelrUOZrXtW-R-YOQ1yc2VOySBdYRymCeNamlS_g&oe=6ADC6EE4",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Save 30% on quilts today!",
+            "cta_type": "SHOP_NOW",
+            "caption": "projectrepat.com",
+            "link_description": "Save 30% on quilts today!",
+            "link_url": "https://www.projectrepat.com/discount/REPATQUILT30?redirect=/products/project-repat-t-shirt-quilt",
+            "title": "Custom T-shirt Quilts",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-5.fna.fbcdn.net/v/t39.35426-6/720572163_1315425877438464_5753181839622646080_n.jpg?_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=QRM8QkXXCz4Q7kNvwGcENM7&_nc_oc=AdoeKBBL0rbdDYQ6SJB7CIWmsrH7hs9Q8oA7bTbJjSRwkUPKCM16MI62XtgDP-8no74&_nc_zt=14&_nc_ht=scontent.fdad3-5.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM34LEQ7YJmUyp0aQgAYWAPsPF9m0zoFtSvhfJyRBQePw&oe=6ADC6195",
+            "resized_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/720784725_864174886730390_6490452408535777328_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=4mhJ_subceMQ7kNvwGcvro-&_nc_oc=Adqjy1puP-cZHjuzwsEdW_YTeoR6wWgauiZHhgI5XRSnKqO1maXqR1tHCiOuzVJoeq0&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQO7iwxT3KZC44z1U7fTT4I3gzBA5j2akEiYC6AThwWBCg&oe=6ADC697C",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Save 30% on quilts today!",
+            "cta_type": "SHOP_NOW",
+            "caption": "projectrepat.com",
+            "link_description": "Save 30% on quilts today!",
+            "link_url": "https://www.projectrepat.com/discount/REPATQUILT30?redirect=/products/project-repat-t-shirt-quilt",
+            "title": "Custom T-shirt Quilts",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/721517420_2040449739875616_958523416973428538_n.jpg?_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=pBCqoNwws_4Q7kNvwESYdZb&_nc_oc=Adrg3ObqeHkYyB7T8X6Sia9zhrRPcpay9B5BQycbk0Osj613FMtLRqatIDOF_HoYnNo&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOBoL5qbRPbm0_FZySiAyf4pWlTR9V_FDgTPKn0FKt-Ig&oe=6ADC695A",
+            "resized_image_url": "https://scontent.fdad3-4.fna.fbcdn.net/v/t39.35426-6/720634507_1520813589767626_2674733727529516375_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=101&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=lXObfFOHH0kQ7kNvwFfIRxz&_nc_oc=AdrAhxN8sx_l1tKvL1XLdXy9-os6oeD6CVDOqedR9cDRNMyp4nItGC25e_haII9I2d0&_nc_zt=14&_nc_ht=scontent.fdad3-4.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQOPqBfSfMLaR74x_XmvvFhGxWBplKFCSs4g3JYk39qvng&oe=6ADC6DEE",
+            "watermarked_resized_image_url": ""
+           },
+           {
+            "body": "Save 30% on quilts today!",
+            "cta_type": "SHOP_NOW",
+            "caption": "projectrepat.com",
+            "link_description": "Save 30% on quilts today!",
+            "link_url": "https://www.projectrepat.com/discount/REPATQUILT30?redirect=/products/project-repat-t-shirt-quilt",
+            "title": "Custom T-shirt Quilts",
+            "cta_text": "Shop Now",
+            "video_hd_url": null,
+            "video_preview_image_url": null,
+            "video_sd_url": null,
+            "watermarked_video_hd_url": null,
+            "watermarked_video_sd_url": null,
+            "image_crops": [],
+            "original_image_url": "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.35426-6/721152509_1266448928655841_1504079010105585623_n.jpg?_nc_cat=109&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=7EJ99JRFyOkQ7kNvwHz6k8_&_nc_oc=AdoVpRKayA2QJPAqR4X3LxSECqcNU92wVk2XYjwtOv1PstCzHdJEr0Z8c2Kk-EL5qCY&_nc_zt=14&_nc_ht=scontent.fdad3-1.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQPT1hDmO-4cQr-gbTTSF1HlGDPXn3IUFjB2N2dbVEWI6Q&oe=6ADC7AE9",
+            "resized_image_url": "https://scontent.fdad3-8.fna.fbcdn.net/v/t39.35426-6/722767870_1680778579907525_7684700651540225280_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=z0k19NbaIRAQ7kNvwHljBnX&_nc_oc=AdrjYcqMbgquo21DJ2KwwMAVAevGwwTJwP2k5KCKVfWS-HnJJfcrcJR-_XmtUfHlESE&_nc_zt=14&_nc_ht=scontent.fdad3-8.fna&_nc_gid=Wg_fR2g7D3wPhebdUEoC2Q&_nc_ss=7b289&oh=00_AQM3OgjDWQBuw6F2E_hreqA9fIXS5c_deUV4a_7JGeb3eA&oe=6ADC7D71",
+            "watermarked_resized_image_url": ""
+           }
+          ],
+          "body": {
+           "text": "🚨 Flash Sale This Week Only: Save 30% on any T-Shirt Quilt with code REPATQUILT30. Turn those shirts sitting in storage into a quilt you'll use and love for years."
+          },
+          "cta_type": "SHOP_NOW",
+          "display_format": "CAROUSEL",
+          "link_description": null,
+          "link_url": "https://www.projectrepat.com/discount/REPATQUILT30?redirect=/products/project-repat-t-shirt-quilt",
+          "images": [],
+          "page_categories": [
+           "Shopping"
+          ],
+          "page_like_count": 752919,
+          "title": "Flash Sale: 30% Off T-Shirt Quilts",
+          "videos": [],
+          "is_reshared": false,
+          "extra_links": [],
+          "extra_texts": [],
+          "extra_images": [],
+          "extra_videos": [],
+          "country_iso_code": null,
+          "brazil_tax_id": null,
+          "additional_info": null,
+          "ec_certificates": []
+         },
+         "has_user_reported": false,
+         "report_count": null,
+         "menu_items": [],
+         "state_media_run_label": null,
+         "page_name": "Project Repat",
+         "impressions_with_index": {
+          "impressions_text": null,
+          "impressions_index": -1
+         },
+         "gated_type": "ELIGIBLE",
+         "categories": [
+          "UNKNOWN"
+         ],
+         "is_aaa_eligible": false,
+         "contains_digital_created_media": false,
+         "reach_estimate": null,
+         "currency": "",
+         "spend": null,
+         "end_date": 1792393200,
+         "publisher_platform": [
+          "FACEBOOK",
+          "INSTAGRAM",
+          "AUDIENCE_NETWORK",
+          "MESSENGER",
+          "THREADS"
+         ],
+         "start_date": 1781161200,
+         "contains_sensitive_content": false,
+         "total_active_time": null,
+         "regional_regulation_data": {
+          "finserv": {
+           "is_deemed_finserv": false,
+           "is_limited_delivery": false
+          },
+          "tw_anti_scam": {
+           "is_limited_delivery": false
+          }
+         },
+         "hide_data_status": "NONE",
+         "fev_info": null,
+         "ad_id": null,
+         "targeted_or_reached_countries": []
+        }
+       ],
+       "__typename": "CollatedSearchResults"
+      },
+      "cursor": null
+     }
+    ],
+    "page_info": {
+     "end_cursor": "AQHTI-1hCHGMSaqclcS0hwGnYKHuoEX9YHp-DXu_6tqYTnRyx-mqIVHZs7R21hsJDRxE",
+     "has_next_page": true
+    }
+   }
+  }
+ }
+}

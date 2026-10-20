@@ -128,6 +128,28 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   with the blocks seen in each mode; the measured page-load and scroll times replace the assumptions of
   the run-time estimate in spec §1, the wait limits are tuned from the observed hits, and the backoff
   starting values are kept or changed from the observed blocks. Deleted after Step 4's crawler ADR.
+- Progress (2026-10-20): sample done in all three modes, 4 runs and 122 searches, 0 blocks; results,
+  the payload findings and the schedule in `docs/research/2026-10-20-fb-probe.md`. Decisions, with
+  reasons:
+  - Both assumptions answered: the embedded connection carries `page_info.has_next_page` and a total
+    `count`, so AC 2 stands; thumbnail URLs carry `oe=<hex Unix seconds>`, about 4 days ahead. No scroll
+    page repeated an ad and no search stopped by the 2-page rule, so that stop stays neutral.
+  - Production mode: headed with the window off-screen (0 blocks in every mode; off-screen is the real
+    headed browser without a visible window, and its 3 scroll timeouts were all recovered; headless
+    had 6 and the only 2 failed searches, a truncated embedded script). Recorded with the blocks per
+    mode in the research doc; the worker's default `IDEAS_HUB_BROWSER_MODE` is `offscreen`.
+  - Measured page-load and scroll times replace the spec §1 run-time assumptions (spec and risk row
+    updated); wait limits and backoff starting values kept, since no hit was a slow answer and no
+    block was seen (reasons in the research doc).
+  - The off-screen sample's first run was ended from outside after 29 searches (exit `0x40010004`); its
+    remaining 11 ran with a new `--skip` option, and every later run goes through `keep-awake.ps1`.
+  - 41 seed keywords in `packages/db/seed/seed-keywords.json` ("anniversary gift" became "anniversary
+    gift shirt").
+  - Twice-daily runs (01:00 and 13:00 to 2026-10-22) and the 24 h and 72 h thumbnail re-fetches run as
+    the Windows tasks `IdeasHub-Probe-*` from the worktree `C:\Users\User\dev\wt\ideas-hub-probe`.
+  - Exit: JSONL from 4 runs and both answers recorded, the mode choice, the measured times and the
+    tuning decisions are done; the 3 days of data at the production mode (6 scheduled runs) and the
+    re-fetch results are pending: scheduled runs.
 
 ### Step 2. Skeleton, schema and core rules (days 1–5, parallel with Step 1)
 - `package.json` (pnpm, `engines.node` `^22.12.0 || ^24 || >=26`, run on Node 24, exact versions
@@ -900,7 +922,7 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
 | Facebook blocks logged-out crawling | Step 1 probe of three browser modes and Step 4 measurement in the production mode; random delays and graduated backoff before the 6 h stop; tune; proxy before accounts; accounts only via ADR |
 | Linux IP or session behaves differently | 2-day re-check on Linux before the 14-day run; systemd lingering, restart policy, headed-session checklist |
 | Page or GraphQL change | `parse_error` status separate from blocks, alert, no cool-down; fixtures per source |
-| Long runs miss the briefing deadline | Run deadline and 06:05 hard stop; briefing uses the last completed scheduled run; spec §1 run-time estimate, adding 210 s per `network_error` search in the page-load case: at the longest delays the 27 min margin after the worst backoff holds 7 such searches, or 4 with one 10 min network cool-down; in the 7-scroll-page case of about 750 s per such search (two browser closes included) it holds only 2, or 7 at mean delays, and with no page cap only the run deadline is a hard bound; replaced by Step 1 measurements |
+| Long runs miss the briefing deadline | Run deadline and 06:05 hard stop; briefing uses the last completed scheduled run; spec §1 run-time estimate, adding 210 s per `network_error` search in the page-load case: at the longest delays and the Step 1 p95 times the 19 min margin after the worst backoff holds 5 such searches, or 2 with one 10 min network cool-down; in the 7-scroll-page case of about 750 s per such search (two browser closes included) it holds only 1, or 8 at mean delays, and with no page cap only the run deadline is a hard bound; the Step 4 measurement checks it at the production schedule |
 | Overlapping runs (job expiry) | `singleton` queue (one active `crawl.run` job), expiry of run deadline + grace + 5 min, `retryLimit: 0`; a run starts only from `scheduled`, before its deadline; a manual or `cli` run ends 25 min before the next slot and is refused while another run is `running` or another manual or `cli` row is waiting (partial unique index); worker startup closes a run left `running`; a slot covered by `blocked_until` is closed as `stopped` |
 | Worker dies silently | Watchdog on an OS timer, outside the worker: heartbeat, missed slots, Alert sending; a run past its deadline plus grace or with a stale heartbeat is closed, its job failed and the worker restarted; a host that is fully down is noticed only when it comes back |
 | LLM invents evidence | Refs checked against ids sent in the prompt; retry once; drop |

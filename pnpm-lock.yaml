@@ -276,6 +276,19 @@ importers:
         specifier: 0.31.11
         version: 0.31.11
 
+  spikes/fb-ad-library-probe:
+    dependencies:
+      '@ideas-hub/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      playwright:
+        specifier: 1.63.0
+        version: 1.63.0
+    devDependencies:
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+
 packages:
 
   '@better-auth/core@1.7.7':
