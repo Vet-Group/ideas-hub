@@ -43,6 +43,8 @@ import { BRIEFING, type BriefingJob, briefingKey, sendBriefingJob, sendLarkJob }
 export const MAX_LLM_CALLS = 2;
 /** Serializes the daily-cap check and the reservation of a call across briefings. */
 const COST_LOCK = 4_242_002;
+/** Unconfigured clients already logged, so a day of keyword briefings logs it once. */
+const unconfiguredLogged = new WeakSet<LlmClient>();
 
 export interface BriefingDeps {
   llm: LlmClient;
@@ -197,6 +199,12 @@ function callLlm(llm: LlmClient, req: Omit<Parameters<LlmClient['complete']>[0],
 }
 
 async function aiSections(ctx: Ctx, briefingId: string, date: string, input: PromptInput, s: Settings, llm: LlmClient, signal: AbortSignal): Promise<AiResult> {
+  // Checked before any reservation, so a missing key spends no call or cost and never trips the daily cap.
+  if (llm.configured === false) {
+    if (!unconfiguredLogged.has(llm)) ctx.log('briefing: LLM is not configured (LLM_BASE_URL, LLM_API_KEY); AI sections fail');
+    unconfiguredLogged.add(llm);
+    return { state: 'failed', reason: 'ai' };
+  }
   const refs = promptRefs(input);
   let fallback: Extract<ReturnType<typeof parseBriefingOutput>, { ok: true }> | null = null;
   let problem: string | undefined;

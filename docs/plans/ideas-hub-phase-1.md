@@ -1043,6 +1043,12 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
     `packages/db/seed/news-feeds.json` (the URLs were never fetched); check `MODEL_PRICES` in
     `packages/core/src/briefing/cost.ts` (not checked against a price list); approve the Step 7
     screenshots in `e2e/__screenshots__/pending/win32/` (briefing at desktop and phone, the four states).
+  - Review fixes (2026-10-20, branch `fix-step7-hardening`): suggestion saves go through the tested
+    `suggestionForViewer` (same `canSeeKeywordAi` rule); `saveAction` input checked with zod and the
+    snapshot keyword kept only when the ad was seen for it; `lark.send` gives up two post timeouts
+    before the 1 h uuid window ends; manual ideas cap the title at 140 characters and the link at 2048
+    UTF-8 bytes, and answer 500 with a log line when `APP_URL` is not set; a missing LLM key fails
+    sections 5–6 without reserving a call or cost; `restore.sh` exits 1 on a row-count mismatch.
 
 ### Step 8. Contract, Linux trial, onboarding, acceptance run (weeks 9–11)
 - `docs/contracts/ideas-hub-v1.md` draft (spec §5), reviewed with the POD Studio owner; nothing built.

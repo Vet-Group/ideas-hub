@@ -95,6 +95,14 @@ describe.skipIf(!testDatabaseAvailable())('Lark delivery', () => {
     expect(await all(h, sql`select kind, briefing_id from alerts`)).toEqual([{ kind: 'lark_send_failed', briefing_id: 'brf_g' }]);
   });
 
+  it('a row just under 1 hour old but within two post timeouts of it posts nothing and writes lark_send_failed', async () => {
+    // Default larkSendTimeoutSeconds is 30: the margin is 60 s, so 59 min 30 s is already too late to post.
+    await h.db.execute(sql`insert into lark_messages (id, briefing_id, chat, uuid, created_at) values ('lark_1', 'brf_g', 'oc_shared', ${larkUuid('brf_g', 'oc_shared')}, ${new Date(h.clock.t - HOUR + 30_000)})`);
+    expect(await larkSend(h, { data: JOB, retryCount: 1 }, deps, signal())).toBe('gave_up');
+    expect(lark.requests).toEqual([]);
+    expect(await all(h, sql`select kind, briefing_id from alerts`)).toEqual([{ kind: 'lark_send_failed', briefing_id: 'brf_g' }]);
+  });
+
   it('a post that still fails on the last retry writes lark_send_failed', async () => {
     lark.state.failNext = 10;
     await expect(larkSend(h, { data: JOB, retryCount: 0 }, deps, signal())).rejects.toThrow('HTTP 500');

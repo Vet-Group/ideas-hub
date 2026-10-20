@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { SEED_FEEDS, SEED_HOLIDAYS, seedFeeds, seedHolidays } from '../seed-data';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
-import { briefingSuggestions, globalBriefing, keywordBriefingFor, latestReadyBriefing } from './briefing-view';
+import { briefingSuggestions, globalBriefing, keywordBriefingFor, latestReadyBriefing, suggestionForViewer } from './briefing-view';
 
 const view = (storeId: string) => ({ storeId, view: true, save: false, keywords: false });
 const admin: Viewer = { userId: 'user_admin', role: 'admin', memberships: [] };
@@ -44,7 +44,8 @@ describe.skipIf(!testDatabaseAvailable())('briefing reads', () => {
       insert into suggestions (id, briefing_id, kind, text, reason, evidence, created_at) values
         ('sug_2', 'brf_kb', 'keyword', 'second', 'r', '{"ads":["a1"],"news":[]}', '2026-10-21T00:00:01Z'),
         ('sug_1', 'brf_kb', 'idea', 'first', 'r', '{"ads":["a1"],"news":[]}', '2026-10-21T00:00:00Z'),
-        ('sug_a', 'brf_ka', 'idea', 'for a', 'r', '{"ads":[],"news":["news_1"]}', '2026-10-21T00:00:00Z')`);
+        ('sug_a', 'brf_ka', 'idea', 'for a', 'r', '{"ads":[],"news":["news_1"]}', '2026-10-21T00:00:00Z'),
+        ('sug_g', 'brf_g21', 'idea', 'global one', 'r', '{"ads":[],"news":[]}', '2026-10-21T00:00:00Z')`);
   }, 60_000);
   afterAll(async () => {
     await pool?.end();
@@ -69,6 +70,19 @@ describe.skipIf(!testDatabaseAvailable())('briefing reads', () => {
   it('a seed keyword’s AI sections are visible to everyone; a missing briefing is null', async () => {
     expect(await keywordBriefingFor(db, nobody, 'kw_seed', '2026-10-21')).toMatchObject({ aiVisible: true });
     expect(await keywordBriefingFor(db, admin, 'kw_a', '2026-10-20')).toBeNull();
+  });
+
+  it('suggestionForViewer refuses a keyword briefing’s suggestion the viewer may not see (AC 4)', async () => {
+    expect(await suggestionForViewer(db, memberA, 'sug_1')).toBeNull();
+    expect(await suggestionForViewer(db, nobody, 'sug_1')).toBeNull();
+    for (const v of [memberB, admin]) {
+      expect(await suggestionForViewer(db, v, 'sug_1')).toEqual({
+        id: 'sug_1', kind: 'idea', text: 'first', reason: 'r', evidence: { ads: ['a1'], news: [] }, scope: 'keyword', keyword: 'only b',
+      });
+    }
+    expect(await suggestionForViewer(db, memberA, 'sug_a')).toMatchObject({ id: 'sug_a', keyword: 'only a' });
+    expect(await suggestionForViewer(db, nobody, 'sug_g')).toMatchObject({ id: 'sug_g', scope: 'global', keyword: null });
+    expect(await suggestionForViewer(db, admin, 'sug_missing')).toBeNull();
   });
 
   it('globalBriefing, latestReadyBriefing and briefingSuggestions', async () => {

@@ -143,7 +143,7 @@ export type LarkOutcome = 'posted' | 'already_posted' | 'gave_up';
 
 /**
  * Posts one briefing to one chat. The row goes in first; a row that already has a message id posts
- * nothing; one older than Lark's 1 h uuid window without a message id posts nothing and writes
+ * nothing; one without a message id that is past Lark's 1 h uuid window, less two post timeouts, posts nothing and writes
  * `lark_send_failed`, as does the last retry's failure.
  */
 export async function larkSend(ctx: Ctx, job: { data: LarkJob; retryCount: number }, deps: LarkDeps, signal: AbortSignal): Promise<LarkOutcome> {
@@ -157,7 +157,8 @@ export async function larkSend(ctx: Ctx, job: { data: LarkJob; retryCount: numbe
     return r!;
   });
   if (row.messageId) return 'already_posted';
-  if (now.getTime() - row.createdAt.getTime() > HOUR) {
+  // Lark dedupes the uuid for 1 h from the first post; two post timeouts of margin keep this post inside it.
+  if (now.getTime() - row.createdAt.getTime() > HOUR - 2 * s.larkSendTimeoutSeconds * 1000) {
     await bounded(ctx.pool, ({ db }) => insertAlert(db, { kind: 'lark_send_failed', briefingId, detail: `no message id for chat ${chat} after 1 hour`, at: now }));
     return 'gave_up';
   }
