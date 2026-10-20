@@ -14,6 +14,8 @@ export interface LlmRequest {
 export interface LlmClient {
   /** Returns the reply text. */
   complete(req: LlmRequest): Promise<string>;
+  /** False when LLM_BASE_URL or LLM_API_KEY is missing: the build then reserves no call. */
+  configured?: boolean;
 }
 
 export function llmFromEnv(env: NodeJS.ProcessEnv = process.env): LlmClient {
@@ -21,6 +23,7 @@ export function llmFromEnv(env: NodeJS.ProcessEnv = process.env): LlmClient {
   const apiKey = env.LLM_API_KEY;
   if (!baseURL || !apiKey) {
     return {
+      configured: false,
       complete: async () => {
         throw new Error('LLM_BASE_URL and LLM_API_KEY are not set');
       },

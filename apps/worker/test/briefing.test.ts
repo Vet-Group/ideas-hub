@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { bounded } from '../src/bounded';
 import { type BriefingDeps, buildBriefing } from '../src/briefing';
 import { larkHttpClient, larkSend } from '../src/lark';
+import { llmFromEnv } from '../src/llm';
 import { LARK, type LarkJob } from '../src/queues';
 import { BUILD, SHARED_CHAT, resetBriefings, seedBriefingData } from './briefing-data';
 import { type LlmStep, fakeLark, fakeLlm } from './fakes';
@@ -124,6 +125,21 @@ describe.skipIf(!testDatabaseAvailable())('briefing.build', () => {
     expect(b.sections.news).toMatchObject({ state: 'skipped', reason: 'cost_cap' });
     expect(b.sections.suggestions).toEqual({ state: 'skipped', reason: 'cost_cap' });
     expect(b.ready_at).not.toBeNull();
+  });
+
+  it('without LLM_BASE_URL/LLM_API_KEY: no call is reserved, sections 5 and 6 "failed: AI", logged once', async () => {
+    const logs: string[] = [];
+    const ctx = { ...h, log: (msg: string) => void logs.push(msg) };
+    const d: BriefingDeps = { llm: llmFromEnv({}), sharedChat: SHARED_CHAT };
+    expect(await buildBriefing(ctx, GLOBAL, d)).toBe('built');
+    expect(await buildBriefing(ctx, KW0, d)).toBe('built');
+    for (const b of [await row(), await row('keyword', 'kw_0')]) {
+      expect([b.llm_calls, Number(b.ai_cost_usd)]).toEqual([0, 0]);
+      expect(b.sections.news).toMatchObject({ state: 'failed', reason: 'ai' });
+      expect(b.sections.suggestions).toEqual({ state: 'failed', reason: 'ai' });
+      expect(b.ready_at).not.toBeNull();
+    }
+    expect(logs.filter((m) => /LLM/.test(m))).toEqual(['briefing: LLM is not configured (LLM_BASE_URL, LLM_API_KEY); AI sections fail']);
   });
 
   it('the cap is checked before the retry too, across all briefings of the day', async () => {
