@@ -13,6 +13,19 @@ export interface Field {
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const TIME_KEYS = new Set<string>(['morningHardStop', 'briefingBuildTime', 'briefingReadyTime']);
+const REQUIRED_KEYS = new Set<string>(['llmModel']);
+/** Settings that count things (searches, pages, attempts, blocks): positive integers. */
+const COUNT_KEYS = new Set<string>([
+  'searchBudget',
+  'maxKeywords',
+  'adsPerSearchCap',
+  'noNewAdsPagesToStop',
+  'attemptsPerSearch',
+  'blockEmptyPayloadsInRow',
+  'backoff.stopBlockStreak',
+  'backoff.stopBlockedSearches',
+  'networkCooldown.streak',
+]);
 
 function kindOf(v: unknown): FieldKind {
   if (v === null) return 'nullable';
@@ -36,7 +49,7 @@ export function fieldValue(v: unknown, part?: string): string {
   return String(v);
 }
 
-export type FieldError = { key: string; code: 'number' | 'time' | 'list' };
+export type FieldError = { key: string; code: 'number' | 'time' | 'list' | 'required' | 'count' | 'range' };
 
 /** Reads the submitted form into Settings; returns field errors, then the cross-field problems. */
 export function parseSettingsForm(
@@ -48,6 +61,7 @@ export function parseSettingsForm(
     const raw = (get(name) ?? '').trim();
     const n = Number(raw);
     if (raw === '' || !Number.isFinite(n) || n < 0) fieldErrors.push({ key: name, code: 'number' });
+    else if (COUNT_KEYS.has(name) && (!Number.isInteger(n) || n < 1)) fieldErrors.push({ key: name, code: 'count' });
     return n;
   };
   for (const f of FIELDS) {
@@ -58,6 +72,7 @@ export function parseSettingsForm(
         break;
       case 'text':
         if (TIME_KEYS.has(f.key) && !HHMM.test(raw)) fieldErrors.push({ key: f.key, code: 'time' });
+        if (REQUIRED_KEYS.has(f.key) && raw === '') fieldErrors.push({ key: f.key, code: 'required' });
         out[f.key] = raw;
         break;
       case 'nullable':
@@ -77,9 +92,12 @@ export function parseSettingsForm(
         out[f.key] = items;
         break;
       }
-      case 'object':
-        out[f.key] = Object.fromEntries(f.parts!.map((p) => [p, num(`${f.key}.${p}`)]));
+      case 'object': {
+        const o = Object.fromEntries(f.parts!.map((p) => [p, num(`${f.key}.${p}`)]));
+        if ('min' in o && 'max' in o && o.min! > o.max!) fieldErrors.push({ key: `${f.key}.max`, code: 'range' });
+        out[f.key] = o;
         break;
+      }
     }
   }
   const settings = out as unknown as Settings;

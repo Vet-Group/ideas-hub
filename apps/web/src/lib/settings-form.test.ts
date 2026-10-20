@@ -40,6 +40,30 @@ describe('settings form', () => {
     expect(r.problems).toEqual([]);
   });
 
+  it('requires an LLM model', () => {
+    expect(parseSettingsForm(form({ llmModel: '  ' })).fieldErrors).toEqual([{ key: 'llmModel', code: 'required' }]);
+  });
+
+  it('requires positive integers for counts, top-level and nested', () => {
+    const r = parseSettingsForm(form({ searchBudget: '0', attemptsPerSearch: '2.5', 'backoff.stopBlockStreak': '0', 'networkCooldown.streak': '1.5', maxKeywords: '1' }));
+    expect(r.fieldErrors).toEqual([
+      { key: 'searchBudget', code: 'count' },
+      { key: 'backoff.stopBlockStreak', code: 'count' },
+      { key: 'attemptsPerSearch', code: 'count' },
+      { key: 'networkCooldown.streak', code: 'count' },
+    ]);
+    // Durations stay non-negative numbers, fractions allowed.
+    expect(parseSettingsForm(form({ cooldownHours: '0.5', 'backoff.jitter': '0' })).fieldErrors).toEqual([]);
+  });
+
+  it('requires min <= max for every range', () => {
+    const r = parseSettingsForm(form({ 'searchGapSeconds.min': '61', 'pageDelayMs.max': '399', 'scrollDelayMs.min': '1700' }));
+    expect(r.fieldErrors).toEqual([
+      { key: 'searchGapSeconds.max', code: 'range' },
+      { key: 'pageDelayMs.max', code: 'range' },
+    ]);
+  });
+
   it('returns the cross-field problems of validateSettings', () => {
     expect(parseSettingsForm(form({ runTimes: '01:00, 03:00' })).problems).toContain('slots_too_close');
   });

@@ -338,7 +338,14 @@ export const t = {
       invalid: 'Cài đặt chưa hợp lệ:',
       submit: 'Lưu cài đặt',
       hint: 'Giờ theo Asia/Ho_Chi_Minh (HH:mm). Danh sách cách nhau bằng dấu phẩy.',
-      fieldErrors: { number: 'Cần một số không âm', time: 'Giờ dạng HH:mm', list: 'Danh sách chưa hợp lệ' } as Record<string, string>,
+      fieldErrors: {
+        number: 'Cần một số không âm',
+        time: 'Giờ dạng HH:mm',
+        list: 'Danh sách chưa hợp lệ',
+        required: 'Không được để trống',
+        count: 'Cần một số nguyên dương',
+        range: 'Tối đa phải lớn hơn hoặc bằng tối thiểu',
+      } as Record<string, string>,
       problems: {
         crawl_expiry_over_24h: 'Hạn run + grace + chu kỳ watchdog vượt 24 giờ.',
         margin_not_after_grace: 'Khoảng nghỉ trước ca phải dài hơn grace của watchdog cộng một chu kỳ.',
