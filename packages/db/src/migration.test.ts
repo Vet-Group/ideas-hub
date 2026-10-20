@@ -53,7 +53,7 @@ describe.skipIf(!url)('first migration', () => {
         on conflict (source, scheduled_for) where trigger = 'schedule' do nothing`;
       await client.query(insert, ['run_a']);
       await client.query(insert, ['run_b']);
-      const { rows } = await client.query('select id from crawl_runs');
+      const { rows } = await client.query("select id from crawl_runs where id in ('run_a', 'run_b')");
       expect(rows).toEqual([{ id: 'run_a' }]);
     }));
 

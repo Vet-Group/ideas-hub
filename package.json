@@ -13,7 +13,11 @@
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",
     "db:generate": "pnpm --filter @ideas-hub/db generate",
-    "db:migrate": "pnpm --filter @ideas-hub/db migrate"
+    "db:migrate": "pnpm --filter @ideas-hub/db migrate",
+    "db:seed": "pnpm --filter @ideas-hub/db seed",
+    "worker": "pnpm --filter @ideas-hub/worker start",
+    "crawl:run": "pnpm --filter @ideas-hub/worker crawl:run",
+    "watchdog": "pnpm --filter @ideas-hub/worker watchdog"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

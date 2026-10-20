@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/sources/*
   - spikes/*
 # Exact versions only (ADR 0001 pins every dependency).
 saveExact: true

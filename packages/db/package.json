@@ -3,14 +3,18 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/schema/index.ts"
+    ".": "./src/schema/index.ts",
+    "./client": "./src/client.ts",
+    "./testing": "./src/testing.ts",
+    "./queries": "./src/queries/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate"
+    "migrate": "drizzle-kit migrate",
+    "seed": "tsx src/seed.ts"
   },
   "dependencies": {
     "@ideas-hub/core": "workspace:*",
@@ -20,6 +24,7 @@
   },
   "devDependencies": {
     "@types/pg": "8.23.1",
-    "drizzle-kit": "0.31.11"
+    "drizzle-kit": "0.31.11",
+    "tsx": "4.23.15"
   }
 }

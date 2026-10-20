@@ -1,0 +1,90 @@
+{
+ "require": [
+  [
+   "ScheduledServerJS",
+   "handle",
+   null,
+   [
+    {
+     "__bbox": {
+      "require": [
+       [
+        "RelayPrefetchedStreamCache@74893626572a4a3f7bb5915b910a9bda",
+        "next",
+        [],
+        [
+         "adp_AdLibraryFoundationRootQueryRelayPreloader_6ad69b9adc6393928699298",
+         {
+          "__bbox": {
+           "complete": true,
+           "result": {
+            "label": "AdLibraryMobileFocusedStateProvider_fragment$defer$AdLibraryV2SearchResultsContainer_4tmrWM",
+            "path": [],
+            "data": {
+             "ad_library_system_status": {
+              "system_status": {
+               "status": "NO_KNOWN_ISSUES",
+               "active_issues": [
+                {
+                 "product": "Ad Library",
+                 "status": "NO_KNOWN_ISSUES"
+                },
+                {
+                 "product": "Ad Library Report",
+                 "status": "NO_KNOWN_ISSUES"
+                },
+                {
+                 "product": "Ad Library API",
+                 "status": "NO_KNOWN_ISSUES"
+                },
+                {
+                 "product": "Branded Content",
+                 "status": "NO_KNOWN_ISSUES"
+                }
+               ]
+              }
+             },
+             "xfb_ad_library_is_captcha_required": false,
+             "ad_library_main": {
+              "search_results_connection": {
+               "count": 0,
+               "edges": [],
+               "page_info": {
+                "end_cursor": "",
+                "has_next_page": false
+               }
+              }
+             },
+             "page": null,
+             "ad_library_user": null
+            }
+           },
+           "sequence_number": 1
+          }
+         }
+        ]
+       ],
+       [
+        "CometResourceScheduler",
+        "registerHighPriHashes",
+        null,
+        [
+         [
+          "QVQHOxj",
+          "RaHeyRC"
+         ]
+        ]
+       ]
+      ]
+     }
+    },
+    {
+     "__bbox": null
+    },
+    {
+     "__bbox": null
+    }
+   ]
+  ]
+ ]
+}

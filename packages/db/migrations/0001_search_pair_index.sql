@@ -1,0 +1,1 @@
+CREATE INDEX "crawl_searches_keyword_country_idx" ON "crawl_searches" USING btree ("keyword_id","country");

@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   date,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -124,6 +125,8 @@ export const crawlSearches = pgTable(
   },
   (t) => [
     uniqueIndex('crawl_searches_pair_key').on(t.runId, t.keywordId, t.country),
+    // Ad status looks up the searches of an ad's (keyword, country) pairs.
+    index('crawl_searches_keyword_country_idx').on(t.keywordId, t.country),
     check('crawl_searches_status_check', oneOf(t.status, SEARCH_STATUSES)),
     check('crawl_searches_stop_reason_check', oneOf(t.stopReason, STOP_REASONS)),
   ],
