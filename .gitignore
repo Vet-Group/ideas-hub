@@ -10,3 +10,5 @@ next-env.d.ts
 *.tsbuildinfo
 test-results/
 playwright-report/
+# Database dump and MinIO tar of the Linux trial (scripts/linux/dump-windows.ps1); never committed.
+transfer/

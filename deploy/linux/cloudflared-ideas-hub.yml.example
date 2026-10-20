@@ -1,0 +1,8 @@
+# Copy to ~/.cloudflared/ideas-hub.yml and fill the placeholders (docs/ops/linux-trial.md, "Tunnel").
+# A separate named tunnel: nothing here is shared with POD Studio's tunnel config.
+tunnel: <ideas-hub-tunnel-id>
+credentials-file: <home>/.cloudflared/<ideas-hub-tunnel-id>.json
+ingress:
+  - hostname: <tunnel-hostname>
+    service: http://127.0.0.1:3300
+  - service: http_status:404

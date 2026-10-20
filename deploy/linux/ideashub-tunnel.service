@@ -1,0 +1,13 @@
+# Ideas Hub's own Cloudflare tunnel, with its own config and credentials under ~/.cloudflared;
+# POD Studio's tunnel and its config are never touched (docs/ops/linux-trial.md, "Tunnel").
+[Unit]
+Description=Ideas Hub Cloudflare tunnel
+After=network-online.target ideashub-web.service
+
+[Service]
+ExecStart=@CLOUDFLARED@ tunnel --no-autoupdate --config %h/.cloudflared/ideas-hub.yml run
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

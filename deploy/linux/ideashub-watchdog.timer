@@ -1,0 +1,12 @@
+# Every 5 min, as the Windows IdeasHub-Watchdog task. A missed tick while the host is down is not
+# replayed: the watchdog backfills missed slots itself on its next pass.
+[Unit]
+Description=Ideas Hub watchdog every 5 min
+
+[Timer]
+OnCalendar=*:0/5
+AccuracySec=10s
+Unit=ideashub-watchdog.service
+
+[Install]
+WantedBy=timers.target
