@@ -1,7 +1,7 @@
 // Step 6 research views: the ads grid and pane, saves, thumbnails, the keyword report and Run now.
 import { type Page, expect, test } from '@playwright/test';
 import sharp from 'sharp';
-import { MUG, STORES, USERS, e2ePool } from './fixtures/seed';
+import { MUG, NON_SHOP_DOMAIN, STORES, USERS, e2ePool } from './fixtures/seed';
 import { Actions } from './support/actions';
 import { freezeClock, signIn } from './support/session';
 
@@ -205,4 +205,86 @@ test('Run now: disabled with its reason for a running run, a cool-down and the m
   await expect(saver.getByRole('heading', { name: MUG.keyword })).toBeVisible();
   await expect(saver.getByRole('button', { name: 'Run now' })).toHaveCount(0);
   await ctx.close();
+});
+
+test('the ads header shows shown / total, and a page link keeps the filters', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?domain=dogmom&page=2')}`);
+  await expect(page.getByText('0 / 6 ads')).toBeVisible();
+  await page.getByRole('navigation', { name: 'Phân trang' }).getByRole('link', { name: 'Trang trước' }).click();
+  await expect(page).toHaveURL(/\/ads\?domain=dogmom$/);
+  await expect(page.getByText('6 / 6 ads')).toBeVisible();
+  // "Gộp mẫu trùng" lands in the query with the other filters.
+  await page.getByRole('checkbox', { name: 'Gộp mẫu trùng' }).click();
+  await page.getByRole('button', { name: 'Lọc' }).click();
+  await expect(page).toHaveURL(/domain=dogmom.*dedupe=1/);
+  await expect(page.getByRole('checkbox', { name: 'Gộp mẫu trùng' })).toBeChecked();
+});
+
+test('without an ad open the grid has 3+ columns at 1440 px; the score is labelled; one dash per empty value', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the 1440 px grid');
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fads');
+  await expect(page.getByRole('main').getByRole('complementary')).toHaveCount(0);
+  const lefts = await page.getByRole('listitem').filter({ has: page.locator('a[href^="/ads/"]') }).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left)));
+  expect(new Set(lefts).size).toBeGreaterThanOrEqual(3);
+
+  const score = card(page, 'Best dog mom mug gift 3').getByRole('button', { name: 'Điểm 100' });
+  await score.hover();
+  await expect(page.getByRole('tooltip')).toContainText('số ngày chạy × số ngày thấy');
+  // No dates and no score: the empty days are left out, the score shows the one dash.
+  const empty = card(page, '50% off teacher shirt');
+  await expect(empty.getByRole('button', { name: 'Điểm —' })).toBeVisible();
+  expect(((await empty.innerText()).match(/[—–-]/g) ?? []).length).toBe(1);
+});
+
+test('the detail pane stays below the sticky header while the page scrolls', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the pane is a sheet on phones');
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fads%2Fe2e_mug_3');
+  const pane = page.getByRole('main').getByRole('complementary').locator('> div');
+  await expect(pane.getByRole('article', { name: 'Chi tiết ad' })).toBeVisible();
+  await page.mouse.wheel(0, 800);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
+  const header = (await page.locator('header').first().boundingBox())!;
+  const box = (await pane.boundingBox())!;
+  expect(box.y).toBeGreaterThanOrEqual(header.y + header.height);
+  expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+});
+
+test('thumbnails of different ads look different', async ({ page }) => {
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fads');
+  const means: number[][] = [];
+  for (const caption of ['Best dog mom mug gift 1', 'Best dog mom mug gift 2', 'Best dog mom mug gift 3']) {
+    const src = (await card(page, caption).locator('img').getAttribute('src'))!;
+    const r = await page.request.get(new URL(src, page.url()).toString());
+    expect(r.status()).toBe(200);
+    means.push((await sharp(await r.body()).stats()).channels.slice(0, 3).map((c) => c.mean));
+  }
+  // Every pair differs by more than 30 levels in at least one channel.
+  for (let i = 0; i < means.length; i++) {
+    for (let j = i + 1; j < means.length; j++) {
+      expect(Math.max(...means[i]!.map((m, c) => Math.abs(m - means[j]![c]!)))).toBeGreaterThan(30);
+    }
+  }
+});
+
+test('shops: total shown, non-shop domains left out, the domain looks like a link, the count clears the date', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the table layout at 1440 px');
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fshops');
+  await expect(page.getByText('1 / 1 shop')).toBeVisible();
+  await expect(page.getByRole('link', { name: NON_SHOP_DOMAIN })).toHaveCount(0);
+  const link = page.getByRole('link', { name: MUG.domain });
+  expect(await link.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain('underline');
+  const row = page.getByRole('row', { name: new RegExp(MUG.domain) });
+  const count = row.getByRole('cell').nth(1);
+  expect(await count.evaluate((el) => parseFloat(getComputedStyle(el).paddingRight))).toBeGreaterThanOrEqual(24);
+  // The gap between the count's text and the date's text, measured on the text itself.
+  const textBox = (cell: typeof count) =>
+    cell.evaluate((el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const b = r.getBoundingClientRect();
+      return { left: b.left, right: b.right };
+    });
+  const [countText, dateText] = [await textBox(count), await textBox(row.getByRole('cell').nth(2))];
+  expect(dateText.left - countText.right).toBeGreaterThanOrEqual(24);
+  expect((await page.getByRole('columnheader', { name: /Domain/ }).boundingBox())!.width).toBeGreaterThanOrEqual(224);
 });

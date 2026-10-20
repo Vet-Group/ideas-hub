@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { type KeyboardEvent, useRef } from 'react';
 import { SaveButton, type SaveHandle, type SaveTarget } from '@/components/save/save-button';
 import { AdStatusChip } from '@/components/states/ad-status-chip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
 import { adLibraryUrl } from './ad-library-url';
@@ -23,6 +24,8 @@ export interface AdCardData {
   daysActive: number | null;
   trendScore: number | null;
   status: AdStatus;
+  /** Near-duplicate creatives grouped under this card ("Gộp mẫu trùng"); 1 when not grouped. */
+  duplicates: number;
 }
 
 
@@ -101,13 +104,19 @@ export function AdGrid({ ads, selectedId, saveStores, via = 'ads' }: { ads: AdCa
               {[a.pageName, a.keyword].filter(Boolean).join(' · ')}
             </p>
             <p className="text-fg-2 truncate text-xs">
-              {[a.landingDomain, a.countries.join(', '), t.ads.days(a.daysActive)].filter(Boolean).join(' · ')}
+              {[a.landingDomain, a.countries.join(', '), a.daysActive === null ? null : t.ads.days(a.daysActive)].filter(Boolean).join(' · ')}
             </p>
+            {a.duplicates > 1 ? <p className="text-fg-2 text-xs">{t.ads.duplicates(a.duplicates)}</p> : null}
             <div className="mt-1 flex items-center justify-between gap-2">
               <AdStatusChip status={a.status} />
-              <span className="font-mono text-xs" title={t.ads.score}>
-                {a.trendScore ?? t.common.none}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="relative z-10 min-h-6 rounded-sm text-xs">
+                    <span className="text-fg-2">{t.ads.score}</span> <span className="font-mono">{a.trendScore ?? t.common.none}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-64">{t.ads.scoreHelp}</TooltipContent>
+              </Tooltip>
             </div>
           </div>
           {/* Above the stretched link: a separate control, not nested in it. */}

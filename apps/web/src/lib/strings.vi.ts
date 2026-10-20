@@ -1,6 +1,9 @@
 // Every UI string, in Vietnamese (spec §6 "Users, devices and language"). Seller terms stay English.
 // eslint.config.mjs fails on a UI string written anywhere else under apps/web/src.
 
+/** The one glyph for an empty value. */
+const NONE = '—';
+
 export const t = {
   app: { name: 'VET Ideas', skipToContent: 'Bỏ qua đến nội dung' },
   common: {
@@ -13,13 +16,17 @@ export const t = {
     add: 'Thêm',
     yes: 'Có',
     no: 'Không',
-    none: '—',
+    none: NONE,
     loading: 'Đang tải',
     notFound: 'Không tìm thấy trang',
     notFoundBody: 'Trang này không tồn tại hoặc bạn không có quyền xem.',
     backHome: 'Về Briefing',
     notifications: 'Thông báo',
     backToday: 'Về hôm nay',
+    pages: 'Phân trang',
+    prevPage: 'Trang trước',
+    nextPage: 'Trang sau',
+    pageOf: (page: number, pages: number) => `Trang ${page}/${pages}`,
   },
   login: {
     title: 'Đăng nhập',
@@ -154,11 +161,13 @@ export const t = {
     apply: 'Lọc',
     reset: 'Bỏ lọc',
     empty: 'Không có ad nào khớp bộ lọc.',
-    count: (n: number) => `${n} ads`,
-    days: (n: number | null) => (n === null ? '—' : `${n} ngày`),
+    count: (shown: number, total: number) => `${shown} / ${total} ads`,
+    days: (n: number | null) => (n === null ? NONE : `${n} ngày`),
     score: 'Điểm',
+    scoreHelp: 'Điểm = số ngày chạy × số ngày thấy. Chỉ tính cho ad chạy từ 5 ngày trở lên và có domain.',
+    dedupe: 'Gộp mẫu trùng',
+    duplicates: (n: number) => `${n} mẫu trùng`,
     detail: 'Chi tiết ad',
-    pickOne: 'Chọn một ad để xem chi tiết.',
     openLibrary: 'Mở trong Ad Library',
     openLanding: 'Mở trang đích',
     started: 'Bắt đầu chạy',
@@ -179,6 +188,7 @@ export const t = {
     runningAds: 'Ads đang chạy',
     search: 'Tìm domain',
     empty: 'Chưa có shop nào.',
+    count: (shown: number, total: number) => `${shown} / ${total} shop`,
     ads: 'Ads của shop',
     sortBy: (label: string) => `Sắp xếp theo ${label}`,
   },
@@ -390,6 +400,7 @@ export const t = {
         proxy: 'Proxy (để trống: không dùng)',
         aiDailyCostCapUsd: 'Hạn mức AI mỗi ngày (USD)',
         llmModel: 'Model LLM',
+        nonShopDomains: 'Domain không phải shop (tracker, app store, sàn; * thay phần đuôi, vd. amazon.*)',
       } as Record<string, string>,
     },
     feeds: {

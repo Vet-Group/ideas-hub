@@ -22,6 +22,8 @@ export const USERS = {
 export const STORES = { a: { id: 'store_e2e_a', name: 'Store A' }, b: { id: 'store_e2e_b', name: 'Store B' } } as const;
 /** Step 6 research data: a store-tracked keyword with 4 days of snapshots ("Less than 7 days"). */
 export const MUG = { keywordId: 'kw_e2e_mug', keyword: 'dog mom mug', domain: 'dogmom.example' } as const;
+/** A landing domain of the default nonShopDomains setting. */
+export const NON_SHOP_DOMAIN = 'play.google.com';
 /** Ads of MUG: thumbnails in MinIO except `missing` (a key without an object: the "Chưa có ảnh" tile). */
 export const MUG_ADS = ['e2e_mug_1', 'e2e_mug_2', 'e2e_mug_3', 'e2e_mug_4', 'e2e_mug_5', 'e2e_mug_missing'] as const;
 /** Step 7 briefings: today ready (all 6 sections), 20/10 with the AI sections failed, 19/10 skipped. */
@@ -101,6 +103,8 @@ export async function seedE2e(): Promise<void> {
       await q(`insert into shop_days (landing_domain, crawl_day, slot, running_ads) values ($1, $2, $3, $4)`, [MUG.domain, day, slot, Math.round(n / 2)]);
     }
     await q(`insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date, running_ads) values ($1, '{p_mug}', '2026-10-01', '2026-10-20', 8)`, [MUG.domain]);
+    // An app store row as an older worker wrote it: in the nonShopDomains setting, so never listed as a shop.
+    await q(`insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date, running_ads) values ($1, '{p_app}', '2026-10-01', '2026-10-20', 40)`, [NON_SHOP_DOMAIN]);
     for (const [i, id] of MUG_ADS.entries()) {
       await q(
         `insert into ads (ad_archive_id, caption, page_name, landing_domain, media_type, start_date, end_date, seen_days, first_seen_date, last_seen_date, thumbnail_key, parsed)
@@ -209,11 +213,15 @@ async function seedThumbnails() {
   }
   for (const [i, id] of MUG_ADS.entries()) {
     if (id === 'e2e_mug_missing') continue;
-    // A 600 px JPEG with some texture, like an ad photo, in a different hue per ad; heavy noise would be
-    // incompressible and larger than any real ad image.
-    const body = await sharp({ create: { width: 600, height: 600, channels: 3, background: { r: 40 * i, g: 120, b: 200 - 30 * i }, noise: { type: 'gaussian', mean: 128, sigma: 8 } } })
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    // A 600 px JPEG in its own hue with a numbered shape, so each card looks different. sharp's `noise`
+    // replaces `background`, which made every thumbnail the same gray.
+    const hue = (i * 360) / MUG_ADS.length;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">
+      <rect width="600" height="600" fill="hsl(${hue} 65% 55%)"/>
+      <circle cx="${150 + 60 * i}" cy="${200 + 30 * i}" r="140" fill="hsl(${(hue + 180) % 360} 70% 80%)"/>
+      <text x="300" y="380" font-family="sans-serif" font-size="240" font-weight="700" text-anchor="middle" fill="#ffffff">${i + 1}</text>
+    </svg>`;
+    const body = await sharp(Buffer.from(svg)).jpeg({ quality: 80 }).toBuffer();
     await client.send(new PutObjectCommand({ Bucket: E2E_BUCKET, Key: `thumbs/${id}_image.jpg`, Body: body, ContentType: 'image/jpeg' }));
   }
   client.destroy();

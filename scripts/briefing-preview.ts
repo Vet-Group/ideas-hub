@@ -25,7 +25,7 @@ export async function renderPreview(db: Db, at: Date = new Date()): Promise<stri
   const run = await sourceRun(db, at);
   if (!run) return '# Briefing preview\n\nNo completed scheduled run yet.\n';
   const o = { staleAfterDays: s.staleAfterDays, countries: s.countries };
-  const [top, rising, keywords, shops] = await Promise.all([topTrendingAds(db, run, o), risingNewAds(db, run, o), hotKeywords(db, run), risingShops(db, run)]);
+  const [top, rising, keywords, shops] = await Promise.all([topTrendingAds(db, run, o), risingNewAds(db, run, o), hotKeywords(db, run), risingShops(db, run, { nonShopDomains: s.nonShopDomains })]);
   return [
     '# Briefing preview (sections 1–4)',
     '',

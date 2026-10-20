@@ -80,9 +80,11 @@ export function parseSettingsForm(
         break;
       case 'text-list': {
         const items = raw.split(',').map((x) => x.trim()).filter(Boolean);
-        const upper = f.key === 'countries' ? items.map((x) => x.toUpperCase()) : items;
+        const upper = f.key === 'countries' ? items.map((x) => x.toUpperCase()) : f.key === 'nonShopDomains' ? items.map((x) => x.toLowerCase()) : items;
         if (f.key === 'runTimes' && upper.some((x) => !HHMM.test(x))) fieldErrors.push({ key: f.key, code: 'time' });
         if (f.key === 'countries' && (upper.length === 0 || upper.some((x) => !/^[A-Z]{2}$/.test(x)))) fieldErrors.push({ key: f.key, code: 'list' });
+        // Domain names, `*` for the rest of the name (nonShopPattern); an empty list is allowed.
+        if (f.key === 'nonShopDomains' && upper.some((x) => !/^[a-z0-9*][a-z0-9*.-]*$/.test(x))) fieldErrors.push({ key: f.key, code: 'list' });
         out[f.key] = [...new Set(upper)];
         break;
       }

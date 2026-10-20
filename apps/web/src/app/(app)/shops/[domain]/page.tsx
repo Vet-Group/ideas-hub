@@ -1,3 +1,4 @@
+import { isNonShopDomain } from '@ideas-hub/core';
 import { daySeries, getShop, listAds } from '@ideas-hub/db/queries';
 import { notFound } from 'next/navigation';
 import { AdGrid } from '@/components/ads/ad-grid';
@@ -5,7 +6,7 @@ import { toCard } from '@/components/ads/cards';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/db';
-import { statusOptions } from '@/lib/settings';
+import { loadSettings, statusOptions } from '@/lib/settings';
 import { saveTargets } from '@/lib/store';
 import { requireUser } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
@@ -14,10 +15,10 @@ import { t } from '@/lib/strings.vi';
 export default async function ShopPage({ params }: { params: Promise<{ domain: string }> }) {
   const user = await requireUser();
   const domain = decodeURIComponent((await params).domain);
-  const shop = await getShop(db, domain);
-  if (!shop) notFound();
-  const [series, ads, stores] = await Promise.all([daySeries(db, 'shop', domain), listAds(db, await statusOptions(), { domain }), saveTargets(user)]);
-  const own = ads.filter((a) => a.landingDomain === domain);
+  const [shop, settings] = await Promise.all([getShop(db, domain), loadSettings()]);
+  if (!shop || isNonShopDomain(domain, settings.nonShopDomains)) notFound();
+  const [series, ads, stores] = await Promise.all([daySeries(db, 'shop', domain), listAds(db, await statusOptions(settings), { domain }), saveTargets(user)]);
+  const own = ads.items.filter((a) => a.landingDomain === domain);
   return (
     <>
       <PageHeader title={domain}>

@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
@@ -49,22 +50,69 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     await drop?.();
   });
 
+  const ids = async (f: Parameters<typeof listAds>[2] = {}) => (await listAds(db, O, f)).items.map((a) => a.adArchiveId);
+
   it('lists running ads by default with status, keywords and countries, scored and sorted by score', async () => {
-    const ads = await listAds(db, O);
+    const ads = (await listAds(db, O)).items;
     expect(ads.map((a) => a.adArchiveId)).toEqual(['a_hi', 'a_lo', 'a_new']);
     expect(ads[0]).toMatchObject({ status: 'running', daysActive: 20, trendScore: 100, countries: ['US'], keywords: [{ id: 'kw_1', text: 'teacher shirt' }] });
     // Under 5 days active or no domain: no score.
     expect(ads.find((a) => a.adArchiveId === 'a_new')?.trendScore).toBeNull();
-    expect((await listAds(db, O, { status: 'all' })).map((a) => a.adArchiveId)).toContain('a_old');
+    expect(await ids({ status: 'all' })).toContain('a_old');
   });
 
   it('filters by keyword, country, days active, score and domain', async () => {
-    expect((await listAds(db, O, { keywordId: 'kw_2' })).map((a) => a.adArchiveId)).toEqual(['a_new']);
-    expect((await listAds(db, O, { country: 'GB' })).map((a) => a.adArchiveId)).toEqual(['a_lo']);
-    expect((await listAds(db, O, { minDays: 10 })).map((a) => a.adArchiveId)).toEqual(['a_hi']);
-    expect((await listAds(db, O, { minScore: 50 })).map((a) => a.adArchiveId)).toEqual(['a_hi']);
-    expect((await listAds(db, O, { domain: 'mug' })).map((a) => a.adArchiveId)).toEqual(['a_lo']);
-    expect((await listAds(db, O, { domain: '%' })).map((a) => a.adArchiveId)).toEqual([]);
+    expect(await ids({ keywordId: 'kw_2' })).toEqual(['a_new']);
+    expect(await ids({ country: 'GB' })).toEqual(['a_lo']);
+    expect(await ids({ minDays: 10 })).toEqual(['a_hi']);
+    expect(await ids({ minScore: 50 })).toEqual(['a_hi']);
+    expect(await ids({ domain: 'mug' })).toEqual(['a_lo']);
+    expect(await ids({ domain: '%' })).toEqual([]);
+  });
+
+  it('returns the total over all pages and pages with the filters kept', async () => {
+    expect(await listAds(db, O, { limit: 1 })).toMatchObject({ total: 3, items: [{ adArchiveId: 'a_hi', duplicates: 1 }] });
+    expect(await listAds(db, O, { limit: 1, page: 2 })).toMatchObject({ total: 3, items: [{ adArchiveId: 'a_lo' }] });
+    // A page past the end still knows the total.
+    expect(await listAds(db, O, { limit: 1, page: 9 })).toEqual({ total: 3, items: [] });
+    expect(await listAds(db, O, { keywordId: 'kw_1', limit: 1, page: 2 })).toMatchObject({ total: 2, items: [{ adArchiveId: 'a_lo' }] });
+    expect((await listAds(db, O, { status: 'all', minScore: 1 })).total).toBe(3);
+  });
+
+  it('sorts in SQL by days active, first and last seen, with ads without a score or days last', async () => {
+    expect(await ids({ sort: 'days' })).toEqual(['a_hi', 'a_lo', 'a_new']);
+    expect(await ids({ sort: 'last_seen' })).toEqual(['a_hi', 'a_new', 'a_lo']);
+    await db.execute(sql`insert into ads (ad_archive_id, caption, page_name, landing_domain, seen_days, first_seen_date, last_seen_date, parsed)
+      values ('a_nodates', 'no dates', 'Page', 'nodates.com', 1, '2026-10-18', '2026-10-18', '{}'::jsonb)`);
+    try {
+      expect(await ids({ sort: 'days' })).toEqual(['a_hi', 'a_lo', 'a_new', 'a_nodates']);
+      expect(await ids({ sort: 'first_seen' })).toEqual(['a_nodates', 'a_hi', 'a_new', 'a_lo']);
+    } finally {
+      await db.execute(sql`delete from ads where ad_archive_id = 'a_nodates'`);
+    }
+  });
+
+  it('groups near-duplicate creatives (same caption and landing domain) only when asked', async () => {
+    await db.execute(sql`insert into ads (ad_archive_id, caption, page_name, landing_domain, start_date, end_date, seen_days, first_seen_date, last_seen_date, parsed) values
+      ('a_dup1', 'same mug', 'Page', 'dup.com', '2026-10-01', '2026-10-20', 2, '2026-10-10', '2026-10-20', '{}'::jsonb),
+      ('a_dup2', 'same mug', 'Page', 'dup.com', '2026-10-01', '2026-10-20', 4, '2026-10-10', '2026-10-20', '{}'::jsonb),
+      ('a_dup3', 'same mug', 'Page', 'other.com', '2026-10-01', '2026-10-20', 1, '2026-10-10', '2026-10-20', '{}'::jsonb),
+      ('a_nocap1', null, 'Page', 'dup.com', '2026-10-01', '2026-10-20', 1, '2026-10-10', '2026-10-20', '{}'::jsonb),
+      ('a_nocap2', null, 'Page', 'dup.com', '2026-10-01', '2026-10-20', 1, '2026-10-10', '2026-10-20', '{}'::jsonb)`);
+    try {
+      expect((await listAds(db, O, { domain: 'dup.com' })).total).toBe(4);
+      const grouped = await listAds(db, O, { domain: 'dup.com', dedupe: true });
+      // The best-scored ad of the group stands for it; ads without a caption are never grouped.
+      expect(grouped.total).toBe(3);
+      expect(grouped.items.map((a) => [a.adArchiveId, a.duplicates])).toEqual([
+        ['a_dup2', 2],
+        ['a_nocap1', 1],
+        ['a_nocap2', 1],
+      ]);
+      expect((await listAds(db, O, { domain: 'other.com', dedupe: true })).items.map((a) => a.duplicates)).toEqual([1]);
+    } finally {
+      await db.execute(sql`delete from ads where ad_archive_id like 'a_dup%' or ad_archive_id like 'a_nocap%'`);
+    }
   });
 
   it('reads one ad with its sightings', async () => {
@@ -74,12 +122,26 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
   });
 
   it('sorts shops and keywords on the server', async () => {
-    expect((await listShops(db, 'running_ads')).map((s) => s.landingDomain)).toEqual(['teeshop.com', 'mugs.com']);
-    expect((await listShops(db, 'domain')).map((s) => s.landingDomain)).toEqual(['mugs.com', 'teeshop.com']);
-    expect((await listShops(db, 'running_ads', 'tee'))[0]).toMatchObject({ landingDomain: 'teeshop.com', pageCount: 2 });
+    expect((await listShops(db, { sort: 'running_ads' })).items.map((s) => s.landingDomain)).toEqual(['teeshop.com', 'mugs.com']);
+    expect((await listShops(db, { sort: 'domain' })).items.map((s) => s.landingDomain)).toEqual(['mugs.com', 'teeshop.com']);
+    expect((await listShops(db, { sort: 'running_ads', q: 'tee' })).items[0]).toMatchObject({ landingDomain: 'teeshop.com', pageCount: 2 });
     const kws = await listKeywords(db);
     expect(kws[0]).toMatchObject({ id: 'kw_1', runningAds: 5, trackedBy: [] });
     expect(kws.find((k) => k.id === 'kw_2')).toMatchObject({ runningAds: null, trackedBy: ['st_a'] });
+  });
+
+  it('pages shops with their total and leaves out the non-shop domains', async () => {
+    await db.execute(sql`insert into shops (landing_domain, first_seen_date, last_seen_date, running_ads) values
+      ('play.google.com', '2026-10-01', '2026-10-20', 99), ('smile.amazon.de', '2026-10-01', '2026-10-20', 98)`);
+    try {
+      const nonShopDomains = DEFAULT_SETTINGS.nonShopDomains;
+      expect(await listShops(db, { nonShopDomains })).toMatchObject({ total: 2, items: [{ landingDomain: 'teeshop.com' }, { landingDomain: 'mugs.com' }] });
+      expect(await listShops(db, { nonShopDomains, limit: 1, page: 2 })).toMatchObject({ total: 2, items: [{ landingDomain: 'mugs.com' }] });
+      expect(await listShops(db, { nonShopDomains, limit: 1, page: 5 })).toEqual({ total: 2, items: [] });
+      expect((await listShops(db, { nonShopDomains: [] })).total).toBe(4);
+    } finally {
+      await db.execute(sql`delete from shops where landing_domain in ('play.google.com', 'smile.amazon.de')`);
+    }
   });
 
   it('plots each snapshot on the date and time of its slot in Asia/Ho_Chi_Minh, not the crawl day', async () => {

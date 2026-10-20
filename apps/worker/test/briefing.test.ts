@@ -203,6 +203,21 @@ describe.skipIf(!testDatabaseAvailable())('briefing.build', () => {
     expect(await buildBriefing(h, GLOBAL, again.deps)).toBe('already_ready');
   });
 
+  it('the rising shops leave out the non-shop domains, however fast they rise', async () => {
+    // A tracker whose running ads jump on the run's slot: it would rank first as a shop.
+    await h.db.execute(sql`insert into shop_days (landing_domain, crawl_day, slot, running_ads)
+      select 'ad.doubleclick.net', crawl_day, slot, case when slot = (select max(slot) from shop_days) then 500 else 1 end from shop_days where landing_domain = 'rising.com'`);
+    try {
+      const { deps: d } = deps(() => 'valid');
+      expect(await buildBriefing(h, GLOBAL, d)).toBe('built');
+      const keys = (await row()).sections.risingShops!.map((s) => s.key);
+      expect(keys[0]).toBe('rising.com');
+      expect(keys).not.toContain('ad.doubleclick.net');
+    } finally {
+      await h.db.execute(sql`delete from shop_days where landing_domain = 'ad.doubleclick.net'`);
+    }
+  });
+
   it('a keyword briefing has the same sections filtered to its keyword and is queued for the chats of the stores that track it', async () => {
     const { llm, deps: d } = deps(() => 'valid');
     expect(await buildBriefing(h, KW0, d)).toBe('built');

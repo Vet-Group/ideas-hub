@@ -47,6 +47,14 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect([...h.objects.keys()].every((k) => k.startsWith('thumbs/') && THUMB_KEY.test(k.slice(7)))).toBe(true);
   });
 
+  it('leaves non-shop landing domains out of shops and shop_days; the ads keep them', async () => {
+    const id = await scheduled();
+    await run(id, (q, c) => ({ kind: 'ok', ids: ids(`${q}${c}-`, 2), domain: (ad) => (ad.endsWith('0') ? 'ad.doubleclick.net' : 'real-shop.example') })).outcome;
+    expect(await one(h, sql`select count(*)::int as n from ads where landing_domain = 'ad.doubleclick.net'`)).toEqual({ n: 6 });
+    expect(await all(h, sql`select landing_domain from shops`)).toEqual([{ landing_domain: 'real-shop.example' }]);
+    expect(await all(h, sql`select landing_domain, running_ads from shop_days`)).toEqual([{ landing_domain: 'real-shop.example', running_ads: 6 }]);
+  });
+
   it('writes keyword_days and shop_days for a scheduled run, none for a manual or cli run', async () => {
     const id = await scheduled();
     await run(id, (q, c) => ({ kind: 'ok', ids: ids(`${q}${c}-`, 2) })).outcome;
