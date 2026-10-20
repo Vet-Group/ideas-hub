@@ -16,5 +16,7 @@ const date = new Intl.DateTimeFormat('vi-VN', { timeZone: TZ, day: '2-digit', mo
 export const formatTime = (d: Date) => time.format(d);
 /** "19/10 14:20". */
 export const formatDateTime = (d: Date | null | undefined) => (d ? dateTime.format(d).replace(',', '') : '—');
+/** "19/10" from a `YYYY-MM-DD` date. */
+export const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 /** "19/10/2026". */
 export const formatDate = (d: Date) => date.format(d);

@@ -1,7 +1,6 @@
 import Link from 'next/link';
+import { ddmm } from '@/lib/format';
 import { t } from '@/lib/strings.vi';
-
-const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 /**
  * "Before the ready time" (a note) and "Briefing late" (an amber banner with "Xem lại"), both above the

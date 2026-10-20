@@ -7,7 +7,7 @@ const vnDate = new Intl.DateTimeFormat('en-CA', { timeZone: VIETNAM, year: 'nume
 /** The Asia/Ho_Chi_Minh date of an instant, `YYYY-MM-DD`. */
 export const vnDay = (at: Date) => vnDate.format(at);
 /** `HH:mm` of a day in Asia/Ho_Chi_Minh as an instant. */
-export const vnTimeOn = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00+07:00`);
+const vnTimeOn = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00+07:00`);
 
 export type TodayState = 'ready' | 'before_ready' | 'late' | 'none';
 

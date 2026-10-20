@@ -1,10 +1,9 @@
 import { type AiMissing, type NewsSection, type SuggestionsSection } from '@ideas-hub/core';
+import { type SuggestionRow } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { SaveButton, type SaveTarget } from '@/components/save/save-button';
-import { type SuggestionRow } from '@ideas-hub/db/queries';
+import { ddmm } from '@/lib/format';
 import { t } from '@/lib/strings.vi';
-
-const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 /** A skipped or failed AI section (spec §6 "AI section skipped", "AI section failed"). */
 export function AiMissingNote({ section }: { section: AiMissing | undefined }) {

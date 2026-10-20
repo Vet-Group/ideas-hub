@@ -3,7 +3,7 @@ import { DetailPane } from '@/components/ads/detail-pane';
 import { PaneSheet } from '@/components/ads/pane-sheet';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
-import { formatTime } from '@/lib/format';
+import { ddmm, formatTime } from '@/lib/format';
 import { requireUser } from '@/lib/session';
 import { statusOptions } from '@/lib/settings';
 import { saveTargets } from '@/lib/store';
@@ -12,8 +12,6 @@ import { AdRows } from './ad-rows';
 import { NewsPanel, SuggestionsPanel } from './ai-panels';
 import { CountTable } from './count-table';
 import { KpiRow } from './kpi-row';
-
-const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 function Panel({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
