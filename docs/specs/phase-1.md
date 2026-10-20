@@ -213,7 +213,7 @@ not enough, plus its own ADR. Residential proxies come before accounts.
 | ShopDay | landing domain, crawl day, slot (the `scheduled_for` timestamptz of the run, as in KeywordDay), running ad count; unique per (domain, crawl day, slot); written with KeywordDay, for section 4 |
 | CrawlerState | rotation cursor, `blocked_until`, last worker heartbeat, the watchdog's last worker restart attempt (`worker_restart_at`) |
 | LarkMessage | briefing_id, chat, `uuid`, message id (null until Lark accepts the post), created at; unique per (briefing, chat); the row is inserted before the post is sent |
-| Alert | id, kind (`blocked`, `network_error`, `parse_error`, `missed_run`, `run_failed`, `heartbeat_lost`, `briefing_late`, `lark_send_failed`), run_id (nullable), briefing_id (nullable), affected searches, created at, resolved at, Lark message id, sent at. Dedupe: run kinds one per (run, kind), except `network_error`, one per network cool-down, written in the same transaction that increments the run's `network_cooldowns`; `heartbeat_lost` one open incident until a fresh heartbeat resolves it; briefing kinds one per (briefing, kind) |
+| Alert | id, kind (`blocked`, `network_error`, `parse_error`, `missed_run`, `run_failed`, `heartbeat_lost`, `briefing_late`, `lark_send_failed`), run_id (nullable), briefing_id (nullable), affected searches, created at, resolved at, Lark message id, sent at, not sent to Lark at (unsent past the 24 h cut-off, §3 "Delivery"). Dedupe: run kinds one per (run, kind), except `network_error`, one per network cool-down, written in the same transaction that increments the run's `network_cooldowns`; `heartbeat_lost` one open incident until a fresh heartbeat resolves it; briefing kinds one per (briefing, kind) |
 
 IDs are prefixed nanoids (`store_…`, `idea_…`) and never change. All timestamps are stored in UTC. The
 full schema is recorded in ADR 0002 (data model) after the first migration.
@@ -286,7 +286,9 @@ chat or image analysis.
   failed runs, a lost worker heartbeat, a global briefing not ready by its ready time (`briefing_late`)
   and a briefing post that Lark rejected after retries (`lark_send_failed`). Alerts are sent by the
   watchdog (§1), not by the worker, so a dead worker cannot silence them; an alert that Lark itself
-  cannot deliver stays visible on the admin alerts page.
+  cannot deliver stays visible on the admin alerts page. The watchdog sends only Alerts created in the
+  last 24 h; an older unsent one (a backlog written before Lark was configured, or one Lark kept
+  rejecting) is marked as not sent to Lark, is never sent later, and stays on the admin alerts page.
 - No email in phase 1.
 
 ## 4. Accounts, stores and saved ideas

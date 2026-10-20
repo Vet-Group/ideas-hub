@@ -43,6 +43,13 @@
       "when": 1792512954444,
       "tag": "0005_non_shop_domains",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792532142560,
+      "tag": "0006_alert_lark_skipped_at",
+      "breakpoints": true
     }
   ]
 }
