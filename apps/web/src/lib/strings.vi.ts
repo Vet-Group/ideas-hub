@@ -1,6 +1,6 @@
 // Every UI string, in Vietnamese (spec §6 "Users, devices and language"). Seller terms stay English.
 // eslint.config.mjs fails on a UI string written anywhere else under apps/web/src.
-import { type SettingsProblem } from '@ideas-hub/core';
+import { FEED_TIMEOUT_SECONDS, type SettingsProblem } from '@ideas-hub/core';
 
 /** The one glyph for an empty value. */
 const NONE = '—';
@@ -366,7 +366,7 @@ export const t = {
         wait_limit_reaches_heartbeat: 'Một giới hạn chờ dài bằng hoặc hơn ngưỡng heartbeat.',
         llm_timeout_over_job_expiry: 'Hai lần gọi LLM dài hơn hạn job briefing.',
         briefing_expiry_over_24h: 'Hạn job briefing vượt 24 giờ.',
-        feed_refresh_over_job_expiry: 'Làm mới RSS (15 giây) cộng hai lần gọi LLM dài hơn hạn job briefing.',
+        feed_refresh_over_job_expiry: `Làm mới RSS (${FEED_TIMEOUT_SECONDS} giây) cộng hai lần gọi LLM dài hơn hạn job briefing.`,
         ready_before_build_ends: 'Giờ briefing sẵn sàng phải sau giờ dựng briefing cộng hạn job briefing.',
         no_run_times: 'Cần ít nhất một giờ chạy.',
       } satisfies Record<SettingsProblem, string> as Record<string, string>,

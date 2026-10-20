@@ -69,6 +69,10 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
 
   it("refreshes each shop's running ad count in the run's final update, down to 0 for a shop whose ads stopped", async () => {
     await h.db.execute(sql`insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date, running_ads) values ('gone-shop.example', '{}', '2026-10-01', '2026-10-05', 7)`);
+    // Its one ad: stale, and proven stopped by this run's end-of-results search of its pair.
+    const old = await insertRun(h, { trigger: 'cli', deadline: h.clock.now(), status: 'done', pairs: [] });
+    await h.db.execute(sql`insert into ads (ad_archive_id, landing_domain, first_seen_date, last_seen_date, parsed) values ('gone-ad', 'gone-shop.example', '2026-10-01', '2026-10-05', '{}')`);
+    await h.db.execute(sql`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) values ('gone-ad', ${old}, 'kw_0', 'US', 1, '2026-10-05')`);
     const id = await scheduled();
     await run(id, (q, c) => ({ kind: 'ok', ids: ids(`${q}${c}-`, 2), domain: () => 'real-shop.example' })).outcome;
     expect(await all(h, sql`select landing_domain, running_ads from shops order by landing_domain`)).toEqual([

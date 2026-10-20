@@ -1,6 +1,6 @@
 # Block rate and crawler measurement (plan Step 4)
 
-Status: interim, 2026-10-20. Every figure measured so far is below; the 3–5 day measurement at the
+Status: interim, updated 2026-10-21 (probe runs to 01:00 VN). Every figure measured so far is below; the 3–5 day measurement at the
 production schedule is **pending: scheduled runs** (see "Measurement schedule"). Inputs for
 [ADR 0003](../adr/0003-crawler-design.md).
 
@@ -14,7 +14,7 @@ failures. For the probe, a search is `ok` or `no_results` by the same detector r
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-10-19T21:57 | Step 1 probe | headed | sample | 41 | 41 | 0 | 0 | 100.0% | 40 min | 59 s |
 | 2026-10-19T22:37 | Step 1 probe | offscreen | sample | 29 (ended from outside; the other 11 are the next row) | 29 | 0 | 0 | 100.0% | – | – |
-| 2026-10-20T03:28 | Step 1 probe | offscreen | sample | 11 | 11 | 0 | 0 | 100.0% | 11 min | 60 s |
+| 2026-10-20T03:28 | Step 1 probe | offscreen | sample | 11 | 11 | 0 | 0 | 100.0% | 11 min | 61 s |
 | 2026-10-20T03:39 | Step 1 probe | headless | sample | 41 | 39 | 0 | 2 `parse_error` | 95.1% | 45 min | 66 s |
 | `run_0bfae41144ba455cabf48` | worker (Step 3 Exit) | offscreen | `cli` | 20 | 20 | 0 | 0 | 100.0% | 19 min 33 s | 59 s |
 | 2026-10-20T06:00 (13:00 VN) | Step 1 probe | offscreen | scheduled | 41 | 41 | 0 | 0 | 100.0% | 40 min | 59 s |
@@ -42,7 +42,8 @@ next attempt.
 None so far: no captcha flag, login wall, empty embedded data or 3 empty scroll payloads in any search,
 so no backoff wait, cool-down or `blocked_until` was ever set. The probe's retries were all transient
 (scroll-response timeouts) and every one was recovered
-by the retry rule (off-screen: 3 searches needed a second attempt; headless: 5, with 6 timeouts).
+by the retry rule (sample runs: off-screen 3 searches needed a second attempt, headless 5 with 6
+timeouts; with the scheduled runs below, off-screen is at 6).
 
 The scheduled probe runs added no block. The 13:00 run of 2026-10-20 needed no retry. The 01:00 run of
 2026-10-21 had 3 searches recovered on a second attempt, and the first search of the probe that
@@ -89,8 +90,8 @@ it ends with it.
 
 ## Measurement schedule
 
-- `IdeasHub-Probe-Runs`: the probe, off-screen, 01:00 and 13:00 Asia/Ho_Chi_Minh to 2026-10-22, 40
-  searches per run; results in the probe worktree's `out/` and added to the table above.
+- `IdeasHub-Probe-Runs`: the probe, off-screen, 01:00 and 13:00 Asia/Ho_Chi_Minh to 2026-10-22, 41
+  searches per run (40 plus the no-results query); results in the probe worktree's `out/` and added to the table above.
 - The worker measurement (3–5 days at 01:00 and 13:00 with the watchdog) starts after the probe ends
   on 2026-10-22, so the two never crawl at the same time: register the tasks with
   `scripts/windows/register-worker-tasks.ps1 -StartAt '2026-10-23 00:30'`.
