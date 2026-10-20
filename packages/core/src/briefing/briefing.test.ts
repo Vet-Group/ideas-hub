@@ -60,8 +60,10 @@ describe('briefing output', () => {
 describe('cost estimate', () => {
   const prompt = { system: 'x'.repeat(3000), user: 'y'.repeat(27_000) };
   it('prices the prompt at 3 characters a token plus the full max_tokens, rounded up to 4 decimals', () => {
-    // 10k input tokens × $3 + 4000 output tokens × $15, per million.
-    expect(estimateCallUsd('claude-sonnet-5-5', prompt)).toBe(0.09);
+    // 10k input tokens × $2 + 4000 output tokens × $10, per million (Sonnet 5.5 list price, checked 2026-10-21).
+    expect(estimateCallUsd('claude-sonnet-5-5', prompt)).toBe(0.06);
+    // 10k × $1 + 4000 × $5 (Haiku 4.5).
+    expect(estimateCallUsd('claude-haiku-4-5', prompt)).toBe(0.03);
     expect(estimateCallUsd('claude-sonnet-5-5', { system: 'a', user: '' }, 1)).toBe(0.0001);
     expect(estimateCallUsd('some-new-model', prompt)).toBe((10_000 * UNKNOWN_MODEL_PRICE.input + BRIEFING_MAX_TOKENS * UNKNOWN_MODEL_PRICE.output) / 1e6);
   });
