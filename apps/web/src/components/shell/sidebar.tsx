@@ -1,12 +1,13 @@
 'use client';
 
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
+import { signOut } from './actions';
 import { ADMIN_NAV, MAIN_NAV, type NavItem } from './nav';
 import { type StoreOption, StoreSwitcher } from './store-switcher';
 
@@ -56,8 +57,18 @@ export function Sidebar({ isAdmin, stores, storeId, badges = {} }: { isAdmin: bo
         <NavGroup items={MAIN_NAV} collapsed={collapsed} badges={badges} />
         {isAdmin ? <NavGroup label={t.nav.admin} items={ADMIN_NAV} collapsed={collapsed} /> : null}
       </nav>
-      <div className="p-2">
+      <div className="grid gap-1 p-2">
         <StoreSwitcher stores={stores} storeId={storeId} collapsed={collapsed} />
+        <form action={signOut}>
+          <button
+            type="submit"
+            aria-label={collapsed ? t.nav.signOut : undefined}
+            className="hover:bg-sidebar-hover rounded-control flex h-[var(--vet-nav-item-h)] w-full items-center gap-2.5 px-2.5 text-[13px]"
+          >
+            <LogOut className="size-4 shrink-0" aria-hidden />
+            {collapsed ? null : t.nav.signOut}
+          </button>
+        </form>
       </div>
     </aside>
   );

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { E2E_PORT } from './fixtures/env';
 import { STORES, USERS, e2ePool } from './fixtures/seed';
 import { signIn } from './support/session';
 
@@ -44,6 +45,30 @@ for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x', 
     await expect(page).toHaveURL(/\/briefing$/);
   });
 }
+
+test('signing out ends the session and shows the sign-in page', async ({ page }) => {
+  await signIn(page, USERS.admin.email);
+  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/runs');
+  await expect(page).toHaveURL(/\/login\?callbackURL=%2Fruns/);
+});
+
+test('sign-up is disabled: the auth API refuses it and creates no user', async ({ request }) => {
+  const email = 'signup-e2e@test.local';
+  const res = await request.post('/api/auth/sign-up/email', {
+    data: { email, password: 'a-long-enough-password-1', name: 'Sign-up E2E' },
+    headers: { origin: `http://localhost:${E2E_PORT}` },
+  });
+  expect(res.status()).toBe(400);
+  expect(await res.json()).toMatchObject({ code: 'EMAIL_PASSWORD_SIGN_UP_DISABLED' });
+  const db = e2ePool();
+  try {
+    expect((await db.query('select 1 from users where email = $1', [email])).rows).toEqual([]);
+  } finally {
+    await db.end();
+  }
+});
 
 test('the sign-in page loads its CSS, JS and fonts without a session', async ({ page }) => {
   const failed: string[] = [];
