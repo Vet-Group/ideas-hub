@@ -61,9 +61,17 @@ run pnpm db:migrate
 run pnpm --filter @ideas-hub/web build
 
 echo "== row counts: manifest vs restored"
-tr -d '\r' < "$transfer/manifest.txt" | awk '$1 == "rows" { print $2, $3 }' | while read -r table expected; do
+diffs=0
+# Process substitution, not a pipe: the loop runs in this shell, so `diffs` survives it.
+while read -r table expected; do
   if [ "$dry" = 1 ]; then echo "[dry-run] compare $table (manifest: $expected)"; continue; fi
   got="$("${compose[@]}" exec -T postgres psql -U ideashub -d ideashub -At -c "select count(*) from $table")"
-  [ "$got" = "$expected" ] && echo "ok   $table $got" || echo "DIFF $table restored $got, manifest $expected"
-done
+  if [ "$got" = "$expected" ]; then
+    echo "ok   $table $got"
+  else
+    echo "DIFF $table restored $got, manifest $expected"
+    diffs=$((diffs + 1))
+  fi
+done < <(tr -d '\r' < "$transfer/manifest.txt" | awk '$1 == "rows" { print $2, $3 }')
+[ "$diffs" = 0 ] || fail "$diffs table(s) differ from the manifest"
 echo "Next: scripts/linux/install-units.sh (docs/ops/linux-trial.md, step 7)."

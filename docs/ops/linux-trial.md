@@ -101,7 +101,7 @@ working); never print them.
 - creates the MinIO volume, untars the Windows data into it, starts MinIO;
 - `pnpm install --frozen-lockfile`, `pnpm db:migrate` (a no-op at the same commit),
   `pnpm --filter @ideas-hub/web build`;
-- compares row counts with the manifest (`ok` or `DIFF` per table).
+- compares row counts with the manifest (`ok` or `DIFF` per table) and exits 1 if any table differs.
 
 ### 7. Units (`scripts/linux/install-units.sh`)
 
