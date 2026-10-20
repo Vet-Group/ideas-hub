@@ -1195,15 +1195,38 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
 
 ## Open items (v4 Critic MINOR findings not yet addressed)
 
-- Step 1: the 72 h thumbnail re-fetch does not fit "days 1–3"; no action is defined if the URLs do not
-  expire; no block-rate threshold decides go or no-go after the probe.
-- Step 2 tests inject "today", while `days_active` uses the payload's `end_date`; say whether active
-  ads use today.
-- No job recomputes Shop's running ad count as ad statuses change.
+Reviewed against `main` on 2026-10-21. Each item is resolved (with the code and the test that show it)
+or is a question for the owner.
 
-
-- Which `via` value a save from a keyword report page gets (matters for AC 6).
-- Alerts written in Steps 3–6 would be sent as a backlog when Lark sending lands in Step 7.
+- Step 1, 72 h thumbnail re-fetch outside "days 1–3": resolved. The re-fetch is a one-off Windows task
+  (`spikes/fb-ad-library-probe/register-tasks.ps1:37-38`, `IdeasHub-Probe-Refetch-72h` on 2026-10-23
+  04:57). Nothing depends on it: it only re-downloads CDN images, and Step 4's measurement does not use it.
+  No test; the task list in `docs/status/` is the record.
+- Step 1, no action if the thumbnail URLs do not expire: resolved by design. The worker downloads each
+  thumbnail to MinIO when it reads the ad (spec §2; `apps/worker/test/run.test.ts`, "stores ads,
+  sightings, thumbnails …" and the "thumbnails in a run" tests), so the app never serves a
+  CDN URL and nothing changes whether or not the URLs expire.
+- Step 1, no block-rate threshold decides go or no-go after the probe: open, owner decision (see
+  "Questions for the owner" in `docs/status/2026-10-21-morning.md`).
+- Step 2, `days_active` of an active ad: resolved. Spec §1 "Measures" says `days_active` always uses
+  the payload's `end_date`, which for an active ad is the Pacific day it was read, not the server's
+  today. Code: `packages/db/src/queries/research.ts:80` and `packages/db/src/queries/briefing.ts:106`
+  call `daysActive(start_date, end_date)`; tests: `packages/core/src/measures.test.ts:36` ("counts an
+  active ad up to today", the read day) and `:53` (a run crossing Pacific midnight uses `end_date`).
+- Shop's running ad count as ad statuses change: resolved. `refreshShops`
+  (`apps/worker/src/run.ts:230`) recounts every shop's running ads, down to 0, in each run's final
+  transaction (`run.ts:173`); test: `apps/worker/test/run.test.ts`, "refreshes each shop's running ad
+  count …". Between two runs the count can lag by up to one slot, like KeywordDay.
+- Which `via` a save from a keyword report page gets: partly resolved. A suggestion saved from the
+  report's AI section gets `via = briefing` like every suggestion
+  (`apps/web/src/app/(app)/ideas/actions.ts:48`, plan Step 7 "Save from suggestion … setting
+  `via = briefing`"). An ad saved from the report's sections 1–2 gets `via = ads`, the `AdGrid` default
+  (`apps/web/src/components/keyword-report.tsx:105,111`); whether those count for AC 6 is an owner
+  decision.
+- Alerts written before Lark sending is configured: open, owner decision. The watchdog sends every
+  Alert with no `sent_at`, oldest first, within a 60 s budget per pass
+  (`apps/worker/src/watchdog-pass.ts:173-182`), so the first pass after Lark is configured sends the
+  whole backlog. The dev database has 0 unsent Alerts today.
 
 ## Open items (v18f narrow Critic, left out of v18g)
 
@@ -1797,3 +1820,12 @@ rect, so the page never scrolls.
   awaits approval.
 - The three v18f UI strings ("Chỉ nhận ảnh JPEG, PNG hoặc WebP", "Ảnh quá lớn (trên 50 megapixel)",
   "Không đọc được ảnh này") are approved.
+
+## Changelog (Gate 0 → open-item review, 2026-10-21)
+
+- "Open items (v4 Critic MINOR findings not yet addressed)" checked against `main`. Four are resolved,
+  each with its code and tests: the 72 h re-fetch timing, thumbnails that do not depend on URL expiry,
+  `days_active` from the payload's `end_date`, and the shop running ad count (new test in
+  `apps/worker/test/run.test.ts`). Three are owner questions, listed in
+  `docs/status/2026-10-21-morning.md`: the probe's go/no-go threshold, the `via` of ad saves from a
+  keyword report, and the Alert backlog when Lark is configured. No product code change.

@@ -67,6 +67,16 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect(await one(h, sql`select running_ads, ok_searches from crawl_runs where id = ${m}`)).toEqual({ running_ads: 13, ok_searches: 1 });
   });
 
+  it("refreshes each shop's running ad count in the run's final update, down to 0 for a shop whose ads stopped", async () => {
+    await h.db.execute(sql`insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date, running_ads) values ('gone-shop.example', '{}', '2026-10-01', '2026-10-05', 7)`);
+    const id = await scheduled();
+    await run(id, (q, c) => ({ kind: 'ok', ids: ids(`${q}${c}-`, 2), domain: () => 'real-shop.example' })).outcome;
+    expect(await all(h, sql`select landing_domain, running_ads from shops order by landing_domain`)).toEqual([
+      { landing_domain: 'gone-shop.example', running_ads: 0 },
+      { landing_domain: 'real-shop.example', running_ads: 12 },
+    ]);
+  });
+
   it('running_ads counts overlapping ads once and includes running ads outside the run', async () => {
     // An old running ad of another keyword, seen today.
     await h.db.execute(sql`insert into ads (ad_archive_id, first_seen_date, last_seen_date, parsed) values ('other', '2026-10-20', '2026-10-20', '{}')`);
