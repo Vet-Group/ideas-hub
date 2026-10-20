@@ -62,7 +62,10 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
   it('running_ads counts overlapping ads once and includes running ads outside the run', async () => {
     // An old running ad of another keyword, seen today.
     await h.db.execute(sql`insert into ads (ad_archive_id, first_seen_date, last_seen_date, parsed) values ('other', '2026-10-20', '2026-10-20', '{}')`);
-    // A stale ad that an end-of-results search proved stopped.
+    // A stale ad that an end-of-results search of this run proved stopped: not counted.
+    const old = await insertRun(h, { trigger: 'cli', deadline: h.clock.now(), status: 'done', pairs: [] });
+    await h.db.execute(sql`insert into ads (ad_archive_id, first_seen_date, last_seen_date, parsed) values ('stale', '2026-10-10', '2026-10-10', '{}')`);
+    await h.db.execute(sql`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) values ('stale', ${old}, 'kw_0', 'US', 1, '2026-10-10')`);
     const id = await scheduled();
     await run(id, () => ({ kind: 'ok', ids: ['a', 'b', 'c'] })).outcome;
     expect((await runRow(id)).running_ads).toBe(4);
@@ -70,7 +73,6 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
 
   it('a block mid-scroll leaves one blocked search with its ads, an Alert, a backoff, then the next search', async () => {
     const id = await scheduled();
-    const t0 = h.clock.t;
     const { outcome } = run(id, (q, c) => (q === 'k0' && c === 'US' ? { kind: 'empty_scrolls', ids: ids('b', 30) } : { kind: 'ok', ids: ids(`${q}${c}`, 1) }));
     expect(await outcome).toBe('done');
     const s = await searches(id);
@@ -78,8 +80,10 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect(s.slice(1).every((x) => x.status === 'ok')).toBe(true);
     expect(await alertsOf(id)).toEqual([{ kind: 'blocked', cooldown_seq: null }]);
     expect(await one(h, sql`select count(*)::int as n from ad_sightings where run_id = ${id} and keyword_id = 'kw_0' and country = 'US'`)).toEqual({ n: 30 });
-    // 45 s backoff on top of the gaps
-    expect(h.clock.t - t0).toBeGreaterThan(45_000);
+    // The wait after the blocked search is the search gap plus the 45 s backoff (random 0.5: no jitter).
+    const t = await all<{ s: number; f: number }>(h, sql`select extract(epoch from started_at) * 1000 as s, extract(epoch from finished_at) * 1000 as f from crawl_searches where run_id = ${id} order by started_at`);
+    const waitAfter = (i: number) => Number(t[i + 1]!.s) - Number(t[i]!.f);
+    expect(waitAfter(0) - waitAfter(1)).toBe(45_000);
   });
 
   it('a block streak of 3 stops the run: stopped, the rest skipped, the 6 h cool-down and a blocked Alert', async () => {
@@ -205,6 +209,30 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect((await searches(id)).every((x) => x.status === 'skipped')).toBe(true);
   });
 
+  it('a heartbeat that fails inside a wait of a search stops the run with run_failed, never a parse_error', async () => {
+    await h.db.execute(sql`create table fail_beat (on_ boolean)`);
+    await h.db.execute(sql`create function fail_beat() returns trigger language plpgsql as $$ begin if exists (select 1 from fail_beat) then raise exception 'injected beat failure'; end if; return new; end $$`);
+    await h.db.execute(sql`create trigger fail_beat before update of heartbeat_at on crawler_state for each row execute function fail_beat()`);
+    try {
+      const id = await scheduled();
+      const site = fakeSite(() => ({ kind: 'ok', ids: ['a'] }));
+      // The first wait is the page delay inside the first search; its beat hits the trigger.
+      const outcome = await runCrawl(h, id, runDeps(h, site, {
+        sleep: async (ms) => {
+          h.clock.advance(ms);
+          await h.db.execute(sql`insert into fail_beat values (true)`);
+        },
+      }));
+      expect(outcome).toBe('stopped');
+      expect(await alertsOf(id)).toEqual([{ kind: 'run_failed', cooldown_seq: null }]);
+      expect((await searches(id)).map((x) => x.status)).toEqual(['interrupted', 'skipped', 'skipped', 'skipped', 'skipped', 'skipped']);
+    } finally {
+      await h.db.execute(sql`drop trigger fail_beat on crawler_state`);
+      await h.db.execute(sql`drop function fail_beat()`);
+      await h.db.execute(sql`drop table fail_beat`);
+    }
+  });
+
   it('a database error outside the search loop stops the run with run_failed, and writes no snapshot', async () => {
     const id = await scheduled();
     await h.db.execute(sql`create function fail_kd() returns trigger language plpgsql as $$ begin raise exception 'injected'; end $$`);
@@ -325,21 +353,24 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect(await run(await scheduled(), () => ({ kind: 'no_results' })).outcome).toBe('done');
   });
 
-  it('writes the heartbeat at every step and at least once a minute during pauses', async () => {
+  it('writes the heartbeat at every step and at least once a minute during pauses and a network cool-down', async () => {
     const beats: number[] = [];
     await h.db.execute(sql`create table beats (at timestamptz)`);
     await h.db.execute(sql`create function log_beat() returns trigger language plpgsql as $$ begin insert into beats values (new.heartbeat_at); return new; end $$`);
     await h.db.execute(sql`create trigger log_beat after update of heartbeat_at on crawler_state for each row execute function log_beat()`);
     try {
       const id = await scheduled();
-      // A block gives a 45 s backoff; a network streak a 10 min cool-down.
+      // Three network_error searches (3 attempts each) give a 10 min network cool-down after the third.
       let n = 0;
-      await run(id, () => (n++ < 3 ? { kind: 'timeout' } : { kind: 'ok', ids: ['a'] })).outcome;
+      await run(id, () => (n++ < 9 ? { kind: 'timeout' } : { kind: 'ok', ids: ['a'] })).outcome;
+      expect((await runRow(id)).network_cooldowns).toBe(1);
       const rows = await all<{ at: Date }>(h, sql`select at from beats order by at`);
       for (const r of rows) beats.push(new Date(r.at).getTime());
       const gaps = beats.slice(1).map((b, i) => b - beats[i]!);
       expect(beats.length).toBeGreaterThan(20);
       expect(Math.max(...gaps)).toBeLessThanOrEqual(60_000);
+      const { f } = await one<{ f: number }>(h, sql`select extract(epoch from finished_at) * 1000 as f from crawl_searches where run_id = ${id} order by started_at offset 2 limit 1`);
+      expect(beats.filter((b) => b > Number(f) && b <= Number(f) + 10 * 60_000).length).toBeGreaterThanOrEqual(10);
     } finally {
       await h.db.execute(sql`drop trigger log_beat on crawler_state`);
       await h.db.execute(sql`drop function log_beat()`);

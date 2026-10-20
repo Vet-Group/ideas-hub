@@ -106,6 +106,17 @@ class BeatFailed extends Error {
   }
 }
 
+/** Wraps `beat`, and `sleep` whose only failure is the heartbeat it writes, so a failure is a BeatFailed. */
+const beatFailure =
+  <A extends unknown[]>(f: (...a: A) => Promise<void> | void) =>
+  async (...a: A) => {
+    try {
+      await f(...a);
+    } catch (e) {
+      throw new BeatFailed(e);
+    }
+  };
+
 function isEmptyPayload(body: string): boolean {
   const text = body.replace(/^for \(;;\);/, '').trim();
   if (text === '') return true;
@@ -135,13 +146,7 @@ async function attempt(page: SearchPage, query: string, country: string, deps: S
     ads: [],
   };
   const blocked = (reason: BlockReason, signal: Signal) => Object.assign(r, { status: 'blocked' as const, signal, reason });
-  const beat = async () => {
-    try {
-      await deps.beat();
-    } catch (e) {
-      throw new BeatFailed(e);
-    }
-  };
+  const { beat } = deps;
 
   await beat();
   await page.open(searchUrl(query, country), w.pageLoad * 1000);
@@ -228,7 +233,8 @@ async function attempt(page: SearchPage, query: string, country: string, deps: S
 }
 
 /** Runs one search with its retries; never throws for a search error. */
-export async function runSearch(query: string, country: string, deps: SearchDeps): Promise<SearchResult> {
+export async function runSearch(query: string, country: string, given: SearchDeps): Promise<SearchResult> {
+  const deps = { ...given, beat: beatFailure(given.beat), sleep: beatFailure(given.sleep) };
   const { settings: s } = deps;
   const waitLimitHits: WaitLimitHits = {};
   let retries = 0;
