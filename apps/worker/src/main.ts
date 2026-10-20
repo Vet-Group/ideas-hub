@@ -1,0 +1,56 @@
+// The worker process: crash recovery, then the three queues, the scheduler every minute and the idle
+// heartbeat timer. Started by the Task Scheduler wrapper loop on Windows (Step 4), systemd on Linux.
+import { PlaywrightSession } from '@ideas-hub/fb-ad-library/playwright';
+import { boot } from './boot';
+import { loadSettings } from './context';
+import { IdleHeartbeat, writeHeartbeat } from './heartbeat';
+import { CRAWL, type CrawlJob, createQueues } from './queues';
+import { recoverAtStartup } from './recovery';
+import { type RunDeps, runCrawl } from './run';
+import { schedulerPass } from './schedule';
+import { browserMode } from './browser-mode';
+
+const ctx = await boot();
+const settings = await loadSettings(ctx.db);
+ctx.log('worker starting', await recoverAtStartup(ctx));
+await createQueues(ctx.boss, settings);
+
+const runDeps: RunDeps = {
+  createSession: (s, onCloseTimeout) =>
+    new PlaywrightSession({
+      mode: browserMode(),
+      startTimeoutMs: s.waitLimitsSeconds.browserStart * 1000,
+      closeTimeoutMs: s.waitLimitsSeconds.browserClose * 1000,
+      proxy: s.proxy,
+      onCloseTimeout,
+    }),
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  random: Math.random,
+  fetch,
+};
+
+const idle = new IdleHeartbeat({ wip: () => ctx.boss.getWipData(), clock: ctx.clock, write: () => writeHeartbeat(ctx.db, ctx.clock) });
+idle.start();
+
+await ctx.boss.work<CrawlJob>(CRAWL, { localConcurrency: 1, batchSize: 1 }, async ([job]) => {
+  // The idle timer stops while a crawl job runs, so a step that hangs stops the heartbeat.
+  idle.stop();
+  try {
+    ctx.log('run', { runId: job!.data.runId, outcome: await runCrawl(ctx, job!.data.runId, runDeps) });
+  } finally {
+    idle.start();
+  }
+});
+
+const tick = () => schedulerPass(ctx).then((r) => r.problems.length || ctx.log('scheduler', r), (e) => ctx.log('scheduler error', { error: String(e) }));
+await tick();
+const scheduler = setInterval(tick, 60_000);
+
+const shutdown = async () => {
+  clearInterval(scheduler);
+  idle.stop();
+  await ctx.stop();
+  process.exit(0);
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
