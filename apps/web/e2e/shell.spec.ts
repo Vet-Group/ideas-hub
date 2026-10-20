@@ -5,14 +5,33 @@ import { signIn } from './support/session';
 
 test.describe.configure({ mode: 'serial' });
 
+test('a toast does not move under prefers-reduced-motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(page, USERS.admin.email);
+  await page.goto('/admin/settings');
+  await page.getByRole('button', { name: 'Lưu cài đặt' }).click();
+  const toast = page.locator('[data-sonner-toast]').first();
+  await expect(toast).toBeVisible();
+  const motion = await toast.evaluate((el) => {
+    const longest = (v: string) => Math.max(...v.split(',').map((x) => parseFloat(x)));
+    const cs = getComputedStyle(el);
+    return { transition: longest(cs.transitionDuration), animation: longest(cs.animationDuration) };
+  });
+  // The global reduced-motion rule leaves 0.01 ms; sonner's own leaves none.
+  expect(motion.transition).toBeLessThanOrEqual(0.00001);
+  expect(motion.animation).toBeLessThanOrEqual(0.00001);
+});
+
 test('Geist is the body font and is loaded', async ({ page }) => {
   await page.goto('/login');
   await page.evaluate(() => document.fonts.ready);
   const r = await page.evaluate(() => {
     const family = getComputedStyle(document.documentElement).getPropertyValue('--font-geist-sans').trim();
     // Only Geist itself: the variable also names next/font's local() fallback, which is absent on Linux.
-    const geist = family.split(',')[0]!.trim();
-    return { family, body: getComputedStyle(document.body).fontFamily, loaded: document.fonts.check(`14px ${geist}`) };
+    const geist = family.split(',')[0]!.trim().replace(/^['"]|['"]$/g, '');
+    // fonts.check() is also true when no face of that family exists at all, so look for a loaded face.
+    const faces = [...document.fonts].filter((f) => f.family.replace(/^['"]|['"]$/g, '') === geist);
+    return { family, body: getComputedStyle(document.body).fontFamily, loaded: faces.some((f) => f.status === 'loaded') };
   });
   // The custom property keeps its source quotes; the computed font-family normalizes them.
   const first = (v: string) => v.split(',')[0]!.trim().replace(/^['"]|['"]$/g, '');

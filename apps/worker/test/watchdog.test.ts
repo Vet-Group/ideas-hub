@@ -26,7 +26,7 @@ describe.skipIf(!testDatabaseAvailable())('watchdog', () => {
     restarts = 0;
     h.clock.t = Date.parse('2026-10-21T03:00:00Z');
     await h.db.execute(sql`truncate crawl_runs, alerts cascade`);
-    await h.db.execute(sql`update crawler_state set blocked_until = null, heartbeat_at = ${h.clock.now()}`);
+    await h.db.execute(sql`update crawler_state set blocked_until = null, heartbeat_at = ${h.clock.now()}, worker_restart_at = null`);
     // A run-time history that starts 2026-10-20 13:00 VN, so the backfill window is known.
     await h.db.execute(sql`update run_time_changes set effective_from = ${vietnamInstant('2026-10-20', '12:00')}`);
   });
@@ -113,17 +113,38 @@ describe.skipIf(!testDatabaseAvailable())('watchdog', () => {
     expect(await all(h, sql`select kind from alerts where run_id = ${id}`)).toEqual([{ kind: 'run_failed' }]);
   });
 
-  it('a stale heartbeat with no run opens one heartbeat_lost incident and restarts the worker once; a fresh one resolves it', async () => {
+  it('a stale heartbeat with no run opens one heartbeat_lost incident and restarts the worker at most once per 5 min; a fresh one resolves it', async () => {
     await h.db.execute(sql`update crawler_state set heartbeat_at = ${new Date(h.clock.t - 40 * MIN)}`);
     await watchdogPass(h, deps);
-    h.clock.advance(5 * MIN);
+    h.clock.advance(4 * MIN);
     await watchdogPass(h, deps);
     expect(await all(h, sql`select resolved_at from alerts where kind = 'heartbeat_lost'`)).toEqual([{ resolved_at: null }]);
     expect(restarts).toBe(1);
+    h.clock.advance(MIN);
+    expect(await watchdogPass(h, deps)).toMatchObject({ heartbeatLost: true, restarted: true });
+    expect(restarts).toBe(2);
     await fresh();
     await watchdogPass(h, deps);
     const open = await all(h, sql`select 1 from alerts where kind = 'heartbeat_lost' and resolved_at is null`);
     expect(open).toEqual([]);
+  });
+
+  it('retries a failed worker restart on a later pass while heartbeat_lost is open', async () => {
+    await h.db.execute(sql`update crawler_state set heartbeat_at = ${new Date(h.clock.t - 40 * MIN)}`);
+    let calls = 0;
+    const flaky = {
+      restartWorker: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error('schtasks /Run failed');
+      },
+    };
+    expect(await watchdogPass(h, flaky)).toMatchObject({ heartbeatLost: true, restarted: false });
+    h.clock.advance(2 * MIN);
+    expect(await watchdogPass(h, flaky)).toMatchObject({ heartbeatLost: true, restarted: false });
+    expect(calls).toBe(1);
+    h.clock.advance(3 * MIN);
+    expect(await watchdogPass(h, flaky)).toMatchObject({ heartbeatLost: true, restarted: true });
+    expect(calls).toBe(2);
   });
 
   it('opens no heartbeat_lost between runs while heartbeats arrive', async () => {
@@ -143,9 +164,37 @@ describe.skipIf(!testDatabaseAvailable())('watchdog', () => {
   });
 
   it('its closes change no row whose status moved on', async () => {
-    const id = await insertRun(h, { scheduledFor: slot0100, deadline: vietnamInstant('2026-10-21', '05:30'), status: 'done' });
-    await watchdogPass(h, deps);
-    expect(await one(h, sql`select status from crawl_runs where id = ${id}`)).toEqual({ status: 'done' });
+    // Another transaction moves the row on after the pass read it; the pass's guarded update waits on the
+    // row lock, then finds the row in another status and changes nothing.
+    const race = async (id: string, status: string) => {
+      const c = await h.pool.connect();
+      try {
+        await c.query('begin');
+        await c.query('update crawl_runs set status = $2 where id = $1', [id, status]);
+        const pass = watchdogPass(h, deps);
+        for (let i = 0; ; i++) {
+          const { rows } = await h.pool.query(`select 1 from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'`);
+          if (rows.length) break;
+          if (i > 400) throw new Error('the pass never waited on the row lock');
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        await c.query('commit');
+        await pass;
+      } finally {
+        c.release();
+      }
+    };
+    // An overdue slot that the worker starts meanwhile is not marked missed.
+    const slot = await insertRun(h, { scheduledFor: slot0100, deadline: new Date(h.clock.t + HOUR), planned: 2 });
+    await race(slot, 'running');
+    expect(await one(h, sql`select status from crawl_runs where id = ${slot}`)).toEqual({ status: 'running' });
+    await h.db.execute(sql`update crawl_runs set status = 'done' where id = ${slot}`);
+    // A run past its deadline plus grace that finishes meanwhile is not closed, and the worker is left alone.
+    const late = await insertRun(h, { trigger: 'cli', deadline: new Date(h.clock.t - 16 * MIN), status: 'running', pairs: [] });
+    await race(late, 'done');
+    expect(await one(h, sql`select status from crawl_runs where id = ${late}`)).toEqual({ status: 'done' });
+    expect(await all(h, sql`select kind from alerts where run_id in (${slot}, ${late})`)).toEqual([]);
+    expect(restarts).toBe(0);
   });
 
   it('a second pass started while one holds the advisory lock exits at once', async () => {

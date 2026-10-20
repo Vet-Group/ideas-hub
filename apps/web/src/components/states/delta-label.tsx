@@ -16,7 +16,7 @@ export function DeltaLabel({ delta }: { delta: Delta | null }) {
   return (
     <span className="whitespace-nowrap">
       <span className={cn('font-mono', n > 0 ? 'text-success' : 'text-fg-2')}>{text}</span>{' '}
-      <span className="text-muted text-xs">{delta.partial ? t.states.sinceShort(ddmm(delta.baselineDay)) : t.states.vsDate(ddmm(delta.baselineDay))}</span>
+      <span className="text-fg-muted text-xs">{delta.partial ? t.states.sinceShort(ddmm(delta.baselineDay)) : t.states.vsDate(ddmm(delta.baselineDay))}</span>
     </span>
   );
 }

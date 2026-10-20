@@ -4,7 +4,7 @@
  * keep the names and values in step with that file, so the module looks like the rest of the ERP.
  *
  * This is the only file that may hold a colour value. Components use the Tailwind names that
- * theme.css maps onto these variables (bg-surface, text-muted, border-line, ...); ESLint
+ * theme.css maps onto these variables (bg-surface, text-fg-muted, border-line, ...); ESLint
  * (eslint-rules/no-hardcoded-colors.js) and src/styles/tokens.test.ts fail on a colour written anywhere else.
  * Dark mode is deferred (PRD 7.2): a second token set must exist before it is switched on.
  */

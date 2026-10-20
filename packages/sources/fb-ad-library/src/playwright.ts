@@ -59,7 +59,7 @@ async function poll<T>(read: () => Promise<T | null>, ms: number): Promise<T | n
   return null;
 }
 
-class PlaywrightPage implements SearchPage {
+export class PlaywrightPage implements SearchPage {
   private pages: string[] = [];
   constructor(private page: Page) {
     page.on('response', (res: Response) => {

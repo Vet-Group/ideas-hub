@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { E2E_PORT } from './fixtures/env';
 import { STORES, USERS, e2ePool } from './fixtures/seed';
-import { Actions } from './support/actions';
 import { signIn } from './support/session';
 
 test.describe.configure({ mode: 'serial' });
@@ -27,22 +27,48 @@ test('admin gives a member save on store A; the member sees store A only and get
 });
 
 test('a link opens its page with 0 actions on a valid session and is kept through sign-in', async ({ page }) => {
-  const actions = new Actions(page);
   await page.goto('/runs');
   await expect(page).toHaveURL(/\/login\?callbackURL=%2Fruns/);
   await signIn(page, USERS.admin.email, page.url());
   await expect(page).toHaveURL(/\/runs$/);
-  await page.goto('/runs');
+  // With a valid session the link alone shows the page: no redirect on the way and no click or key press.
+  const res = await page.goto('/runs');
+  expect(res?.status()).toBe(200);
+  expect(res?.request().redirectedFrom()).toBeNull();
+  await expect(page).toHaveURL(/\/runs$/);
   await expect(page.getByRole('heading', { name: 'Run log' })).toBeVisible();
-  expect(actions.count).toBe(0);
 });
 
-for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x']) {
+for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x', '/..//example.com', '/.//example.com', '/%2e%2e//example.com']) {
   test(`a callback of ${cb} lands on /briefing`, async ({ page }) => {
     await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(cb)}`);
     await expect(page).toHaveURL(/\/briefing$/);
   });
 }
+
+test('signing out ends the session and shows the sign-in page', async ({ page }) => {
+  await signIn(page, USERS.admin.email);
+  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/runs');
+  await expect(page).toHaveURL(/\/login\?callbackURL=%2Fruns/);
+});
+
+test('sign-up is disabled: the auth API refuses it and creates no user', async ({ request }) => {
+  const email = 'signup-e2e@test.local';
+  const res = await request.post('/api/auth/sign-up/email', {
+    data: { email, password: 'a-long-enough-password-1', name: 'Sign-up E2E' },
+    headers: { origin: `http://localhost:${E2E_PORT}` },
+  });
+  expect(res.status()).toBe(400);
+  expect(await res.json()).toMatchObject({ code: 'EMAIL_PASSWORD_SIGN_UP_DISABLED' });
+  const db = e2ePool();
+  try {
+    expect((await db.query('select 1 from users where email = $1', [email])).rows).toEqual([]);
+  } finally {
+    await db.end();
+  }
+});
 
 test('the sign-in page loads its CSS, JS and fonts without a session', async ({ page }) => {
   const failed: string[] = [];

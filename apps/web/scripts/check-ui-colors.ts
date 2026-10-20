@@ -37,8 +37,11 @@ export function candidates(source: string): string[] {
   return [...out];
 }
 
+/** Tailwind's compiler for theme.css, as the app builds it. */
+export const compileTheme = () => compile(readFileSync(join(STYLES, 'theme.css'), 'utf8'), { base: STYLES, loadStylesheet });
+
 export async function missingColors(files: string[]): Promise<{ file: string; candidate: string }[]> {
-  const compiler = await compile(readFileSync(join(STYLES, 'theme.css'), 'utf8'), { base: STYLES, loadStylesheet });
+  const compiler = await compileTheme();
   const produces = new Map<string, boolean>();
   const missing: { file: string; candidate: string }[] = [];
   for (const file of files) {

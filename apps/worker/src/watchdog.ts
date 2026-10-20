@@ -25,7 +25,7 @@ try {
   if (!lark?.adminChat) ctx.log('watchdog: Lark is not configured, Alerts stay unsent on the admin page');
   const s = await loadSettings(ctx.db);
   const result = await watchdogPass(ctx, {
-    restartWorker: () => restartWorker().catch((e) => ctx.log('worker restart failed', { error: String(e) })),
+    restartWorker,
     sendAlert: lark?.adminChat ? alertSender(larkHttpClient(lark), lark.adminChat, s.larkSendTimeoutSeconds) : undefined,
     briefings: { sharedChat: lark?.sharedChat ?? null },
   });

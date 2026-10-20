@@ -51,7 +51,7 @@ export function CommandMenu({ isAdmin }: { isAdmin: boolean }) {
       >
         <Search className="size-4" aria-hidden />
         <span className="flex-1 text-left mobile:sr-only">{t.search.open}</span>
-        <kbd className="text-muted text-[11px] mobile:hidden">{t.search.shortcut}</kbd>
+        <kbd className="text-fg-muted text-[11px] mobile:hidden">{t.search.shortcut}</kbd>
       </button>
       {/* cmdk filters by itself; the server already filtered and ranked, so its filter is off. */}
       <CommandDialog open={open} onOpenChange={setOpen} title={t.search.open} description={t.search.hint} shouldFilter={false}>

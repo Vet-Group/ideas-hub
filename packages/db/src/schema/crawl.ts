@@ -175,6 +175,8 @@ export const crawlerState = pgTable(
     rotationCursor: jsonb('rotation_cursor'),
     blockedUntil: tstz('blocked_until'),
     heartbeatAt: tstz('heartbeat_at'),
+    /** The watchdog's last worker restart attempt (spec §1 "Hung run"), so it retries at most once per 5 min. */
+    workerRestartAt: tstz('worker_restart_at'),
   },
   (t) => [check('crawler_state_single_row', sql`${t.id} = 1`)],
 );

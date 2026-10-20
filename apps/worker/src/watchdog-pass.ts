@@ -1,7 +1,7 @@
 // One watchdog pass (spec §1 "Missed run", "Hung run", "Blocked slot"; plan Step 3 "Watchdog"): closes,
 // marks, backfill and the heartbeat check first, then Alerts within a 60 s budget. Two passes never
 // overlap (pg_try_advisory_lock).
-import { type Settings, plannedSearches, rotate, slotsBetween, vietnamDate, vietnamInstant } from '@ideas-hub/core';
+import { type Settings, WATCHDOG_PERIOD_MINUTES, plannedSearches, rotate, slotsBetween, vietnamDate, vietnamInstant } from '@ideas-hub/core';
 import { type Db, withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
 import { type Ctx, SOURCE, loadSettings } from './context';
@@ -13,6 +13,7 @@ const DAY = 86_400_000;
 export const WATCHDOG_LOCK = 4_242_001;
 export const ALERT_BUDGET_MS = 60_000;
 export const BACKFILL_DAYS = 14;
+export const RESTART_EVERY_MS = WATCHDOG_PERIOD_MINUTES * MINUTE;
 
 export type AlertRow = {
   id: string;
@@ -125,7 +126,8 @@ async function pass(ctx: Ctx, deps: WatchdogDeps) {
   result.backfilled = await backfill(ctx, s, now);
 
   // Hung runs: a stale heartbeat, or the deadline plus grace passed.
-  const { rows: state } = await ctx.db.execute<{ heartbeat_at: Date | null }>(sql`select heartbeat_at from crawler_state where id = 1`);
+  const { rows: state } = await ctx.db.execute<{ heartbeat_at: Date | null; worker_restart_at: Date | null }>(sql`
+    select heartbeat_at, worker_restart_at from crawler_state where id = 1`);
   const heartbeatAt = state[0]?.heartbeat_at ? new Date(state[0].heartbeat_at) : null;
   const stale = !heartbeatAt || now.getTime() - heartbeatAt.getTime() > s.heartbeatThresholdMinutes * MINUTE;
   const { rows: running } = await ctx.db.execute<{ id: string; deadline: Date; job_id: string | null }>(sql`
@@ -142,18 +144,26 @@ async function pass(ctx: Ctx, deps: WatchdogDeps) {
   }
 
   // heartbeat_lost: one open incident from a missing heartbeat only, resolved by a fresh one.
-  let newIncident = false;
   if (stale && heartbeatAt !== null) {
-    newIncident = await insertAlert(ctx.db, { kind: 'heartbeat_lost', detail: `last heartbeat ${heartbeatAt.toISOString()}`, at: now });
+    await insertAlert(ctx.db, { kind: 'heartbeat_lost', detail: `last heartbeat ${heartbeatAt.toISOString()}`, at: now });
     result.heartbeatLost = true;
   } else if (!stale) {
     await ctx.db.execute(sql`update alerts set resolved_at = ${now} where kind = 'heartbeat_lost' and resolved_at is null`);
   }
-  // Restart once: after closing a hung run, or when a heartbeat_lost incident opens (the worker hung
-  // while idle); later passes of the same incident leave a worker that may still be starting alone.
-  if (result.hungRuns > 0 || newIncident) {
-    await deps.restartWorker();
-    result.restarted = true;
+  // Restart after closing a hung run, and on every pass while the heartbeat_lost incident is open (the
+  // worker hung while idle, or an earlier restart failed or did not help), at most once per 5 min so a
+  // worker that is still starting is left alone.
+  const lastRestart = state[0]?.worker_restart_at ? new Date(state[0].worker_restart_at).getTime() : null;
+  const restartDue = lastRestart === null || now.getTime() - lastRestart >= RESTART_EVERY_MS;
+  if (result.hungRuns > 0 || (result.heartbeatLost && restartDue)) {
+    await ctx.db.execute(sql`update crawler_state set worker_restart_at = ${now} where id = 1`);
+    result.restarted = await deps.restartWorker().then(
+      () => true,
+      (e) => {
+        ctx.log('worker restart failed', { error: String(e) });
+        return false;
+      },
+    );
   }
 
   if (deps.briefings) await checkGlobalBriefing(ctx, s, now, deps.briefings.sharedChat);
