@@ -46,6 +46,14 @@ for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x', 
   });
 }
 
+for (const cb of ['/..//example.com', '/%2e%2e/%2fexample.com']) {
+  test(`a signed-in user opening /login with a callback of ${cb} lands on /briefing`, async ({ page }) => {
+    await signIn(page, USERS.admin.email);
+    await page.goto(`/login?callbackURL=${encodeURIComponent(cb)}`);
+    await expect(page).toHaveURL(/\/briefing$/);
+  });
+}
+
 test('signing out ends the session and shows the sign-in page', async ({ page }) => {
   await signIn(page, USERS.admin.email);
   await page.getByRole('button', { name: 'Đăng xuất' }).click();
