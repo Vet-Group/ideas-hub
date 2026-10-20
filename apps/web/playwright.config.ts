@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_FIXED_NOW, E2E_PORT, e2eDatabaseUrl } from './e2e/fixtures/env';
+import { E2E_BUCKET, E2E_FIXED_NOW, E2E_PORT, e2eDatabaseUrl } from './e2e/fixtures/env';
 
 // UX test harness (plan Step 5), reused by Steps 6 and 7: a built app on its own port and database,
 // desktop (1440) and phone (390) projects, screenshots compared within 1% with animations off.
@@ -36,6 +36,8 @@ export default defineConfig({
       IDEAS_HUB_FIXED_NOW: E2E_FIXED_NOW,
       // A test-only secret when the environment has none (CI); never a real one.
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || 'e2e-only-secret-not-for-real-use-0123456789',
+      THUMB_URL_SECRET: 'e2e-only-thumb-secret-not-for-real-use-0123',
+      S3_BUCKET: E2E_BUCKET,
     },
   },
 });

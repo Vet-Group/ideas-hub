@@ -41,3 +41,28 @@ test('Loading: the route skeleton', async ({ page }, info) => {
   await expect(page.locator('[aria-busy=true]')).toBeVisible();
   await expectScreen(page.locator('[aria-busy=true]'), 'loading', info);
 });
+
+// Step 6: the research and ideas screens at both widths, and their states.
+for (const [name, path] of [
+  ['ads-pane', '/ads/e2e_mug_1'],
+  ['keyword-report', '/keywords/kw_e2e_mug'],
+  ['ideas-table', '/ideas?store=store_e2e_a&view=table'],
+  ['ideas-board', '/ideas?store=store_e2e_a&view=board'],
+] as const) {
+  test(`${name} @phone`, async ({ page }, info) => {
+    await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(path)}`);
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() => document.fonts.ready);
+    await expectScreen(page, name, info, { fullPage: true });
+  });
+}
+
+test('Step 6 states: missing thumbnail, out of top, less than 7 days, no data yet', async ({ page }, info) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?status=all&domain=dogmom')}`);
+  await expectScreen(page.getByRole('listitem').filter({ hasText: 'Best dog mom mug gift 6' }), 'state-missing-thumb', info);
+  await expectScreen(page.getByRole('listitem').filter({ hasText: 'Old dog mom mug' }), 'state-out-of-top', info);
+  await page.goto('/keywords/kw_e2e_mug');
+  await expectScreen(page.getByText('17 +8 ▲ từ 17/10 (chưa đủ 7 ngày dữ liệu)'), 'state-less-than-7-days', info);
+  await page.goto('/keywords/kw_e2e_mug/2026-10-01');
+  await expectScreen(page.getByRole('main'), 'state-no-data', info);
+});

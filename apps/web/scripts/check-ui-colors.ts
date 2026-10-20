@@ -28,7 +28,11 @@ async function loadStylesheet(id: string, base: string) {
 export function candidates(source: string): string[] {
   const out = new Set<string>();
   for (const m of source.matchAll(/(["'`])((?:(?!\1)[^\\]|\\.)*)\1/g)) {
-    for (const token of m[2]!.split(/\s+/)) if (COLOR_PREFIX.test(token)) out.add(token);
+    // JSX caught between two strings leaves `text-sm">{…`: split on braces and drop a trailing quote or `>`.
+    for (const raw of m[2]!.split(/[\s{}]+/)) {
+      const token = raw.replace(/["'`>]+$/, '');
+      if (COLOR_PREFIX.test(token)) out.add(token);
+    }
   }
   return [...out];
 }

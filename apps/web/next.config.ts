@@ -9,8 +9,14 @@ try {
 
 const config: NextConfig = {
   // The workspace packages ship TypeScript sources.
-  transpilePackages: ['@ideas-hub/core', '@ideas-hub/db'],
-  images: { formats: ['image/webp'] },
+  transpilePackages: ['@ideas-hub/core', '@ideas-hub/db', '@ideas-hub/worker'],
+  images: {
+    formats: ['image/webp'],
+    // Signed thumbnails only (plan Step 6); `dangerouslyAllowLocalIP` stays off.
+    localPatterns: [{ pathname: '/thumbs/**', search: '' }],
+    // Next's defaults plus 320, the ad card width at 1x.
+    imageSizes: [32, 48, 64, 96, 128, 256, 320, 384],
+  },
   poweredByHeader: false,
 };
 

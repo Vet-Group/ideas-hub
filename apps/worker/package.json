@@ -2,6 +2,9 @@
   "name": "@ideas-hub/worker",
   "private": true,
   "type": "module",
+  "exports": {
+    "./manual": "./src/manual.ts"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1142.0",
     "@ideas-hub/core": "workspace:*",

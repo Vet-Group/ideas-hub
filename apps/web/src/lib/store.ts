@@ -21,3 +21,12 @@ export async function userStores(user: CurrentUser) {
   const selected = rows.find((s) => s.id === wanted) ?? rows[0] ?? null;
   return { stores: rows, selectedId: selected?.id ?? null };
 }
+
+/** The stores the user may save to (admins: all), for "Lưu". */
+export async function saveTargets(user: CurrentUser) {
+  const scope = storeScope(user, 'save');
+  if (scope.storeIds !== 'all' && scope.storeIds.length === 0) return [];
+  return scope.storeIds === 'all'
+    ? db.select({ id: stores.id, name: stores.name }).from(stores).orderBy(asc(stores.name))
+    : db.select({ id: stores.id, name: stores.name }).from(stores).where(inArray(stores.id, [...scope.storeIds])).orderBy(asc(stores.name));
+}

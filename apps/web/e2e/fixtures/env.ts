@@ -1,6 +1,8 @@
 // The e2e app runs on its own port and database, never the dev ones (3300 and `ideashub`).
 export const E2E_PORT = 3310;
 export const E2E_DB = 'ih_e2e';
+/** Its own MinIO bucket, so e2e thumbnails and uploads never mix with the dev ones. */
+export const E2E_BUCKET = 'ideas-hub-e2e';
 /** The server's frozen "now" (Asia/Ho_Chi_Minh 2026-10-21 08:30); the browser clock is set to the same. */
 export const E2E_FIXED_NOW = '2026-10-21T01:30:00.000Z';
 

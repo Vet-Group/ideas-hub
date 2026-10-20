@@ -9,6 +9,10 @@ describe('check-ui-colors', () => {
     expect(candidates(`cn("bg-primary text-sm hover:bg-accent/50", 'p-2 ring-2')`)).toEqual(['bg-primary', 'text-sm', 'hover:bg-accent/50', 'ring-2']);
   });
 
+  it('splits JSX caught between two strings into class-like tokens', () => {
+    expect(candidates(`<p className="a">{x}</p><p className="text-sm">{y}</p>`)).toEqual(['text-sm']);
+  });
+
   it('flags a color the theme does not map and passes mapped colors and non-color utilities', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'ih-colors-'));
     const file = join(dir, 'x.tsx');
