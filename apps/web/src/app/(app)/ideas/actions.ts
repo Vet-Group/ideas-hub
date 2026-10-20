@@ -7,12 +7,12 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { undoIdeas } from '@/lib/ideas-server';
 import { now } from '@/lib/now';
+import { type SaveSource, saveInput, snapshotKeyword } from '@/lib/save-source';
 import { requireUser } from '@/lib/session';
 import { statusOptions } from '@/lib/settings';
 import { t } from '@/lib/strings.vi';
 
-/** What is saved; the server builds the title and snapshot from its own data, never from the client. */
-export type SaveSource = { kind: 'ad'; adArchiveId: string; via: 'ads' | 'briefing'; keyword?: string } | { kind: 'suggestion'; suggestionId: string };
+export type { SaveSource } from '@/lib/save-source';
 
 type NewIdea = Parameters<typeof saveIdea>[3];
 
@@ -31,7 +31,7 @@ async function adIdea(source: Extract<SaveSource, { kind: 'ad' }>): Promise<NewI
       adLibraryUrl: `https://www.facebook.com/ads/library/?id=${ad.adArchiveId}`,
       pageName: ad.pageName,
       landingDomain: ad.landingDomain,
-      keyword: source.keyword ?? ad.keywords[0]?.text ?? null,
+      keyword: snapshotKeyword(ad.keywords, source.keyword),
       trendScore: ad.trendScore,
       mediaType: ad.mediaType,
     },
@@ -55,8 +55,11 @@ export type SaveOutcome =
   | { ok: true; results: { storeId: string; storeName: string; ideaId: string; created: boolean }[] }
   | { ok: false; error: string };
 
-export async function saveAction(source: SaveSource, storeIds: string[]): Promise<SaveOutcome> {
+export async function saveAction(rawSource: SaveSource, rawStoreIds: string[]): Promise<SaveOutcome> {
   const user = await requireUser();
+  const input = saveInput.safeParse({ source: rawSource, storeIds: rawStoreIds });
+  if (!input.success) return { ok: false, error: t.save.failed };
+  const { source, storeIds } = input.data;
   if (storeIds.length === 0) return { ok: false, error: t.save.noStore };
   const idea = source.kind === 'ad' ? await adIdea(source) : await suggestionIdea(user, source.suggestionId);
   if (!idea) return { ok: false, error: t.save.failed };
