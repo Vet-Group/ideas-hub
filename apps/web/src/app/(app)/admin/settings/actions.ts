@@ -22,7 +22,15 @@ export async function saveSettings(_prev: SaveResult | null, form: FormData): Pr
   const at = now();
   await db
     .insert(settingsTable)
-    .values(Object.entries(settings).map(([key, value]) => ({ key: key as keyof typeof settings, value, updatedAt: at, updatedBy: admin.userId })))
+    .values(
+      Object.entries(settings).map(([key, value]) => ({
+        key: key as keyof typeof settings,
+        // An empty optional setting (proxy, browser profile) is JSON null; a bare null would be SQL NULL.
+        value: value === null ? sql`'null'::jsonb` : value,
+        updatedAt: at,
+        updatedBy: admin.userId,
+      })),
+    )
     .onConflictDoUpdate({
       target: settingsTable.key,
       set: { value: sql`excluded.value`, updatedAt: sql`excluded.updated_at`, updatedBy: sql`excluded.updated_by` },

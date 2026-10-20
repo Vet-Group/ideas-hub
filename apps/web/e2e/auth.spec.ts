@@ -49,7 +49,9 @@ test('the sign-in page loads its CSS, JS and fonts without a session', async ({ 
   const loaded = new Set<string>();
   page.on('response', (r) => {
     const t = r.request().resourceType();
-    if (['stylesheet', 'script', 'font'].includes(t)) (r.ok() ? loaded.add(t) : failed.push(`${r.status()} ${r.url()}`));
+    if (!['stylesheet', 'script', 'font'].includes(t)) return;
+    if (r.ok()) loaded.add(t);
+    else failed.push(`${r.status()} ${r.url()}`);
   });
   await page.goto('/login');
   await page.evaluate(() => document.fonts.ready);

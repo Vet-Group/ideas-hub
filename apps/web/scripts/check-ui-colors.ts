@@ -1,5 +1,5 @@
 // pnpm --filter @ideas-hub/web check:ui-colors
-// Compiles every color utility used in src/components/ui with Tailwind's compile() against theme.css and
+// Compiles every color utility used in the app's .tsx files with Tailwind's compile() against theme.css and
 // fails when one produces no CSS: theme.css resets Tailwind's palette, so a shadcn class naming a color
 // the theme does not map (say `bg-zinc-100`) would silently render nothing. Utilities that are not
 // colors (`text-sm`, `ring-2`) produce CSS, so they never trip it.
@@ -10,7 +10,7 @@ import { compile } from 'tailwindcss';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const STYLES = join(root, 'src/styles');
-const UI = join(root, 'src/components/ui');
+const SRC = join(root, 'src');
 const COLOR_PREFIX = /(?:^|:)!?-?(bg|text|border(?:-[trblxy])?|ring(?:-offset)?|fill|stroke|outline|from|to|via|accent|caret|decoration|divide|placeholder|shadow)-/;
 
 /** Package stylesheets the theme imports, by their `style` export. */
@@ -50,10 +50,14 @@ export async function missingColors(files: string[]): Promise<{ file: string; ca
   return missing;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const files = readdirSync(UI)
+/** Every .tsx file under src: pages and shell components as well as src/components/ui. */
+export const uiFiles = () =>
+  readdirSync(SRC, { recursive: true, encoding: 'utf8' })
     .filter((f) => f.endsWith('.tsx'))
-    .map((f) => join(UI, f));
+    .map((f) => join(SRC, f));
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const files = uiFiles();
   const missing = await missingColors(files);
   for (const m of missing) console.error(`${m.file.slice(root.length + 1)}: ${m.candidate} produces no CSS`);
   console.log(`checked ${files.length} files: ${missing.length ? `${missing.length} color utilities without CSS` : 'every color utility produces CSS'}`);
