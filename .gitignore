@@ -5,3 +5,8 @@ node_modules/
 .DS_Store
 .omc/
 logs/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/

@@ -17,7 +17,7 @@ jobs:
   check:
     name: Typecheck, lint, test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       # Matches docker-compose.yml, so DATABASE_URL is the one in .env.example.
       postgres:
@@ -64,3 +64,8 @@ jobs:
 
       - name: Test
         run: pnpm -r test
+
+      # Builds the web app and runs it on port 3310 against its own ih_e2e database, with the runner's
+      # Chrome (playwright.config.ts). Screenshots are compared only once the owner approves baselines.
+      - name: End-to-end (web)
+        run: pnpm --filter @ideas-hub/web e2e

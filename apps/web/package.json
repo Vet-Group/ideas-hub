@@ -2,19 +2,49 @@
   "name": "@ideas-hub/web",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3300",
+    "build": "next build",
+    "start": "next start --port 3300",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "check:ui-colors": "tsx scripts/check-ui-colors.ts",
+    "auth:create-user": "tsx scripts/create-user.ts"
+  },
   "dependencies": {
     "@ideas-hub/core": "workspace:*",
     "@ideas-hub/db": "workspace:*",
     "better-auth": "1.7.7",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "drizzle-orm": "0.45.3",
     "geist": "1.7.2",
+    "lucide-react": "1.49.0",
+    "nanoid": "6.0.2",
     "next": "16.4.0",
+    "pg": "8.23.1",
+    "radix-ui": "1.7.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-is": "19.3.0",
+    "server-only": "0.0.1",
     "sharp": "0.35.5",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.7.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0"
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "tw-animate-css": "1.4.0"
   }
 }

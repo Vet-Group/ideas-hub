@@ -733,6 +733,37 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   `toHaveScreenshot` of sign in at 1440 and 390 px, with the seed data and frozen clock, matches the
   owner-approved baseline within 1%; the Loading, No permission and Crawler attention states each have a
   seeded fixture and a screenshot; the string lint passes.
+- Progress (2026-10-20): built on branch `step-5-web-app`. `apps/web` on port 3300 (e2e 3310, database
+  `ih_e2e`): better-auth with the admin plugin, `proxy.ts`, the shell (sidebar, store switcher, Ctrl+K,
+  attention bar, phone tabs), the run log and every admin page, with all UI strings in
+  `src/lib/strings.vi.ts` and the string lint in `eslint-rules/ui-strings.mjs`. Every Exit item has an
+  e2e test (39: desktop 1440 and phone 390), run in CI by a new "End-to-end (web)" step; locally 39 pass.
+  Pins (ADR 0001 age rule, POD Studio's where it has one): next 16.4.0, react 19.3.0, better-auth 1.7.7,
+  tailwindcss and @tailwindcss/postcss 4.3.3, radix-ui 1.7.0, lucide-react 1.49.0, sonner 2.0.8, cmdk
+  1.1.1, tw-animate-css 1.4.0, geist 1.7.2, zod 4.6.5, nanoid 6.0.2, sharp 0.35.5, @axe-core/playwright
+  4.13.0, @playwright/test 1.63.0; shadcn components generated with `shadcn@4.21.3`. Decisions, with
+  reasons:
+  - Screenshots: `e2e/support/screens.ts` compares with `toHaveScreenshot` only once
+    `e2e/__screenshots__/APPROVED` exists; until then each screenshot is written to
+    `e2e/__screenshots__/pending/<platform>/` and attached to the report, so a missing approval never
+    fails a run. Pending owner: approve the baselines (sign in at 1440 and 390, Loading, No permission,
+    Crawler attention; the Windows set is committed under `pending/win32/`), then move them to
+    `e2e/__screenshots__/<platform>/` and add `APPROVED`; CI on Linux needs its own `linux` set.
+  - "Admin creates a member with `save` on store A" is tested as the admin adding an existing member to
+    store A with `save` (users are created on `/admin/users` or with `pnpm auth:create-user`). The
+    member's 404 on store B's ideas is checked at `/ideas?store=…`, which is a 404 for everyone until
+    Step 6 adds the page; Step 6's permission tests replace it.
+  - Admin pages answer 404 from `admin/layout.tsx`, above the `loading.tsx` boundaries: with a loading
+    boundary above the check the 200 status streamed before `notFound()`.
+  - The Loading screenshot holds the navigation's RSC request after the route's prefetch has arrived:
+    Next 16 shows the loading state only from a completed prefetch.
+  - Inputs use `focus:` rather than `focus-visible:` for the ring: Chrome does not match
+    `:focus-visible` on a date input whose inner field has focus. The `a11y.ts` focus check moves focus
+    to a temporary element instead of `blur()`, which does not leave a date input's inner field.
+  - `scripts/check-ui-colors.ts` checks every `.tsx` under `src`, not only `components/ui`, and runs as
+    a unit test, so CI covers it.
+  - Saving settings wrote SQL NULL for an empty proxy or browser profile into the `not null` jsonb
+    column (the toast test failed with a server error); the action now writes JSON `null`.
 
 ### Step 6. Research views and save-idea from ads and by hand (weeks 5–7)
 - Pages: ads grid (status from `adStatus`, default filter "running", other ads labelled "out of top
