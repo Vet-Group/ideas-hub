@@ -516,7 +516,7 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   rest sent by the next pass.
 - Exit: `pnpm crawl:run` with 10 seed keywords × 2 countries (US, GB) stores ads, sightings, thumbnails,
   a run row with its counts, and `crawl_searches` rows whose counts add up to the planned total.
-- Progress (2026-10-20): built on branch `step-3-fb-adapter`. The adapter is `packages/sources/fb-ad-library`
+- Progress (2026-10-20): merged as PR #3 (bdc9303). Built on branch `step-3-fb-adapter`. The adapter is `packages/sources/fb-ad-library`
   (`parse-embedded`, `parse-graphql`, `normalize`, `detect`, `search`, and `playwright.ts` behind a
   `BrowserSession` interface so the search rules are tested with a scripted page); the worker is
   `apps/worker/src/{main,run,schedule,thumbnails,heartbeat,manual,recovery,watchdog,watchdog-pass,cli}.ts`;
@@ -595,6 +595,31 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   recorded as success ≥ 90% or as the options brought to the owner; the worker process, killed, is
   started again by the wrapper loop within 2 min, and ending the Task Scheduler task leaves no orphan
   node or Chrome process; the result is recorded in the block-rate report.
+- Progress (2026-10-20): built on branch `step-4-measurement`. Done: `docs/research/2026-10-20-block-rate.md`
+  (interim: 142 searches so far, 98.6% by AC 1's definition, 100.0% for the off-screen mode, 0 blocks, no
+  backoff wait; the Step 3 Exit run took 59 s per search against the spec §1 estimate of 61 s);
+  `docs/adr/0003-crawler-design.md`; `scripts/briefing-preview.ts` (`pnpm briefing:preview`, sections 1–4,
+  with "since <date> (less than 7 days of data)" when the baseline is short, tested on three days of
+  fake-site runs); `scripts/windows/worker-loop.ps1`, `register-worker-tasks.ps1` and
+  `check-worker-loop.ps1`. Wrapper check: the killed worker was back after 6 s, and ending the task left
+  no node or Chrome process. Decisions, with reasons:
+  - Ending a Task Scheduler task stops only its own process, and pnpm 12 runs scripts through Git Bash,
+    whose processes lose their parent links: the first check left the worker's node processes and 8
+    `chrome.exe` running. The loop now joins a job object with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`;
+    with it the check passes, without it the same check fails (both runs in the report).
+  - The loop logs through `cmd.exe` with the paths in environment variables: Windows PowerShell 5.1's
+    `*>>` wrote UTF-16 and wrapped stderr lines as errors.
+  - The check runs a copy of the task (`IdeasHub-Worker-Check`) against a disposable database with no run
+    times and no keywords, so it can never crawl and never touches the dev data; it removes both.
+  - Tuned defaults: none. No block in 142 searches gives nothing to tune on; the spec §1 defaults stay
+    and no `settings` row is written (closest reading of "tuned defaults written back to settings").
+  - The worker tasks are not registered yet: the probe's twice-daily runs use the same slots until
+    2026-10-22, and two crawls must never overlap. The measurement starts after the probe with
+    `register-worker-tasks.ps1 -StartAt '2026-10-23 00:30'`.
+  - Pending: scheduled runs — the 3–5 day measurement at the production schedule, its success rate, block
+    events, durations and backoff waits, the decision point (so far ≥ 90%), and the briefing preview of
+    those runs (today `pnpm briefing:preview` answers "No completed scheduled run yet", as the dev
+    database has only the `cli` run).
 
 ### Step 5. Web app, auth and admin (weeks 3–5)
 - `apps/web` (Next.js), `apps/web/src/lib/auth.ts` (better-auth, email+password, admin plugin, sign-up
