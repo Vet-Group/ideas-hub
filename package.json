@@ -17,13 +17,18 @@
     "db:seed": "pnpm --filter @ideas-hub/db seed",
     "worker": "pnpm --filter @ideas-hub/worker start",
     "crawl:run": "pnpm --filter @ideas-hub/worker crawl:run",
-    "watchdog": "pnpm --filter @ideas-hub/worker watchdog"
+    "watchdog": "pnpm --filter @ideas-hub/worker watchdog",
+    "briefing:preview": "tsx scripts/briefing-preview.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@ideas-hub/core": "workspace:*",
+    "@ideas-hub/db": "workspace:*",
     "@types/node": "24.19.0",
+    "drizzle-orm": "0.45.3",
     "eslint": "10.12.0",
     "globals": "17.12.0",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.0",
     "vitest": "5.0.2"

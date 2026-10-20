@@ -169,15 +169,27 @@ importers:
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
+      '@ideas-hub/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@ideas-hub/db':
+        specifier: workspace:*
+        version: link:packages/db
       '@types/node':
         specifier: 24.19.0
         version: 24.19.0
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.1)
       eslint:
         specifier: 10.12.0
         version: 10.12.0(supports-color@7.2.0)
       globals:
         specifier: 17.12.0
         version: 17.12.0
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       typescript:
         specifier: 6.0.3
         version: 6.0.3
