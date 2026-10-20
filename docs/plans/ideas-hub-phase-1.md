@@ -516,6 +516,64 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   rest sent by the next pass.
 - Exit: `pnpm crawl:run` with 10 seed keywords × 2 countries (US, GB) stores ads, sightings, thumbnails,
   a run row with its counts, and `crawl_searches` rows whose counts add up to the planned total.
+- Progress (2026-10-20): built on branch `step-3-fb-adapter`. The adapter is `packages/sources/fb-ad-library`
+  (`parse-embedded`, `parse-graphql`, `normalize`, `detect`, `search`, and `playwright.ts` behind a
+  `BrowserSession` interface so the search rules are tested with a scripted page); the worker is
+  `apps/worker/src/{main,run,schedule,thumbnails,heartbeat,manual,recovery,watchdog,watchdog-pass,cli}.ts`;
+  `scripts/acceptance.sql` holds AC 1 and AC 2. Each test creates its own database
+  (`packages/db/src/testing.ts`) with pg-boss on it and a settable clock, so every SQL statement takes
+  the clock's time as a parameter instead of `now()`. Decisions, with reasons:
+  - Re-checked at the pins: pg-boss 12.37.0 (not 12.38.0) has the same queue policies and indexes
+    (`singleton` = `job_i2`, one active job; `exclusive` = `job_i6`, `state <= 'active'`;
+    `dist/migrationStore.js`), `QUEUE_DEFAULTS` `retry_limit` 2 and `expire_seconds` 900
+    (`dist/plans.js`), `MAX_EXPIRATION_HOURS` 24 and polling defaults 2 s and 30 s
+    (`dist/attorney.js`), and `lastFetchedOn` set after each fetch (`dist/worker.js` line 65, not 71).
+    The 12.38.0 comment "The timeout only stops the wait for a handler" is not in 12.37.0's
+    `manager.js`: there `job.signal` is aborted when the worker's claim is lost or it stops, never on
+    expiry, so the plan's rule (handlers pass `job.signal` and run under `statement_timeout`) stands.
+  - Playwright 1.63.0: `launch()` honours `timeout` (test with a 1 ms limit), but `launchServer()`,
+    which the worker uses so that a browser that does not close in time can be killed
+    (`BrowserServer.kill()`), resolved with a 1 ms `timeout`; the session therefore also races the start
+    against the limit and kills a late browser. Both are tested with real Chrome (skipped where none).
+  - The Step 1 headless sample showed an embedded script read while it was still streaming (truncated
+    JSON, `parse_error`). The adapter polls until the script parses; one that never does within the
+    embedded-data limit is a transient error, not a parse error.
+  - `@aws-sdk/client-s3` pinned to 3.1142.0 (POD Studio's pin, published 2026-09-28).
+  - Budget rotation: `crawler_state.rotation_cursor` is an index into the active pairs in a stable order
+    (keyword creation, then the settings' country order).
+  - The watchdog's blocked-slot check for a row still `scheduled` also uses the current
+    `blocked_until`, because that slot's job can have waited behind the run that set it (its slot then
+    falls before that run's `finished_at`); the backfill uses only the "end of the blocking run to its
+    `blocked_until`" window of spec §1.
+  - The scheduler deletes the future `scheduled` rows (and cancels the jobs) of slots that a run-time
+    change removed, and inserts the new slots; rows of slots that stay are updated in place.
+  - The browser mode is the environment variable `IDEAS_HUB_BROWSER_MODE` (default: the Step 1 choice),
+    not a Setting, so the first migration's settings seed is unchanged.
+  - Left for later steps, as the plan has them: the `briefing.build` jobs sent by the scheduler and their
+    handler (Step 7), Alert sending to Lark (the watchdog takes an injected sender; Step 7 wires it), the
+    Windows tasks for the worker and the watchdog (Step 4). pg-boss polling intervals are not
+    configurable in the worker, so there is no configured value of 120 s or more to refuse; the defaults
+    apply. The `browserProfile` setting stays off (a fresh profile per start); only `proxy` is wired.
+  - A code review of the branch found no blocking issue; fixed from it, each with a test: a search
+    could stay `running` on a run the watchdog had just stopped (the search is now marked inside a
+    transaction that locks the run row); an unreadable scroll payload counted as empty (now
+    `parse_error`, as plan "Detection" says; an empty body or a payload of only `errors` still counts as
+    empty), a captcha flag in a scroll payload was ignored, a failed heartbeat write became a
+    `parse_error` (it now propagates and fails the run), a failed bucket check was cached until restart,
+    an empty `runTimes` looped, the watchdog restarted the worker at every pass of one stale-heartbeat
+    incident (now once, when the incident opens), the final browser close was not counted, a close
+    error counted as a close over its limit, thumbnail keys were written after a close, a cap reached
+    inside one scroll stopped as `no_new_ads`, two scheduler passes could overlap, and a connection that
+    failed to roll back went back to the pool. The concurrent Run now test also showed that drizzle
+    wraps the pg error, so a unique violation was not read as `manual_pending`; fixed. AC 2's check
+    reads the cap from `settings` instead of 100.
+  - Exit: done on 2026-10-20 against the dev database, with the worker running and no probe run in
+    progress: `pnpm crawl:run` with the first 10 seed keywords × US, GB (run `run_0bfae41144ba455cabf48`,
+    `cli`, off-screen, 04:30–04:50 UTC) ended `done` with 20 planned and 20 `ok` searches (each stopped at
+    the 100-ad cap), 1556 ads, 2000 sightings, 400 shops and 1555 thumbnails in MinIO (one ad has no thumbnail; not
+    investigated), 1 transient retry and no wait-limit hit. The worker was stopped afterwards and the 28
+    scheduled rows its scheduler had written were removed, so it could not start the 13:00 slot over the
+    probe's run.
 
 ### Step 4. Measurement, crawler ADR, briefing preview (week 3; runs while Step 5 starts)
 - Scheduler runs twice a day on Windows (PC kept awake) for 3–5 days; the watchdog is registered in Task
