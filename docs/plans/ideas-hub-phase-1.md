@@ -915,6 +915,16 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   - The board's columns are regions named by the status alone; the count stays in the heading.
   - `adLibraryUrl` lives in `components/ads/ad-library-url.ts`: the server detail pane cannot call a
     function exported from the `'use client'` grid.
+  - The seeded thumbnails are 600 px JPEGs with light Gaussian noise (sigma 8): with sigma 20 the 640 px
+    WebP was 97.7 KB, over the 90 KB limit, because such noise barely compresses, unlike an ad photo; the
+    limits themselves are unchanged. `e2e/global-setup.ts` clears `.next/cache/images`, since the seed
+    rewrites thumbnails under the same keys and the optimizer would serve the cached ones.
+  - Fixed while adding the a11y checks of these pages: ad cards carry their own focus ring (the check
+    reads the focused element, not the card), the chart surface shows an outline on focus (shadcn's chart
+    hides it), every `loading.tsx` skeleton has `role="status"` (axe's `aria-prohibited-attr` for an
+    `aria-label` on a plain div; probably also the cause of the Step 5 axe failure on `/admin/feeds` that
+    did not recur, not verified), and the store page's checkboxes are 24 px (WCAG 2.5.8 once a store has
+    more members).
   - CI starts MinIO with `docker run` (a service container cannot take `server /data`) for the e2e
     thumbnails and uploads; the e2e app uses its own bucket `ideas-hub-e2e`.
   - Pending owner: approve the Step 6 screenshots in `e2e/__screenshots__/pending/win32/` (ads-pane,

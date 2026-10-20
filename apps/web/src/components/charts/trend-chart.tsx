@@ -80,7 +80,7 @@ export function TrendChart({ points }: { points: Point[] }) {
           </Table>
         </div>
       ) : (
-        <ChartContainer config={config} className="aspect-auto h-64 w-full">
+        <ChartContainer config={config} className="aspect-auto h-64 w-full [&_.recharts-surface:focus]:outline-2 [&_.recharts-surface:focus]:outline-solid [&_.recharts-surface:focus]:outline-ring">
           <LineChart data={shown} margin={{ top: 8, right: 48, bottom: 0, left: 0 }} accessibilityLayer>
             <CartesianGrid vertical={false} strokeOpacity={0.4} />
             <XAxis dataKey="date" tickFormatter={ddmm} tickLine={false} axisLine={false} tick={{ fill: 'var(--vet-ink)' }} minTickGap={16} />

@@ -71,7 +71,7 @@ test('with several stores a save takes 2 actions (Lưu, Enter); results per stor
 
   // After an undo, a link to the undone idea is a 404.
   await toast.getByRole('button', { name: 'Hoàn tác' }).click();
-  expect(await ideaRows('e2e_mug_2')).toEqual([]);
+  await expect.poll(() => ideaRows('e2e_mug_2')).toEqual([]);
   const res = await page.goto(`/ideas/${b!.id}`);
   expect(res?.status()).toBe(404);
 });
@@ -152,8 +152,8 @@ test('the keyword report: chart with a gap and the table toggle, "Less than 7 da
   await expect(page.getByText('17 +8 ▲ từ 17/10 (chưa đủ 7 ngày dữ liệu)')).toBeVisible();
   await expect(page.locator('.recharts-line')).toHaveCount(2);
   await page.getByRole('button', { name: 'Bảng' }).click();
-  // 19/10 has the 01:00 snapshot only: the 13:00 cell is a gap.
-  await expect(page.getByRole('row', { name: /19\/10/ })).toContainText('14');
+  // 19/10 has the 01:00 snapshot only (18:00 UTC on 18/10): the 13:00 cell is a gap.
+  await expect(page.getByRole('row', { name: /19\/10/ })).toContainText('12');
   await expect(page.getByRole('row', { name: /19\/10/ })).toContainText('—');
   // A run that starts after midnight for the previous day's slot plots on the slot's date: 01:00 of 21/10.
   await expect(page.getByRole('row', { name: /21\/10/ })).toContainText('17');
@@ -167,6 +167,9 @@ test('Run now: disabled with its reason for a running run, a cool-down and the m
   await signIn(page, USERS.kw.email, `/login?callbackURL=${encodeURIComponent(path)}`);
   const button = page.getByRole('button', { name: 'Run now' });
   await expect(button).toBeEnabled();
+  // The admin settings test may already have saved `runTimes`; both rows are put back as they were.
+  const saved = await pool.query<{ value: unknown }>(`select value from settings where key = 'runTimes'`);
+  const { rows: [state] } = await pool.query<{ blocked_until: Date | null }>(`select blocked_until from crawler_state where id = 1`);
   try {
     await pool.query(
       `insert into crawl_runs (id, source, trigger, triggered_by, status, planned_searches, deadline, started_at, requested_pairs)
@@ -182,17 +185,18 @@ test('Run now: disabled with its reason for a running run, a cool-down and the m
     await page.reload();
     await expect(button).toBeDisabled();
     await expect(page.getByText('Crawler đang nghỉ đến 14:20')).toBeVisible();
-    await pool.query(`update crawler_state set blocked_until = '2026-10-21T00:30:00Z' where id = 1`);
+    await pool.query(`update crawler_state set blocked_until = $1 where id = 1`, [state!.blocked_until]);
 
     // The fixed clock is 08:30; a next slot at 08:45 puts it inside the 25 min margin.
-    await pool.query(`insert into settings (key, value) values ('runTimes', '["01:00", "08:45"]'::jsonb)`);
+    await pool.query(`insert into settings (key, value) values ('runTimes', '["01:00", "08:45"]'::jsonb) on conflict (key) do update set value = excluded.value`);
     await page.reload();
     await expect(button).toBeDisabled();
     await expect(page.getByText('Không còn đủ thời gian trước ca 08:45')).toBeVisible();
   } finally {
     await pool.query(`delete from crawl_runs where id = 'run_e2e_running'`);
-    await pool.query(`delete from settings where key = 'runTimes'`);
-    await pool.query(`update crawler_state set blocked_until = '2026-10-21T00:30:00Z' where id = 1`);
+    if (saved.rows[0]) await pool.query(`update settings set value = $1::jsonb where key = 'runTimes'`, [JSON.stringify(saved.rows[0].value)]);
+    else await pool.query(`delete from settings where key = 'runTimes'`);
+    await pool.query(`update crawler_state set blocked_until = $1 where id = 1`, [state!.blocked_until]);
     await pool.end();
   }
   const ctx = await browser.newContext();

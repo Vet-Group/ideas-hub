@@ -149,8 +149,9 @@ async function seedThumbnails() {
   }
   for (const [i, id] of MUG_ADS.entries()) {
     if (id === 'e2e_mug_missing') continue;
-    // A 600 px JPEG with some texture, like an ad image, in a different hue per ad.
-    const body = await sharp({ create: { width: 600, height: 600, channels: 3, background: { r: 40 * i, g: 120, b: 200 - 30 * i }, noise: { type: 'gaussian', mean: 128, sigma: 20 } } })
+    // A 600 px JPEG with some texture, like an ad photo, in a different hue per ad; heavy noise would be
+    // incompressible and larger than any real ad image.
+    const body = await sharp({ create: { width: 600, height: 600, channels: 3, background: { r: 40 * i, g: 120, b: 200 - 30 * i }, noise: { type: 'gaussian', mean: 128, sigma: 8 } } })
       .jpeg({ quality: 80 })
       .toBuffer();
     await client.send(new PutObjectCommand({ Bucket: E2E_BUCKET, Key: `thumbs/${id}_image.jpg`, Body: body, ContentType: 'image/jpeg' }));

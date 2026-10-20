@@ -15,7 +15,7 @@ const s = t.admin.stores;
 
 const Tick = ({ name, label, checked }: { name: string; label: string; checked: boolean }) => (
   <label className="inline-flex min-h-6 items-center gap-1.5 text-[13px]">
-    <input type="checkbox" name={name} defaultChecked={checked} className="accent-ink size-4" />
+    <input type="checkbox" name={name} defaultChecked={checked} className="accent-ink size-6" />
     {label}
   </label>
 );

@@ -79,7 +79,7 @@ export function AdGrid({ ads, selectedId, saveStores, via = 'ads' }: { ads: AdCa
         <li
           key={a.adArchiveId}
           className={cn(
-            'bg-surface border-line rounded-card relative flex flex-col overflow-hidden border focus-within:ring-[3px] focus-within:ring-ring/50',
+            'bg-surface border-line rounded-card relative flex flex-col overflow-hidden border',
             a.adArchiveId === selectedId && 'border-ink',
           )}
         >
@@ -93,7 +93,7 @@ export function AdGrid({ ads, selectedId, saveStores, via = 'ads' }: { ads: AdCa
               scroll={false}
               aria-current={a.adArchiveId === selectedId ? 'true' : undefined}
               onKeyDown={onKey(i)}
-              className="line-clamp-2 font-medium outline-none after:absolute after:inset-0"
+              className="line-clamp-2 rounded-sm font-medium outline-none after:absolute after:inset-0 focus:ring-[3px] focus:ring-ring/50"
             >
               {a.caption || a.pageName || a.adArchiveId}
             </Link>
