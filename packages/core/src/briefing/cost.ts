@@ -8,9 +8,13 @@ export interface ModelPrice {
   output: number;
 }
 
-/** shortcut: list prices known when this was written (pending owner review); add a row per model used. */
+/**
+ * Anthropic first-party list prices, checked 2026-10-21 against
+ * https://platform.claude.com/docs/en/about-claude/pricing (base input and output, no batch or cache
+ * discount). Add a row per model used.
+ */
 export const MODEL_PRICES: Record<string, ModelPrice> = {
-  'claude-sonnet-5-5': { input: 3, output: 15 },
+  'claude-sonnet-5-5': { input: 2, output: 10 },
   'claude-haiku-4-5': { input: 1, output: 5 },
 };
 
