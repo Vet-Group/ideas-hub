@@ -1,0 +1,39 @@
+import { daySeries, getShop, listAds } from '@ideas-hub/db/queries';
+import { notFound } from 'next/navigation';
+import { AdGrid } from '@/components/ads/ad-grid';
+import { toCard } from '@/components/ads/cards';
+import { TrendChart } from '@/components/charts/trend-chart';
+import { PageHeader } from '@/components/page-header';
+import { db } from '@/lib/db';
+import { statusOptions } from '@/lib/settings';
+import { saveTargets } from '@/lib/store';
+import { requireUser } from '@/lib/session';
+import { t } from '@/lib/strings.vi';
+
+/** A shop: its chart from ShopDay and its running ads. */
+export default async function ShopPage({ params }: { params: Promise<{ domain: string }> }) {
+  const user = await requireUser();
+  const domain = decodeURIComponent((await params).domain);
+  const shop = await getShop(db, domain);
+  if (!shop) notFound();
+  const [series, ads, stores] = await Promise.all([daySeries(db, 'shop', domain), listAds(db, await statusOptions(), { domain }), saveTargets(user)]);
+  const own = ads.filter((a) => a.landingDomain === domain);
+  return (
+    <>
+      <PageHeader title={domain}>
+        <span className="text-fg-2 text-sm">
+          {t.shops.runningAds}: <span className="font-mono">{shop.runningAds}</span>
+        </span>
+      </PageHeader>
+      <div className="grid gap-4">
+        <TrendChart points={series} />
+        <h2 className="font-semibold">{t.shops.ads}</h2>
+        <AdGrid
+          ads={own.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))}
+          selectedId={null}
+          saveStores={stores}
+        />
+      </div>
+    </>
+  );
+}

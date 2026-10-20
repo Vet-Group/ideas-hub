@@ -891,6 +891,34 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   pane, the keyword report with chart, the ideas table and the ideas board, with the seed data and
   frozen clock, matches the owner-approved baselines within 1%. The four states of this step each have a
   seeded fixture and a screenshot.
+- Progress (2026-10-20): built on branch `step-6-research`. Pages `/ads` (with `/ads/[id]`), `/shops`,
+  `/shops/[domain]`, `/keywords`, `/keywords/[id]`, `/keywords/[id]/[date]`, `/ideas`, `/ideas/[id]`;
+  queries in `packages/db/src/queries/{research,ideas}.ts`; the thumbnail, manual idea, idea image and
+  CSV routes; e2e in `e2e/{research,ideas}.spec.ts`, the Step 6 pages added to `a11y.spec.ts` and the
+  screens to `screens.spec.ts`. Pins (ADR 0001 age rule): recharts 3.10.1, react-is 19.3.0 (same as
+  react), @dnd-kit/core 6.3.1; `@aws-sdk/client-s3` 3.1142.0 and pg-boss 12.37.0 as in the worker; the web
+  app imports the worker's manual-run entry (`@ideas-hub/worker/manual`) so Run now applies Step 3's
+  checks in one place. Decisions, with reasons:
+  - "Hoàn tác" at 14 s and 16 s is tested in `ideas.test.ts` against the query with an injected clock:
+    the e2e server's clock is frozen (`IDEAS_HUB_FIXED_NOW`), so a browser test cannot move it.
+  - "The clock inside the margin before 13:00" is tested by setting the `runTimes` setting to
+    `["01:00", "08:45"]` in the e2e database: the frozen clock is 08:30, inside the 25 min margin before
+    08:45, which gives the same refusal ("Không còn đủ thời gian trước ca 08:45") without a second clock.
+  - The upload edge cases (4.9 MB, missing `Content-Length`, SVG, magic bytes, EXIF, 48 MP, pixel bomb,
+    cross-origin, no session, injected failure, two stores and undo) are integration tests of the route
+    handler (`api/ideas/manual/handler.test.ts`) with a fake object store; e2e covers the dialog with a
+    link and a 6 MB request answered 413 with "Ảnh lớn hơn 5 MB".
+  - "Run now refuses without `keywords`" is a unit test of `lib/run-now-rules.ts`, the rule the server
+    action calls; e2e checks the button is absent for such a member.
+  - The "Less than 7 days" label names the baseline's crawl day (Pacific, spec §3), while the chart's x
+    axis uses the slot's Asia/Ho_Chi_Minh date (spec §6), so the 01:00 run of 18/10 VN is "từ 17/10".
+  - The board's columns are regions named by the status alone; the count stays in the heading.
+  - `adLibraryUrl` lives in `components/ads/ad-library-url.ts`: the server detail pane cannot call a
+    function exported from the `'use client'` grid.
+  - CI starts MinIO with `docker run` (a service container cannot take `server /data`) for the e2e
+    thumbnails and uploads; the e2e app uses its own bucket `ideas-hub-e2e`.
+  - Pending owner: approve the Step 6 screenshots in `e2e/__screenshots__/pending/win32/` (ads-pane,
+    keyword-report, ideas-table, ideas-board at desktop and phone; the four states), as in Step 5.
 
 ### Step 7. RSS, holidays, AI sections, Lark, save from suggestion (weeks 7–9)
 - `packages/sources/rss` (rss-parser), `packages/db/seed/holidays-us.json`, `scripts/acceptance.sql` (AC
