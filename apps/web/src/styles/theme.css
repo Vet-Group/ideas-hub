@@ -21,7 +21,7 @@
   --color-selected: var(--vet-bg-selected);
   --color-fg: var(--vet-text);
   --color-fg-2: var(--vet-text-secondary);
-  --color-muted: var(--vet-text-muted);
+  --color-fg-muted: var(--vet-text-muted);
   --color-faint: var(--vet-text-faint);
   --color-icon: var(--vet-icon);
   --color-ink: var(--vet-ink);
@@ -71,6 +71,7 @@
   --color-primary-foreground: var(--vet-on-ink);
   --color-secondary: var(--vet-bg-selected);
   --color-secondary-foreground: var(--vet-text);
+  --color-muted: var(--vet-bg-selected);
   --color-muted-foreground: var(--vet-text-muted);
   --color-accent: var(--vet-bg-selected);
   --color-accent-foreground: var(--vet-text);
