@@ -1834,4 +1834,5 @@ rect, so the page never scrolls.
   `docs/status/2026-10-21-morning.md`: the probe's go/no-go threshold, the `via` of ad saves from a
   keyword report, and the Alert backlog when Lark is configured. No product code change.
 - Correction the same day: the probe's go/no-go threshold is Step 4's decision point (success < 90%
-  after tuning), so that item is resolved too and two owner questions are left.
+  after tuning), so that item is resolved too. The Alert backlog was decided in #21 (24 h cut-off), so
+  the `via` of keyword-report ad saves is the only owner question left.
