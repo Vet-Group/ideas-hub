@@ -46,14 +46,10 @@ run made at or after `<run-start>` + 14 days**, when the window is exactly the r
 | AC | Query in `scripts/acceptance.sql` | Pass |
 |---|---|---|
 | 1 | `ac1_success_ratio`: `ok_searches`, `planned_searches`, `success_ratio` over `trigger = schedule` rows; a row `missed` or still `scheduled` after its slot counts all its planned searches as failed, skipped searches of a blocked slot are failures | `success_ratio` ≥ 0.9000 |
-| 1 | The Alert checks Step 7 adds: every run with a `blocked` or `parse_error` search has that Alert with a Lark message id; each run's `network_error` Alerts equal its `network_cooldowns`, each with a message id | No row reported (0 violations) |
+| 1 | `ac1_alerts`: `blocked_unsent`, `parse_error_unsent`, `network_mismatch` (runs whose `blocked` or `parse_error` search has no such Alert with a Lark message id, or whose `network_error` Alerts differ from `network_cooldowns` or lack a message id) | All three 0 |
 | 2 | `ac2_violations`: `ok_without_embedded`, `has_next_without_page`, `silent_stops` | All three 0 |
-| 3 | The AC 3 query Step 7 adds: global briefings with `ready_at` before 07:00, all 6 sections generated, a Lark message id; evidence refs resolve; daily AI cost ≤ cap | ≥ 13 of 14 days on time and complete; 0 unresolved refs; 0 days over the cap |
-| 6 | The AC 6 query Step 7 adds: ideas by non-admin members with `via = briefing` in the window, per store row | ≥ 30 in total and ≥ 10 in each of ≥ 2 stores |
-
-As of this branch the file holds `ac1_success_ratio` and `ac2_violations`; the AC 1 Alert, AC 3 and AC 6
-queries come with Step 7 (plan Step 7, "`scripts/acceptance.sql` gains…"). Read their column names from
-the file once it has them; the pass rule above does not change.
+| 3 | `ac3_briefings`: `days`, `days_ok` (global briefing `ready_at` before 07:00, all sections stored with 5 and 6 generated, a Lark message id), `unresolved_refs`, `days_over_cap` | `days_ok` ≥ 13 of 14; `unresolved_refs` 0; `days_over_cap` 0 |
+| 6 | `ac6_ideas`: `ideas` by non-admin members with `via = briefing` in the window, per store row, `stores_with_10`, `per_store` | `ideas` ≥ 30 and `stores_with_10` ≥ 2 |
 
 AC 4, 5 and 7 are test results, not daily queries:
 
