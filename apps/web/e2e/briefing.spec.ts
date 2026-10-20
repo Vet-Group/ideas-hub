@@ -69,6 +69,43 @@ test('a save from the ad sheet of a briefing row records via briefing', async ({
   expect(await savedBy('e2e_mug_4')).toEqual([{ store_id: STORES.a.id, source: 'ad', via: 'briefing' }]);
 });
 
+test('with several stores a save from a briefing row or its ad sheet takes 2 actions (Lưu, Enter) and writes one row per store', async ({ page }) => {
+  await signIn(page, USERS.admin.email);
+  const both = [STORES.a.id, STORES.b.id].sort().map((store_id) => ({ store_id, source: 'ad', via: 'briefing' }));
+  const created = page.getByRole('dialog').getByText('Đã lưu', { exact: true });
+  // One save to A and B (B is pre-checked from the seed), so the next saves pre-check both stores.
+  await row(page, 'Ads trend nhất', 'Best dog mom mug gift 1').getByRole('button', { name: 'Lưu' }).click();
+  await page.getByRole('checkbox', { name: 'Store A' }).check();
+  await page.keyboard.press('Enter');
+  await expect(created).toHaveCount(2);
+  expect(await savedBy('e2e_mug_1')).toEqual(both);
+  await page.keyboard.press('Escape');
+
+  const a = new Actions(page);
+  await a.click(row(page, 'Ads trend nhất', 'Best dog mom mug gift 3').getByRole('button', { name: 'Lưu' }));
+  await expect(page.getByRole('checkbox', { name: 'Store A' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Store B' })).toBeChecked();
+  await a.press('Enter');
+  await expect(created).toHaveCount(2);
+  expect(a.count).toBe(2);
+  expect(await savedBy('e2e_mug_3')).toEqual(both);
+  await page.keyboard.press('Escape');
+
+  await row(page, 'Ads mới đang lên', 'Best dog mom mug gift 5').getByRole('link').click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByText('Best dog mom mug gift 5')).toBeVisible();
+  const s = new Actions(page);
+  await s.click(sheet.getByRole('button', { name: 'Lưu' }));
+  await expect(page.getByRole('checkbox', { name: 'Store A' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Store B' })).toBeChecked();
+  await s.press('Enter');
+  await expect(created).toHaveCount(2);
+  expect(s.count).toBe(2);
+  expect(await savedBy('e2e_mug_5')).toEqual(both);
+  // Back to the seeded last save (store B only), which the suggestion test below relies on.
+  await sql(`delete from saved_ideas where via = 'briefing' and created_by = $1`, [USERS.admin.id]);
+});
+
 test('a save from a suggestion takes 1 action with one store; a second save opens the existing idea; CSV has the rows', async ({ page }) => {
   await signIn(page, USERS.saver.email);
   const suggestion = panel(page, 'Gợi ý từ AI').getByRole('listitem').filter({ hasText: 'Cốc "Dog Mom" in tên thú cưng' });

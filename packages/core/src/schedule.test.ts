@@ -110,6 +110,20 @@ describe('validateSettings', () => {
     expect(validateSettings(with_({ llmCallTimeoutSeconds: 451 }))).toContain('llm_timeout_over_job_expiry');
     expect(validateSettings(with_({ llmCallTimeoutSeconds: 120 }))).toEqual([]);
   });
+
+  it('rejects an LLM timeout whose two attempts fit the briefing job expiry only without the RSS refresh (15 s)', () => {
+    expect(validateSettings(with_({ llmCallTimeoutSeconds: 443 }))).toEqual(['feed_refresh_over_job_expiry']);
+    expect(validateSettings(with_({ llmCallTimeoutSeconds: 442 }))).toEqual([]);
+    // Two LLM calls alone are already too long: one problem, not both.
+    expect(validateSettings(with_({ llmCallTimeoutSeconds: 451 }))).toEqual(['llm_timeout_over_job_expiry']);
+  });
+
+  it('rejects a ready time before one briefing build attempt can end (06:30 + 15 min), accepts 06:45', () => {
+    expect(validateSettings(with_({ briefingReadyTime: '06:44' }))).toEqual(['ready_before_build_ends']);
+    expect(validateSettings(with_({ briefingReadyTime: '06:00' }))).toEqual(['ready_before_build_ends']);
+    expect(validateSettings(with_({ briefingReadyTime: '06:45' }))).toEqual([]);
+    expect(validateSettings(with_({ briefingJobExpirySeconds: 1860 }))).toEqual(['ready_before_build_ends']);
+  });
 });
 
 describe('no run times', () => {
