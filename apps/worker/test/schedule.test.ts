@@ -116,9 +116,12 @@ describe.skipIf(!testDatabaseAvailable())('scheduler', () => {
 
   it('rejected settings leave the rows as they are', async () => {
     await schedulerPass(h);
+    const before = await rows();
+    // Run times 4 h apart, closer than the run deadline plus grace: a valid change would rewrite these rows.
     await setSettings(h, { runTimes: ['01:00', '05:00'] });
     expect((await schedulerPass(h)).problems).toContain('slots_too_close');
-    expect(await rows()).toHaveLength(28);
+    expect(await rows()).toEqual(before);
+    expect(await all(h, sql`select 1 from run_time_changes`)).toHaveLength(1);
   });
 
   it('the scheduler and the watchdog backfill writing the same slot leave one row', async () => {

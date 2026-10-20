@@ -164,9 +164,37 @@ describe.skipIf(!testDatabaseAvailable())('watchdog', () => {
   });
 
   it('its closes change no row whose status moved on', async () => {
-    const id = await insertRun(h, { scheduledFor: slot0100, deadline: vietnamInstant('2026-10-21', '05:30'), status: 'done' });
-    await watchdogPass(h, deps);
-    expect(await one(h, sql`select status from crawl_runs where id = ${id}`)).toEqual({ status: 'done' });
+    // Another transaction moves the row on after the pass read it; the pass's guarded update waits on the
+    // row lock, then finds the row in another status and changes nothing.
+    const race = async (id: string, status: string) => {
+      const c = await h.pool.connect();
+      try {
+        await c.query('begin');
+        await c.query('update crawl_runs set status = $2 where id = $1', [id, status]);
+        const pass = watchdogPass(h, deps);
+        for (let i = 0; ; i++) {
+          const { rows } = await h.pool.query(`select 1 from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'`);
+          if (rows.length) break;
+          if (i > 400) throw new Error('the pass never waited on the row lock');
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        await c.query('commit');
+        await pass;
+      } finally {
+        c.release();
+      }
+    };
+    // An overdue slot that the worker starts meanwhile is not marked missed.
+    const slot = await insertRun(h, { scheduledFor: slot0100, deadline: new Date(h.clock.t + HOUR), planned: 2 });
+    await race(slot, 'running');
+    expect(await one(h, sql`select status from crawl_runs where id = ${slot}`)).toEqual({ status: 'running' });
+    await h.db.execute(sql`update crawl_runs set status = 'done' where id = ${slot}`);
+    // A run past its deadline plus grace that finishes meanwhile is not closed, and the worker is left alone.
+    const late = await insertRun(h, { trigger: 'cli', deadline: new Date(h.clock.t - 16 * MIN), status: 'running', pairs: [] });
+    await race(late, 'done');
+    expect(await one(h, sql`select status from crawl_runs where id = ${late}`)).toEqual({ status: 'done' });
+    expect(await all(h, sql`select kind from alerts where run_id in (${slot}, ${late})`)).toEqual([]);
+    expect(restarts).toBe(0);
   });
 
   it('a second pass started while one holds the advisory lock exits at once', async () => {
