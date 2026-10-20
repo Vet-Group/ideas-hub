@@ -8,7 +8,7 @@ import { type PgBoss } from 'pg-boss';
 import { SOURCE } from './context';
 import { sendCrawlJob } from './queues';
 
-export type RunRefusal = 'blocked' | 'run_running' | 'manual_pending' | 'no_time' | 'no_pairs';
+export type RunRefusal = 'blocked' | 'run_running' | 'manual_pending' | 'no_time' | 'no_pairs' | 'country_not_in_settings';
 
 export interface RunRequest {
   trigger: 'manual' | 'cli';
@@ -26,6 +26,8 @@ const UNIQUE_VIOLATION = '23505';
 
 export async function requestRun(pool: pg.Pool, boss: PgBoss, s: Settings, req: RunRequest): Promise<RunRequestResult> {
   if (req.pairs.length === 0) return { ok: false, reason: 'no_pairs' };
+  // A run start keeps only the active pairs, so a country outside the settings would silently plan nothing.
+  if (req.pairs.some((p) => !s.countries.includes(p.country))) return { ok: false, reason: 'country_not_in_settings' };
   const deadline = manualDeadline(req.now, s);
   try {
     return await withTx(pool, async ({ db, bossDb }) => {

@@ -24,9 +24,11 @@ try {
   if (unknown.length) throw new Error(`unknown keywords: ${unknown.join(', ')} (seed them with pnpm db:seed)`);
   const ids = texts.map((t) => rows.find((r) => r.text.toLowerCase() === t.toLowerCase())!.id);
   const pairs = ids.flatMap((keywordId) => countries.map((country) => ({ keywordId, country })));
-  const result = await requestRun(ctx.pool, ctx.boss, await loadSettings(ctx.db), { trigger: 'cli', pairs, triggeredBy: null, now: new Date() });
+  const s = await loadSettings(ctx.db);
+  const result = await requestRun(ctx.pool, ctx.boss, s, { trigger: 'cli', pairs, triggeredBy: null, now: new Date() });
   if (!result.ok) {
-    console.error(`refused: ${result.reason}${result.blockedUntil ? ` until ${result.blockedUntil.toISOString()}` : ''}`);
+    const detail = result.blockedUntil ? ` until ${result.blockedUntil.toISOString()}` : result.reason === 'country_not_in_settings' ? ` (settings: ${s.countries.join(', ')})` : '';
+    console.error(`refused: ${result.reason}${detail}`);
     process.exitCode = 1;
   } else {
     console.log(`run ${result.runId}: ${pairs.length} pairs requested, deadline ${result.deadline.toISOString()}`);

@@ -50,6 +50,11 @@ describe.skipIf(!testDatabaseAvailable())('Run now and pnpm crawl:run', () => {
     expect((await req()).ok).toBe(true);
   });
 
+  it('is refused for a country outside the settings, and writes no row', async () => {
+    expect(await req({ pairs: [...pairs, { keywordId: 'kw_0', country: 'FR' }] })).toEqual({ ok: false, reason: 'country_not_in_settings' });
+    expect(await all(h, sql`select 1 from crawl_runs`)).toEqual([]);
+  });
+
   it('is refused while another run is running', async () => {
     await insertRun(h, { scheduledFor: vietnamInstant('2026-10-21', '01:00'), deadline: vietnamInstant('2026-10-21', '05:30'), status: 'running' });
     expect(await req()).toMatchObject({ ok: false, reason: 'run_running' });
