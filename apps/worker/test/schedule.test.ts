@@ -126,11 +126,16 @@ describe.skipIf(!testDatabaseAvailable())('scheduler', () => {
 
   it('the scheduler and the watchdog backfill writing the same slot leave one row', async () => {
     // The watchdog backfills a past slot; the scheduler never writes past slots, and both use ON CONFLICT.
+    // Pin the history start so the backfill window is 2026-10-20 13:00 and 2026-10-21 01:00 whenever the DB was migrated.
+    await h.db.execute(sql`update run_time_changes set effective_from = ${vietnamInstant('2026-10-20', '12:00')}`);
     h.clock.advance(-12 * 3_600_000); // 2026-10-20 22:00 VN
     await schedulerPass(h);
     h.clock.advance(12 * 3_600_000);
-    await watchdogPass(h, { restartWorker: async () => {} });
+    // Only 13:00 is new: 01:00 already has the scheduler's row, so its insert hits the conflict.
+    expect(await watchdogPass(h, { restartWorker: async () => {} })).toMatchObject({ backfilled: 1 });
     await schedulerPass(h);
+    const slot1300 = vietnamInstant('2026-10-20', '13:00');
+    expect(await all(h, sql`select status from crawl_runs where scheduled_for = ${slot1300}`)).toEqual([{ status: 'missed' }]);
     const slot = vietnamInstant('2026-10-21', '01:00');
     expect(await all(h, sql`select status from crawl_runs where scheduled_for = ${slot}`)).toEqual([{ status: 'missed' }]);
   });
