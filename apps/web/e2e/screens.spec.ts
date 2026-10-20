@@ -2,7 +2,7 @@
 // attention states, with the seed data and the frozen clock; compared once the owner approves the
 // baselines (support/screens.ts).
 import { expect, test } from '@playwright/test';
-import { USERS, e2ePool } from './fixtures/seed';
+import { USERS, e2ePool, resetIdeas } from './fixtures/seed';
 import { expectScreen } from './support/screens';
 import { freezeClock, signIn } from './support/session';
 
@@ -51,6 +51,7 @@ for (const [name, path] of [
   ['briefing', '/briefing'],
 ] as const) {
   test(`${name} @phone`, async ({ page }, info) => {
+    if (name.startsWith('ideas-')) await resetIdeas();
     await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(path)}`);
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.fonts.ready);
@@ -65,6 +66,8 @@ test('Step 6 states: missing thumbnail, out of top, less than 7 days, no data ye
   await page.goto('/keywords/kw_e2e_mug');
   await expectScreen(page.getByText('17 +8 ▲ từ 17/10 (chưa đủ 7 ngày dữ liệu)'), 'state-less-than-7-days', info);
   await page.goto('/keywords/kw_e2e_mug/2026-10-01');
+  // `main` already holds the route skeleton while the page streams; wait for the report itself.
+  await expect(page.getByText('Chưa có run nào xong')).toBeVisible();
   await expectScreen(page.getByRole('main'), 'state-no-data', info);
 });
 

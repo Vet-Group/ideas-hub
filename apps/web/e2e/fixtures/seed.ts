@@ -54,15 +54,16 @@ export async function seedE2e(): Promise<void> {
     // "other" has view on store B only; "member" starts with no store (the admin test adds store A).
     await q(`insert into store_members (store_id, user_id, can_view) values ($1, $2, true)`, [STORES.b.id, USERS.other.id]);
 
-    // Run log: a finished scheduled run and a manual one triggered by the admin.
+    // Run log: a finished scheduled run and a manual one triggered by the admin. created_at is fixed: the run
+    // log shows it for a run without scheduled_for, and the wall clock would change the screenshot.
     await q(
-      `insert into crawl_runs (id, source, trigger, scheduled_for, status, planned_searches, ok_searches, running_ads, started_at, finished_at, deadline)
-       values ('run_e2e_sched', 'fb_ad_library', 'schedule', $1, 'done', 160, 158, 4210, $1, $2, $3)`,
+      `insert into crawl_runs (id, source, trigger, scheduled_for, status, planned_searches, ok_searches, running_ads, started_at, finished_at, deadline, created_at)
+       values ('run_e2e_sched', 'fb_ad_library', 'schedule', $1, 'done', 160, 158, 4210, $1, $2, $3, $1)`,
       [ago(7.5), ago(5), ago(3)],
     );
     await q(
-      `insert into crawl_runs (id, source, trigger, triggered_by, status, planned_searches, ok_searches, running_ads, started_at, finished_at, deadline, requested_pairs)
-       values ('run_e2e_manual', 'fb_ad_library', 'manual', $1, 'done', 2, 2, 120, $2, $3, $4, '[]'::jsonb)`,
+      `insert into crawl_runs (id, source, trigger, triggered_by, status, planned_searches, ok_searches, running_ads, started_at, finished_at, deadline, requested_pairs, created_at)
+       values ('run_e2e_manual', 'fb_ad_library', 'manual', $1, 'done', 2, 2, 120, $2, $3, $4, '[]'::jsonb, $2)`,
       [USERS.admin.id, ago(2), ago(1.9), ago(1)],
     );
 
@@ -123,18 +124,7 @@ export async function seedE2e(): Promise<void> {
     await q(`insert into crawl_searches (id, run_id, keyword_id, country, status, last_has_next) values ('cs_e2e_gb', 'run_e2e_sched', $1, 'GB', 'ok', true)`, [MUG.keywordId]);
     await q(`insert into keyword_days (keyword_id, crawl_day, slot, running_ads) values ('kw_e2e_1', '2026-10-20', '2026-10-20T18:00:00Z', 3)`);
 
-    // Ideas in store A (New, Picked, Done) and one in store B.
-    const idea = (id: string, store: string, status: string, title: string, hoursAgo: number) =>
-      q(
-        `insert into saved_ideas (id, store_id, source, source_ref, via, title, status, created_by, created_at, updated_at, snapshot)
-         values ($1, $2, 'manual', $3, 'manual', $4, $5, $6, $7, $7, $8::jsonb)`,
-        [id, store, `https://example.com/${id}`, title, status, USERS.admin.id, ago(hoursAgo), JSON.stringify({ keyword: MUG.keyword, link: `https://example.com/${id}` })],
-      );
-    await idea(IDEAS.fresh, STORES.a.id, 'new', 'Mug with paw print', 30);
-    await idea(IDEAS.picked, STORES.a.id, 'picked', 'Dog mom tumbler', 20);
-    await idea(IDEAS.done, STORES.a.id, 'done', 'Funny dog mom shirt', 10);
-    await idea(IDEAS.b, STORES.b.id, 'new', 'Store B only idea', 5);
-
+    await seedIdeas(q);
     await seedBriefings(q);
     await seedThumbnails();
   } finally {
@@ -143,6 +133,34 @@ export async function seedE2e(): Promise<void> {
 }
 
 type Query = (text: string, params?: unknown[]) => Promise<unknown>;
+
+/** Ideas in store A (New, Picked, Done) and one in store B. */
+async function seedIdeas(q: Query) {
+  const idea = (id: string, store: string, status: string, title: string, hoursAgo: number) =>
+    q(
+      `insert into saved_ideas (id, store_id, source, source_ref, via, title, status, created_by, created_at, updated_at, snapshot)
+       values ($1, $2, 'manual', $3, 'manual', $4, $5, $6, $7, $7, $8::jsonb)`,
+      [id, store, `https://example.com/${id}`, title, status, USERS.admin.id, ago(hoursAgo), JSON.stringify({ keyword: MUG.keyword, link: `https://example.com/${id}` })],
+    );
+  await idea(IDEAS.fresh, STORES.a.id, 'new', 'Mug with paw print', 30);
+  await idea(IDEAS.picked, STORES.a.id, 'picked', 'Dog mom tumbler', 20);
+  await idea(IDEAS.done, STORES.a.id, 'done', 'Funny dog mom shirt', 10);
+  await idea(IDEAS.b, STORES.b.id, 'new', 'Store B only idea', 5);
+}
+
+/**
+ * Puts the ideas back to the seed. Earlier specs save and move ideas at the frozen clock, so those rows tie
+ * on updated_at and their random ids decide the order: a screenshot of the ideas would change between runs.
+ */
+export async function resetIdeas(): Promise<void> {
+  const pool = e2ePool();
+  try {
+    await pool.query(`delete from saved_ideas`);
+    await seedIdeas((text, values) => pool.query(text, values));
+  } finally {
+    await pool.end();
+  }
+}
 
 /** Sections in the stored shape of `packages/core/src/briefing/sections.ts`. */
 function sections(ai: 'ok' | 'failed' | 'skipped') {
