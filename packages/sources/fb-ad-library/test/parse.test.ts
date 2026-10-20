@@ -65,22 +65,22 @@ describe('normalizeAd', () => {
   const ads = parseEmbedded(fixture('embedded')).ads.map(normalizeAd);
 
   it('fills the ad columns with Pacific dates', () => {
-    const vista = ads.find((a) => a.adArchiveId === '1522157642978244')!;
-    expect(vista).toMatchObject({
-      collationId: '1173485271425433',
+    const dco = ads.find((a) => a.adArchiveId === '900000000000001')!;
+    expect(dco).toMatchObject({
+      collationId: '900000000000002',
       collationCount: 1,
-      pageId: '21281155105',
-      pageName: 'VistaPrint',
-      landingDomain: 'vistaprint.com',
+      pageId: '100000000000001',
+      pageName: 'Page 1',
+      landingDomain: 'shop-1.example',
       mediaType: 'DCO',
       isActive: true,
       startDate: '2026-07-29',
       endDate: '2026-10-19',
     });
     // DCO template text is skipped for the first card's text.
-    expect(vista.caption).toMatch(/^Gotta love keeping things simple/);
-    expect(vista.title).toBe('Grab a branded t-shirt for just $10');
-    expect(vista.thumbnail?.kind).toBe('image');
+    expect(dco.caption).toBe('Caption 1');
+    expect(dco.title).toBe('Title 1');
+    expect(dco.thumbnail?.kind).toBe('image');
   });
 
   it('takes a video preview image when the ad has no image', () => {
@@ -94,7 +94,7 @@ describe('normalizeAd', () => {
   });
 
   it('derives the landing domain from the link', () => {
-    expect(landingDomain('https://www.Fansidea.com/collections/x')).toBe('fansidea.com');
+    expect(landingDomain('https://www.Shop-1.Example/collections/x')).toBe('shop-1.example');
     expect(landingDomain('https://www.facebook.com/somepage')).toBeNull();
     expect(landingDomain('not a url')).toBeNull();
     expect(landingDomain(null)).toBeNull();
