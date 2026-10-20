@@ -15,6 +15,13 @@
       "when": 1792467589462,
       "tag": "0001_search_pair_index",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792469330410,
+      "tag": "0002_auth_tables",
+      "breakpoints": true
     }
   ]
 }

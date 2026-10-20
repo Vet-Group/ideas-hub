@@ -1,0 +1,150 @@
+/*
+ * Design tokens of VET Workspace, the company ERP this app will plug into as the "POD Studio" module.
+ * Copied verbatim from erp/frontend/src/styles/tokens.css (PRD 7.2, docs/design/vet-workspace-prototype.html);
+ * keep the names and values in step with that file, so the module looks like the rest of the ERP.
+ *
+ * This is the only file that may hold a colour value. Components use the Tailwind names that
+ * theme.css maps onto these variables (bg-surface, text-muted, border-line, ...); ESLint
+ * (eslint-rules/no-hardcoded-colors.js) and src/styles/tokens.test.ts fail on a colour written anywhere else.
+ * Dark mode is deferred (PRD 7.2): a second token set must exist before it is switched on.
+ */
+
+:root {
+  /* Typography */
+  --vet-font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --vet-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vet-text-body: 14px;
+  --vet-text-table: 13px;
+  --vet-text-mono: 12.5px;
+  --vet-text-h1: 24px;
+  --vet-text-kpi: 28px;
+  --vet-text-label: 12px;
+  --vet-text-label-small: 10.5px;
+  --vet-leading-body: 1.45;
+
+  /* Surfaces (warm stone) */
+  --vet-bg-app: #f7f6f4;
+  --vet-bg-surface: #ffffff;
+  --vet-bg-selected: #f1efec;
+  --vet-border: #e7e5e1;
+  --vet-border-strong: #d6d3d1;
+  --vet-divider: #f0eeeb;
+
+  /* Text. `faint` is for decoration only (kbd hints, disabled): it is below AA on white. */
+  --vet-text: #1c1917;
+  --vet-text-secondary: #44403c;
+  --vet-text-muted: #75706a;
+  --vet-text-faint: #a8a29e;
+  --vet-icon: #57534e;
+
+  /* Ink: the main action, the selected nav item and tab, links, the unread dot. */
+  --vet-ink: #1c1917;
+  --vet-ink-hover: #44403c;
+  --vet-on-ink: #ffffff;
+
+  /* Brand: the logo and brand moments only. It is not a status and not an action colour. */
+  --vet-brand: #dc2626;
+  --vet-brand-hover: #b91c1c;
+
+  /* Severity tones (fg, bg, dot). Red is for real danger only: past SLA, DSP_UNKNOWN / DSP_NACK,
+     kill switch, a send error, a cancel button. */
+  --vet-critical: #c81e25;
+  --vet-critical-bg: #fdecec;
+  --vet-critical-dot: #e9262e;
+  --vet-critical-border: #f6c6c8;
+  --vet-blocked: #8a5300;
+  --vet-blocked-bg: #fef3dc;
+  --vet-blocked-dot: #f9a81b;
+  --vet-blocked-border: #f7dca3;
+  --vet-attention: #44403c;
+  --vet-attention-bg: #f1efec;
+  --vet-attention-dot: #78716c;
+
+  /* Status tones used by badges and banners. danger = critical, warn = blocked, neutral = attention. */
+  --vet-danger: var(--vet-critical);
+  --vet-danger-bg: var(--vet-critical-bg);
+  --vet-danger-border: var(--vet-critical-border);
+  --vet-danger-strong: var(--vet-critical);
+  --vet-warn: var(--vet-blocked);
+  --vet-warn-bg: var(--vet-blocked-bg);
+  --vet-warn-border: var(--vet-blocked-border);
+  --vet-warn-dot: var(--vet-blocked-dot);
+  --vet-success: #15803d;
+  --vet-success-bg: #dcfce7;
+  --vet-success-dot: #16a34a;
+  --vet-info: #1d4ed8;
+  --vet-info-bg: #dbeafe;
+  --vet-review: #4338ca;
+  --vet-review-bg: #e0e7ff;
+  --vet-neutral: var(--vet-attention);
+  --vet-neutral-bg: var(--vet-attention-bg);
+
+  /* Store chips: twelve tones, none red or amber, picked from the store code (src/lib/store-color.ts). */
+  --vet-store-1: #334155;
+  --vet-store-1-bg: #e2e8f0;
+  --vet-store-2: #86198f;
+  --vet-store-2-bg: #fae8ff;
+  --vet-store-3: #0f766e;
+  --vet-store-3-bg: #ccfbf1;
+  --vet-store-4: #4d7c0f;
+  --vet-store-4-bg: #ecfccb;
+  --vet-store-5: #6d28d9;
+  --vet-store-5-bg: #ede9fe;
+  --vet-store-6: #047857;
+  --vet-store-6-bg: #d1fae5;
+  --vet-store-7: #0369a1;
+  --vet-store-7-bg: #e0f2fe;
+  --vet-store-8: #1e40af;
+  --vet-store-8-bg: #dbeafe;
+  --vet-store-9: #0e7490;
+  --vet-store-9-bg: #cffafe;
+  --vet-store-10: #4338ca;
+  --vet-store-10-bg: #e0e7ff;
+  --vet-store-11: #7c4a1e;
+  --vet-store-11-bg: #f3e8dc;
+  --vet-store-12: #57534e;
+  --vet-store-12-bg: #e7e5e4;
+
+  /* Shapes */
+  --vet-radius-control: 6px;
+  --vet-radius-card: 12px;
+  --vet-radius-pill: 999px;
+  --vet-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --vet-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --vet-shadow-sheet: -12px 0 40px rgba(0, 0, 0, 0.15);
+  --vet-shadow-sheet-bottom: 0 -8px 30px rgba(0, 0, 0, 0.12);
+  --vet-overlay: rgba(28, 25, 23, 0.4);
+  --vet-focus-ring: var(--vet-ink);
+
+  /* Layout */
+  --vet-sidebar-w: 248px;
+  --vet-sidebar-w-collapsed: 60px;
+  --vet-header-h: 56px;
+  --vet-header-h-mobile: 52px;
+  --vet-tabbar-h: 56px;
+  --vet-nav-item-h: 36px;
+  --vet-subnav-item-h: 30px;
+  --vet-main-pad-y: 28px;
+  --vet-main-pad-x: 32px;
+
+  /* Motion */
+  --vet-fade-duration: 0.22s;
+  --vet-sidebar-duration: 0.18s;
+}
+
+/* Mobile: 820px and below (UX-08) */
+@media (max-width: 820px) {
+  :root {
+    --vet-text-h1: 20px;
+    --vet-text-kpi: 22px;
+    --vet-main-pad-y: 16px;
+    --vet-main-pad-x: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vet-fade-duration: 0s;
+    --vet-sidebar-duration: 0s;
+  }
+}

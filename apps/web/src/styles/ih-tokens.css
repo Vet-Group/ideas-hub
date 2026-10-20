@@ -1,0 +1,38 @@
+/*
+ * Ideas Hub tokens (spec §6 "Visual direction"): never a --vet- name; tokens.css is POD Studio's file,
+ * copied unchanged. Contrast ratios are the spec's, against the background named.
+ */
+:root {
+  /* Ad status chips: POD's success, warn and neutral pairs. */
+  --ih-chip-running-fg: var(--vet-success);
+  --ih-chip-running-bg: var(--vet-success-bg);
+  --ih-chip-out-of-top-fg: var(--vet-warn);
+  --ih-chip-out-of-top-bg: var(--vet-warn-bg);
+  --ih-chip-stopped-fg: var(--vet-neutral);
+  --ih-chip-stopped-bg: var(--vet-neutral-bg);
+
+  /* Chart series by slot order, never cycled. */
+  --ih-series-1: #2a78d6;
+  --ih-series-2: #eb6834;
+  --ih-series-3: #c2369b;
+
+  /* Dark sidebar: everything inside it uses only these. */
+  --ih-sidebar-bg: #1c1917;
+  --ih-sidebar-fg: #e7e5e1;
+  --ih-sidebar-fg-muted: #a8a29e;
+  --ih-sidebar-hover-bg: #292524;
+  --ih-sidebar-active-bg: var(--vet-bg-surface);
+  --ih-sidebar-active-fg: var(--vet-ink);
+  --ih-sidebar-focus: #ffffff;
+  --ih-sidebar-badge-bg: #44403c;
+  --ih-sidebar-badge-fg: #ffffff;
+
+  /* Inputs whose border is their only edge: 3.70:1 on white (WCAG 1.4.11). */
+  --ih-field-border: #8a847d;
+
+  /* Plain variables sonner reads. */
+  --popover: var(--vet-bg-surface);
+  --popover-foreground: var(--vet-text);
+  --border: var(--vet-border);
+  --radius: var(--vet-radius-control);
+}

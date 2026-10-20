@@ -1,0 +1,151 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+@import './ih-tokens.css';
+
+/*
+ * Tailwind names for the tokens: POD Studio's names (its theme.css) plus shadcn's, since the generated
+ * components use their own names. Light only. No colour value appears here: only var(--vet-*) and
+ * var(--ih-*), except white and black for shadcn's overlays and destructive text.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-app: var(--vet-bg-app);
+  --color-surface: var(--vet-bg-surface);
+  --color-line: var(--vet-border);
+  --color-line-strong: var(--vet-border-strong);
+  --color-divider: var(--vet-divider);
+  --color-selected: var(--vet-bg-selected);
+  --color-fg: var(--vet-text);
+  --color-fg-2: var(--vet-text-secondary);
+  --color-muted: var(--vet-text-muted);
+  --color-faint: var(--vet-text-faint);
+  --color-icon: var(--vet-icon);
+  --color-ink: var(--vet-ink);
+  --color-ink-hover: var(--vet-ink-hover);
+  --color-on-ink: var(--vet-on-ink);
+  --color-brand: var(--vet-brand);
+  --color-critical: var(--vet-critical);
+  --color-critical-bg: var(--vet-critical-bg);
+  --color-warn: var(--vet-warn);
+  --color-warn-bg: var(--vet-warn-bg);
+  --color-warn-line: var(--vet-warn-border);
+  --color-success: var(--vet-success);
+  --color-success-bg: var(--vet-success-bg);
+  --color-neutral: var(--vet-neutral);
+  --color-neutral-bg: var(--vet-neutral-bg);
+  --color-overlay: var(--vet-overlay);
+  --color-field: var(--ih-field-border);
+
+  --color-chip-running: var(--ih-chip-running-fg);
+  --color-chip-running-bg: var(--ih-chip-running-bg);
+  --color-chip-out-of-top: var(--ih-chip-out-of-top-fg);
+  --color-chip-out-of-top-bg: var(--ih-chip-out-of-top-bg);
+  --color-chip-stopped: var(--ih-chip-stopped-fg);
+  --color-chip-stopped-bg: var(--ih-chip-stopped-bg);
+  --color-series-1: var(--ih-series-1);
+  --color-series-2: var(--ih-series-2);
+  --color-series-3: var(--ih-series-3);
+
+  --color-sidebar: var(--ih-sidebar-bg);
+  --color-sidebar-fg: var(--ih-sidebar-fg);
+  --color-sidebar-fg-muted: var(--ih-sidebar-fg-muted);
+  --color-sidebar-hover: var(--ih-sidebar-hover-bg);
+  --color-sidebar-active: var(--ih-sidebar-active-bg);
+  --color-sidebar-active-fg: var(--ih-sidebar-active-fg);
+  --color-sidebar-focus: var(--ih-sidebar-focus);
+  --color-sidebar-badge: var(--ih-sidebar-badge-bg);
+  --color-sidebar-badge-fg: var(--ih-sidebar-badge-fg);
+
+  /* shadcn's names. */
+  --color-background: var(--vet-bg-surface);
+  --color-foreground: var(--vet-text);
+  --color-card: var(--vet-bg-surface);
+  --color-card-foreground: var(--vet-text);
+  --color-popover: var(--vet-bg-surface);
+  --color-popover-foreground: var(--vet-text);
+  --color-primary: var(--vet-ink);
+  --color-primary-foreground: var(--vet-on-ink);
+  --color-secondary: var(--vet-bg-selected);
+  --color-secondary-foreground: var(--vet-text);
+  --color-muted-foreground: var(--vet-text-muted);
+  --color-accent: var(--vet-bg-selected);
+  --color-accent-foreground: var(--vet-text);
+  --color-destructive: var(--vet-critical);
+  --color-border: var(--vet-border);
+  --color-input: var(--ih-field-border);
+  --color-ring: var(--vet-focus-ring);
+
+  /* next/font/local names the family itself, so Geist comes first through its variable. */
+  --font-sans: var(--font-geist-sans), var(--vet-font-sans);
+  --font-mono: var(--font-geist-mono), var(--vet-font-mono);
+
+  --radius-control: var(--vet-radius-control);
+  --radius-card: var(--vet-radius-card);
+  --radius-pill: var(--vet-radius-pill);
+  --radius-sm: var(--vet-radius-control);
+  --radius-md: var(--vet-radius-control);
+  --radius-lg: var(--vet-radius-card);
+  --radius-xl: var(--vet-radius-card);
+
+  --shadow-card: var(--vet-shadow-card);
+  --shadow-raised: var(--vet-shadow-raised);
+  --shadow-sheet: var(--vet-shadow-sheet);
+}
+
+@custom-variant mobile (@media (max-width: 820px));
+/* Light only: shadcn's `dark:` classes never apply (no element carries `.dark`). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  *,
+  ::after,
+  ::before {
+    border-color: var(--vet-border);
+  }
+  html,
+  body {
+    min-height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--vet-bg-app);
+    color: var(--vet-text);
+    font-family: var(--font-sans);
+    font-size: var(--vet-text-body);
+    line-height: var(--vet-leading-body);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--vet-focus-ring);
+    outline-offset: 2px;
+  }
+  [data-sidebar] :focus-visible {
+    outline-color: var(--ih-sidebar-focus);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* sonner's own transitions run 400–500 ms; spec §6 caps motion at 220 ms. */
+[data-sonner-toaster] [data-sonner-toast],
+[data-sonner-toaster] [data-sonner-toast] * {
+  transition-duration: 0.22s !important;
+  animation-duration: 0.22s !important;
+}
