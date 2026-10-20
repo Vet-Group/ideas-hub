@@ -23,11 +23,12 @@ describe.skipIf(!hasChrome)('PlaywrightSession', () => {
     let hits = 0;
     const s = new PlaywrightSession({ mode: 'headless', startTimeoutMs: 60_000, closeTimeoutMs: 0, onCloseTimeout: () => void (hits += 1) });
     await s.start();
-    const server = (s as unknown as { server: { process(): { pid?: number; exitCode: number | null; killed: boolean } } }).server;
+    const server = (s as unknown as { server: { process(): { exitCode: number | null; signalCode: string | null } } }).server;
     const proc = server.process();
     await s.close();
     expect(hits).toBe(1);
     await new Promise((r) => setTimeout(r, 500));
-    expect(proc.exitCode !== null || proc.killed).toBe(true);
+    // On Linux the killed browser exits by signal (exitCode null, signalCode SIGKILL); on Windows with a code.
+    expect(proc.exitCode !== null || proc.signalCode !== null).toBe(true);
   }, 60_000);
 });
