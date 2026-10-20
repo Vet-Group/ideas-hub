@@ -19,6 +19,8 @@ export function safeCallback(cb: string | null | undefined, origin: string): str
   try {
     const url = new URL(cb, origin);
     if (url.origin !== origin || new URL(decoded, origin).origin !== origin) return DEFAULT_PAGE;
+    // Dot segments can normalise to `//host` (`/..//example.com`), which a redirect reads as another host.
+    if (/^\/[/\\]/.test(url.pathname)) return DEFAULT_PAGE;
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return DEFAULT_PAGE;

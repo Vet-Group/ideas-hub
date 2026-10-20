@@ -37,7 +37,7 @@ test('a link opens its page with 0 actions on a valid session and is kept throug
   expect(actions.count).toBe(0);
 });
 
-for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x']) {
+for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x', '/..//example.com', '/.//example.com', '/%2e%2e//example.com']) {
   test(`a callback of ${cb} lands on /briefing`, async ({ page }) => {
     await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(cb)}`);
     await expect(page).toHaveURL(/\/briefing$/);
