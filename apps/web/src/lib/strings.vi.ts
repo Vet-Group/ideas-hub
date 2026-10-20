@@ -76,7 +76,6 @@ export const t = {
     beforeReady: (date: string, ready: string) => `Đang hiển thị briefing ngày ${date}; bản hôm nay sẽ có trước ${ready}`,
     late: (date: string) => `Briefing hôm nay chưa sẵn sàng, đang hiển thị bản ${date}`,
     retry: 'Xem lại',
-    pastDate: 'Xem ngày khác',
     kpi: {
       runningAds: 'Ads đang chạy',
       change: 'Thay đổi',

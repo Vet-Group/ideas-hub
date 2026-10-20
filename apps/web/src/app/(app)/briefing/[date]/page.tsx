@@ -3,9 +3,8 @@ import { notFound } from 'next/navigation';
 import { BriefingView } from '@/components/briefing/briefing-view';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/db';
+import { ddmm } from '@/lib/format';
 import { t } from '@/lib/strings.vi';
-
-const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 /** The global briefing of a past date (spec §6 "history by day"); Lark links name this page. */
 export default async function BriefingOnPage({ params, searchParams }: { params: Promise<{ date: string }>; searchParams: Promise<{ ad?: string }> }) {
