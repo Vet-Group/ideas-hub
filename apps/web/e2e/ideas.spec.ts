@@ -67,11 +67,19 @@ test('a drag to another column takes 1 action', async ({ page }) => {
 test('a keyboard move takes 2 actions plus the columns crossed: Done back to New is 4', async ({ page }) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('board'))}`);
   const handle = column(page, 'Done').getByRole('button', { name: 'Funny dog mom shirt', exact: true });
+  // dnd-kit mounts its live region after hydration; each key waits for the previous key's announcement,
+  // as a screen reader user would, so no press lands before the sensor or the drop rects are ready.
+  const live = page.locator('[id^="DndLiveRegion"]');
+  await expect(live).toBeAttached();
   await handle.focus();
   const a = new Actions(page);
   await a.press('Space');
+  // The pick-up's own "over Done" replaces the start announcement at once.
+  await expect(live).toHaveText('Funny dog mom shirt đang ở cột Done.');
   await a.press('ArrowLeft');
+  await expect(live).toHaveText('Funny dog mom shirt đang ở cột Picked.');
   await a.press('ArrowLeft');
+  await expect(live).toHaveText('Funny dog mom shirt đang ở cột New.');
   await a.press('Space');
   await expect(column(page, 'New').getByText('Funny dog mom shirt')).toBeVisible();
   expect(a.count).toBe(4);
