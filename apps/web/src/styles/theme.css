@@ -144,9 +144,12 @@
   }
 }
 
-/* sonner's own transitions run 400–500 ms; spec §6 caps motion at 220 ms. */
-[data-sonner-toaster] [data-sonner-toast],
-[data-sonner-toaster] [data-sonner-toast] * {
-  transition-duration: 0.22s !important;
-  animation-duration: 0.22s !important;
+/* sonner's own transitions run 400–500 ms; spec §6 caps motion at 220 ms. Only without a reduced-motion
+   preference: this rule outranks the one above, so it would bring the motion back. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-sonner-toaster] [data-sonner-toast],
+  [data-sonner-toaster] [data-sonner-toast] * {
+    transition-duration: 0.22s !important;
+    animation-duration: 0.22s !important;
+  }
 }

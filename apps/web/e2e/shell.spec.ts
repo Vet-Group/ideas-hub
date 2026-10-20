@@ -5,6 +5,23 @@ import { signIn } from './support/session';
 
 test.describe.configure({ mode: 'serial' });
 
+test('a toast does not move under prefers-reduced-motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(page, USERS.admin.email);
+  await page.goto('/admin/settings');
+  await page.getByRole('button', { name: 'Lưu cài đặt' }).click();
+  const toast = page.locator('[data-sonner-toast]').first();
+  await expect(toast).toBeVisible();
+  const motion = await toast.evaluate((el) => {
+    const longest = (v: string) => Math.max(...v.split(',').map((x) => parseFloat(x)));
+    const cs = getComputedStyle(el);
+    return { transition: longest(cs.transitionDuration), animation: longest(cs.animationDuration) };
+  });
+  // The global reduced-motion rule leaves 0.01 ms; sonner's own leaves none.
+  expect(motion.transition).toBeLessThanOrEqual(0.00001);
+  expect(motion.animation).toBeLessThanOrEqual(0.00001);
+});
+
 test('Geist is the body font and is loaded', async ({ page }) => {
   await page.goto('/login');
   await page.evaluate(() => document.fonts.ready);
