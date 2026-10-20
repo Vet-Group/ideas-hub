@@ -11,7 +11,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "check:ui-colors": "tsx scripts/check-ui-colors.ts",
-    "auth:create-user": "tsx scripts/create-user.ts"
+    "auth:create-user": "tsx scripts/create-user.ts",
+    "lcp:briefing": "tsx scripts/lcp-briefing.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1142.0",
