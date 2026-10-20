@@ -68,34 +68,35 @@ No Toidispy crawler. Staff who use Toidispy by hand can save what they find as a
 | Run now | admin for any keyword; store staff with the `keywords` tick for their store's keywords; same limits and cool-down apply, but a run's own cool-down reaching the next slot is never a reason to refuse it. Run now and `pnpm crawl:run` insert a `scheduled` row with the requested keyword × country pairs and send its job to start at once, in one transaction. At start, the run plans the requested pairs that are still active, capped by the search budget. A manual or `cli` run's deadline is the earlier of the run deadline (4 h 30 min) after the request and a margin (default 25 min) before the next scheduled slot; settings with a margin no longer than the watchdog grace plus the 5 min watchdog period are rejected, so a hung manual run is closed before the slot. Run now and `pnpm crawl:run` are refused while `blocked_until` is in the future, while another run is `running`, while another manual or `cli` row is `scheduled` or `running` (a partial unique index), or when that deadline has already passed. A manual or `cli` row whose start is a no-op is closed as `stopped` with reason `not_started`; crash recovery and the watchdog close one still `scheduled` after its deadline the same way |
 | Blocked slot | a scheduled slot that comes before `blocked_until` (set by a block in any run, manual and `cli` runs included) is not started; the watchdog closes its row as `stopped` with all its planned searches `skipped` and a `blocked` Alert, instead of `missed`, and cancels its `crawl.run` job. The backfill applies the same rule to a past slot with no row that fell inside a cool-down (from the end of the run that set it to the `blocked_until` that run set). AC 1 counts those searches as failures |
 
-Run-time estimate, to be replaced by the Step 1 measurements. A search that stores 100 ads reads the
-30 embedded ads and 7 scroll pages of 10 ads each (research doc). Assumed: 5 s to load the search page,
-1.5 s per scroll response, the delays above, thumbnails downloaded during the gap before the next
-search within a total capped at that gap ("Bounded waits"), so they add no time except up to 20 s
-after the last search, and every search reaching 100 ads.
+Run-time estimate, with the Step 1 measurements (`docs/research/2026-10-20-fb-probe.md`). A search
+that stores 100 ads reads the 30 embedded ads and 7 scroll pages of 10 ads each. Measured: page load
+p50 about 1.5 s and p95 2.9 s, scroll response p50 about 1.0 s and p95 2.0 s, embedded data p95 1.9 s
+(the assumptions were 5 s and 1.5 s); the delays above; thumbnails downloaded during the gap before the
+next search within a total capped at that gap ("Bounded waits"), so they add no time except up to 20 s
+after the last search; and every search reaching 100 ads.
 
-- Mean delays: about 65 s per search, so 160 searches take about 2 h 55 min, leaving about 1 h 35 min
-  under the 4 h 30 min deadline.
-- Longest delays (60 s gap, 1.3 s page delay, 1.7 s scroll delay): about 89 s per search, 3 h 57 min
-  in all, leaving about 34 min.
+- Mean delays and p50 times: about 61 s per search, so 160 searches take about 2 h 43 min, leaving
+  about 1 h 47 min under the 4 h 30 min deadline.
+- Longest delays (60 s gap, 1.3 s page delay, 1.7 s scroll delay) and p95 times: about 92 s per search,
+  4 h 5 min in all, leaving about 25 min.
 - Backoff: a run that reaches its last search has at most 5 blocked searches (the 6th stops it) and a
   block streak of at most 2 (3 stops it), so its longest total pause is 45 + 90 + 45 + 90 + 45 s plus
-  15% jitter, about 6 min. That leaves about 1 h 29 min at mean delays and 27 min at the longest.
+  15% jitter, about 6 min. That leaves about 1 h 41 min at mean delays and 19 min at the longest.
 - Searches with fewer ads, `no_results` or an early stop take less. A slower page load or scroll
   response than assumed uses up the margin first, and the searches cut by the deadline count as
   failures in AC 1.
 - Network errors, page-load case: a `network_error` search whose 3 attempts all fail at the page load
   takes 3 × 60 s page-load timeouts plus the 5 s and 15 s retry waits = 200 s, plus two browser
   restarts assumed at 5 s each: 210 s. The whole 210 s is added to the run, without subtracting the
-  normal search it replaces. Rounded down, the margin left after the backoff holds 25 such searches at
-  mean delays, or 22 with one 10 min network cool-down (the 3 that trigger it included), and 7 at the
-  longest delays, or 4 with one 10 min network cool-down (the 3 that trigger it and 1 more).
+  normal search it replaces. Rounded down, the margin left after the backoff holds 28 such searches at
+  mean delays, or 26 with one 10 min network cool-down (the 3 that trigger it included), and 5 at the
+  longest delays, or 2 with one 10 min network cool-down (fewer than the 3 that trigger it).
 - Network errors, 7-scroll-page case: an attempt can instead fail at the last scroll after every earlier
   wait ran close to its limit (60 + 1.3 + 15 + 6 × (1.7 + 15) + 1.7 + 15 ≈ 193 s), and each of the two
   restarts can take the 15 s browser close limit plus the 60 s browser start limit, so one
   `network_error` search can take about 750 s (3 × 193 + 5 + 15 + 2 × (15 + 60)). In that case the
-  margin after the backoff (about 1 h 29 min at mean delays, 27 min at the longest) holds only 2 such
-  searches at the longest delays and 7 at mean delays. This is not an upper bound: there is no page cap
+  margin after the backoff (about 1 h 41 min at mean delays, 19 min at the longest) holds only 1 such
+  search at the longest delays and 8 at mean delays. This is not an upper bound: there is no page cap
   ("Ads per search"), so an attempt can read more pages, and only the run deadline bounds a run.
 - A 30 min network cool-down is worth about 20 searches at the longest delays; after the margin, with
   the worst backoff and the 3 searches that trigger it, it would still push about 9 searches past the
