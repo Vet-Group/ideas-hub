@@ -1,0 +1,21 @@
+# Ideas Hub worker: crawl, briefing and Lark queues (`pnpm worker`, as the Windows task runs it).
+# The unit name is fixed: the watchdog restarts it with `systemctl --user restart ideashub-worker`
+# (apps/worker/src/watchdog.ts). Restart=always replaces worker-loop.ps1's loop (5 s, never gives up);
+# the default KillMode=control-group stops Chrome with it, as the Windows job object does.
+[Unit]
+Description=Ideas Hub worker
+Requires=ideashub-xvfb.service
+After=ideashub-xvfb.service network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=@REPO@
+Environment=PATH=@PATH@
+Environment=DISPLAY=:99
+ExecStart=@PNPM@ --silent worker
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

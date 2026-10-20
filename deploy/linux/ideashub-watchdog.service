@@ -1,0 +1,11 @@
+# One watchdog pass (`pnpm watchdog`), started every 5 min by ideashub-watchdog.timer; a short-lived
+# process outside the worker. The 4 min limit mirrors the Windows task's ExecutionTimeLimit.
+[Unit]
+Description=Ideas Hub watchdog pass
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=@PATH@
+ExecStart=@PNPM@ --silent watchdog
+TimeoutStartSec=240

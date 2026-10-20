@@ -1060,6 +1060,48 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   one day is reserved to fix a slower result before the 14-day run.
 - Staff onboarding: accounts, store assignments, a 15-minute walkthrough.
 - 14-day acceptance run; `scripts/acceptance.sql` checked daily.
+- Progress (2026-10-20): docs and scripts built on branch `step-8-contract`; nothing run on the Linux
+  desktop, nothing deployed, no call to POD Studio, Cloudflare, Lark or an LLM. Done:
+  `docs/contracts/ideas-hub-v1.md` (Draft: the push of a saved idea to POD Studio with a personal access
+  token, `Idempotency-Key` and the responses Ideas Hub expects, every POD Studio-side detail marked "to
+  confirm with the POD Studio owner"; `/api/v1` read endpoints for briefings, ideas and stores with
+  scoped personal tokens, store scoping, cursor pagination, one error format, rate limits, versioning and
+  deprecation, JSON examples from the schema; cross-app keys; out of scope); `docs/ops/linux-trial.md`
+  with `deploy/linux/` (`ideashub-xvfb`, `ideashub-web`, `ideashub-worker`, `ideashub-watchdog` service and
+  timer, `ideashub-tunnel`, `cloudflared-ideas-hub.yml.example`) and `scripts/linux/` (`dump-windows.ps1`
+  `-DryRun`, `restore.sh` and `install-units.sh` `--dry-run`); `apps/web/scripts/lcp-briefing.ts`
+  (`pnpm --filter @ideas-hub/web lcp:briefing <base-url>`, its median and threshold unit-tested);
+  `docs/onboarding.md`; `docs/ops/acceptance-run.md`. Checks: `bash -n` and shellcheck clean on both
+  `.sh`, the `.ps1` parses and its dry run prints the five steps; the LCP script ran once against a local
+  dev server on port 3320 with a disposable database and an empty briefing (median 220 ms, exit 0; a dev
+  server, so the number says nothing about AC 7). Decisions, with reasons:
+  - Units are `ideashub-*`, not `ideas-hub-*`: the watchdog restarts `ideashub-worker` by that name
+    (`apps/worker/src/watchdog.ts`) and ADR 0001 names them so.
+  - Headed Chrome gets a virtual display (Xvfb `:99`, its own unit the worker requires), not the owner's
+    graphical session: with lingering the units start at boot before any login, and nothing shows on the
+    POD Studio desktop. The browser mode stays `offscreen`, the mode measured on Windows, so the 2-day
+    re-check changes only the host; `headed`, then the graphical session, are the fallbacks.
+  - Ports stay those of ADR 0001 (web 3300 on 127.0.0.1, Postgres 5433, MinIO 9300/9301): POD Studio's
+    Linux ports are not known from this repo, so `restore.sh` checks them with `ss` and stops if one is
+    taken. Ideas Hub keeps its own compose project `ideas-hub` and a separate named tunnel with its own
+    config file, so nothing of POD Studio's is edited.
+  - The Windows tasks are disabled, not unregistered, so rollback is `Enable-ScheduledTask`; the dump is
+    taken inside the container and copied out, since PowerShell redirection re-encodes binary output; the
+    MinIO volume is copied as a tar made with the already-pulled `postgres:16-alpine` image, so no new
+    image is needed; queued pg-boss jobs carry over with the dump.
+  - The push to POD Studio sends image bytes, not a `/thumbs` link: those URLs never expire, and uploaded
+    idea images are per-store data with no public URL. `/api/v1` tokens act as their owner at request
+    time, narrowed by scopes and an optional store list, and never reveal which store tracks a keyword.
+  - The LCP script lives under `apps/web/scripts` (typechecked, linted and tested there, like
+    `check-ui-colors.ts`) and evaluates its `PerformanceObserver` from a string: tsx wraps named functions
+    in `__name`, which the first run showed does not exist in the page.
+  - Gaps found while writing the onboarding guide, left as they are: no screen to change one's own
+    password and none to add a store-tracked keyword (SQL in `docs/onboarding.md`).
+  - Pending owner: review the contract with the POD Studio owner; the go-ahead for the Linux trial and a
+    quiet window, the tunnel hostname and whether Cloudflare Access fronts it, the `sudo` installs (Xvfb,
+    Google Chrome, fonts), the 2-day re-check; the LCP check through the tunnel; staff names, store
+    assignments and ticks, store keywords, and the walkthrough with each store; the tracking issue and
+    the start of the 14-day run after the Linux switch.
 
 ## Acceptance criteria (measurable form of the spec's seven)
 

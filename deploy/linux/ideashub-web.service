@@ -1,0 +1,16 @@
+# Ideas Hub web app on 127.0.0.1:3300, reached only through its own Cloudflare tunnel hostname.
+# next.config.ts reads <repo>/.env; build first with `pnpm --filter @ideas-hub/web build`.
+[Unit]
+Description=Ideas Hub web (Next.js, port 3300)
+After=network-online.target
+
+[Service]
+WorkingDirectory=@REPO@/apps/web
+Environment=PATH=@PATH@
+Environment=NODE_ENV=production
+ExecStart=@PNPM@ exec next start --port 3300 --hostname 127.0.0.1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
