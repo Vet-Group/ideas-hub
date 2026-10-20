@@ -29,6 +29,13 @@
       "when": 1792504048158,
       "tag": "0003_worker_restart_at",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792509755808,
+      "tag": "0004_auth_rate_limits",
+      "breakpoints": true
     }
   ]
 }

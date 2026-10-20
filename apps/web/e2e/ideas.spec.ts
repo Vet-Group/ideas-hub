@@ -1,6 +1,7 @@
 // Step 6 ideas: status changes in the table and on the board, drag and keyboard moves, view-only members,
 // store scope and the manual idea.
 import { type Locator, type Page, expect, test } from '@playwright/test';
+import { E2E_PORT } from './fixtures/env';
 import { IDEAS, STORES, USERS, e2ePool } from './fixtures/seed';
 import { Actions } from './support/actions';
 import { freezeClock, signIn } from './support/session';
@@ -115,7 +116,7 @@ test('a manual idea with a link from "Ý tưởng mới"; a 6 MB image is refuse
 
   const big = Buffer.alloc(6 * 1024 * 1024, 0xff);
   const r = await page.request.post('/api/ideas/manual', {
-    headers: { origin: 'http://localhost:3310' },
+    headers: { origin: `http://localhost:${E2E_PORT}` },
     multipart: { storeIds: STORES.a.id, image: { name: 'big.jpg', mimeType: 'image/jpeg', buffer: big } },
   });
   expect(r.status()).toBe(413);

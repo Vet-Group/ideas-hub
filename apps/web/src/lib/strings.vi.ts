@@ -28,7 +28,7 @@ export const t = {
     submit: 'Đăng nhập',
     failed: 'Email hoặc mật khẩu không đúng.',
     disabled: 'Tài khoản đã bị khóa. Hãy liên hệ admin.',
-    tooMany: 'Đăng nhập sai quá nhiều lần. Hãy thử lại sau 10 phút.',
+    tooMany: 'Đăng nhập sai quá nhiều lần. Thử lại sau ít phút.',
   },
   nav: {
     main: 'Chính',
