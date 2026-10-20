@@ -17,10 +17,13 @@ failures. For the probe, a search is `ok` or `no_results` by the same detector r
 | 2026-10-20T03:28 | Step 1 probe | offscreen | sample | 11 | 11 | 0 | 0 | 100.0% | 11 min | 60 s |
 | 2026-10-20T03:39 | Step 1 probe | headless | sample | 41 | 39 | 0 | 2 `parse_error` | 95.1% | 45 min | 66 s |
 | `run_0bfae41144ba455cabf48` | worker (Step 3 Exit) | offscreen | `cli` | 20 | 20 | 0 | 0 | 100.0% | 19 min 33 s | 59 s |
+| 2026-10-20T06:00 (13:00 VN) | Step 1 probe | offscreen | scheduled | 41 | 41 | 0 | 0 | 100.0% | 40 min | 59 s |
+| 2026-10-20T18:00 (01:00 VN, 21/10) | Step 1 probe | offscreen | scheduled | 41 | 41 | 0 | 0 | 100.0% | 42 min | 61 s |
 
-Totals: 142 searches, 140 `ok` or `no_results` (98.6%), 0 blocks, 2 `parse_error` (headless: an
+Totals: 224 searches, 222 `ok` or `no_results` (99.1%), 0 blocks, 2 `parse_error` (headless: an
 embedded script read while still streaming, fixed in the Step 3 adapter), 0 `network_error` left after
-retries. The production mode, off-screen, read 60 of 60 (100.0%).
+retries. The production mode, off-screen, read 142 of 142 (100.0%). Each scheduled probe run had 40
+`ok` and 1 `no_results`; its figures come from `pnpm summarize --out out` in the probe worktree.
 Probe figures are from `docs/research/2026-10-20-fb-probe.md`; the worker run from the dev database:
 
 ```sql
@@ -41,6 +44,12 @@ so no backoff wait, cool-down or `blocked_until` was ever set. The probe's retri
 (scroll-response timeouts) and every one was recovered
 by the retry rule (off-screen: 3 searches needed a second attempt; headless: 5, with 6 timeouts).
 
+The scheduled probe runs added no block. The 13:00 run of 2026-10-20 needed no retry. The 01:00 run of
+2026-10-21 had 3 searches recovered on a second attempt, and the first search of the probe that
+stopped by the 2-page rule with a next page left: "nurse shirt" × US, 6 pages and 60 ads, 1 empty
+scroll payload and 20 repeated ads, outcome `ok` with a neutral signal. One empty payload is below the
+3-in-a-row block rule, so no backoff wait followed. That is 1 such stop in 142 off-screen searches.
+
 ## Run duration against the spec §1 estimate
 
 Spec §1 estimates about 61 s per search (2 h 43 min for 160 searches, 4 h 05 min at 92 s in the longest
@@ -50,13 +59,13 @@ deadline.
 
 ## Tuned defaults
 
-No change: with no block in 142 searches there is nothing to tune the delays, backoff or limits on, so
+No change: with no block in 224 searches there is nothing to tune the delays, backoff or limits on, so
 the spec §1 defaults in `DEFAULT_SETTINGS` stay as they are and no `settings` row is written. To be
 revisited with the scheduled runs below.
 
 ## Decision point
 
-Success ≥ 90% so far (98.6% over 142 searches, 100.0% for the off-screen mode); the decision is **pending: scheduled runs**, taken on
+Success ≥ 90% so far (99.1% over 224 searches, 100.0% for the off-screen mode, 142 of 142); the decision is **pending: scheduled runs**, taken on
 the production-schedule measurement. Below 90% after tuning, the options for the owner are fewer
 countries, longer delays and the residential proxy slot.
 

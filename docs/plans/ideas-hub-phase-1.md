@@ -1206,8 +1206,11 @@ or is a question for the owner.
   thumbnail to MinIO when it reads the ad (spec §2; `apps/worker/test/run.test.ts`, "stores ads,
   sightings, thumbnails …" and the "thumbnails in a run" tests), so the app never serves a
   CDN URL and nothing changes whether or not the URLs expire.
-- Step 1, no block-rate threshold decides go or no-go after the probe: open, owner decision (see
-  "Questions for the owner" in `docs/status/2026-10-21-morning.md`).
+- Step 1, no block-rate threshold decides go or no-go after the probe: resolved. Step 4's decision
+  point is the threshold: success (AC 1's definition) below 90% after tuning stops the plan and brings
+  options to the owner (Step 4 "Decision point"; spec AC 1). The probe feeds that measurement, and
+  `docs/research/2026-10-20-block-rate.md` "Decision point" records it (≥ 90% so far). No code, so no
+  test.
 - Step 2, `days_active` of an active ad: resolved. Spec §1 "Measures" says `days_active` always uses
   the payload's `end_date`, which for an active ad is the Pacific day it was read, not the server's
   today. Code: `packages/db/src/queries/research.ts:80` and `packages/db/src/queries/briefing.ts:106`
@@ -1830,3 +1833,6 @@ rect, so the page never scrolls.
   `apps/worker/test/run.test.ts`). Three are owner questions, listed in
   `docs/status/2026-10-21-morning.md`: the probe's go/no-go threshold, the `via` of ad saves from a
   keyword report, and the Alert backlog when Lark is configured. No product code change.
+- Correction the same day: the probe's go/no-go threshold is Step 4's decision point (success < 90%
+  after tuning), so that item is resolved too. The Alert backlog was decided in #21 (24 h cut-off), so
+  the `via` of keyword-report ad saves is the only owner question left.
