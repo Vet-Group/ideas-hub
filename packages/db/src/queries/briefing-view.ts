@@ -73,6 +73,13 @@ export interface KeywordBriefing {
   aiVisible: boolean;
 }
 
+/** Whether the viewer may see a keyword's AI sections (§4); false for an unknown keyword. */
+async function keywordAiVisible(db: Db, viewer: Viewer, keywordId: string): Promise<boolean> {
+  const [kw] = await db.select({ origin: keywords.origin }).from(keywords).where(eq(keywords.id, keywordId));
+  const trackedBy = (await db.select({ storeId: storeKeywords.storeId }).from(storeKeywords).where(eq(storeKeywords.keywordId, keywordId))).map((t) => t.storeId);
+  return !!kw && canSeeKeywordAi(viewer, { origin: kw.origin, trackedBy });
+}
+
 /** A keyword briefing for one viewer (AC 4): its AI sections only when the viewer may see them. */
 export async function keywordBriefingFor(db: Db, viewer: Viewer, keywordId: string, date: string): Promise<KeywordBriefing | null> {
   const [r] = await db
@@ -81,10 +88,8 @@ export async function keywordBriefingFor(db: Db, viewer: Viewer, keywordId: stri
     .where(and(eq(briefings.date, date), eq(briefings.scope, 'keyword'), eq(briefings.keywordId, keywordId)))
     .limit(1);
   if (!r) return null;
-  const [kw] = await db.select({ origin: keywords.origin }).from(keywords).where(eq(keywords.id, keywordId));
-  const trackedBy = (await db.select({ storeId: storeKeywords.storeId }).from(storeKeywords).where(eq(storeKeywords.keywordId, keywordId))).map((t) => t.storeId);
   const briefing = asRow(r);
-  const aiVisible = !!kw && canSeeKeywordAi(viewer, { origin: kw.origin, trackedBy });
+  const aiVisible = await keywordAiVisible(db, viewer, keywordId);
   if (!aiVisible) {
     const { news: _news, suggestions: _suggestions, ...shared } = briefing.sections;
     return { briefing: { ...briefing, sections: shared }, sections: shared, suggestions: [], aiVisible };
@@ -92,3 +97,36 @@ export async function keywordBriefingFor(db: Db, viewer: Viewer, keywordId: stri
   return { briefing, sections: briefing.sections, suggestions: await briefingSuggestions(db, briefing.id), aiVisible };
 }
 
+
+export interface ViewerSuggestion extends SuggestionRow {
+  scope: 'global' | 'keyword';
+  /** The keyword's text for a keyword briefing, null for the global one. */
+  keyword: string | null;
+}
+
+/**
+ * One suggestion for one viewer (AC 4): null when it does not exist or belongs to a keyword briefing whose
+ * AI sections the viewer may not see. A global briefing's suggestions are visible to everyone.
+ */
+export async function suggestionForViewer(db: Db, viewer: Viewer, suggestionId: string): Promise<ViewerSuggestion | null> {
+  const [s] = await db
+    .select({
+      id: suggestions.id,
+      kind: suggestions.kind,
+      text: suggestions.text,
+      reason: suggestions.reason,
+      evidence: suggestions.evidence,
+      scope: briefings.scope,
+      keywordId: briefings.keywordId,
+      keyword: keywords.text,
+    })
+    .from(suggestions)
+    .innerJoin(briefings, eq(briefings.id, suggestions.briefingId))
+    .leftJoin(keywords, eq(keywords.id, briefings.keywordId))
+    .where(eq(suggestions.id, suggestionId))
+    .limit(1);
+  if (!s) return null;
+  const { keywordId, ...row } = s;
+  if (keywordId && !(await keywordAiVisible(db, viewer, keywordId))) return null;
+  return row;
+}

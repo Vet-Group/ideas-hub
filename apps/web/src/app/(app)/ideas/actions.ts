@@ -1,8 +1,8 @@
 'use server';
 
-import { type IdeaStatus, IdeaAccessError, getAd, getKeyword, keywordBriefingFor, lastSaveStoreIds, saveIdea, setIdeaStatus, updateIdea } from '@ideas-hub/db/queries';
-import { briefings, stores, suggestions } from '@ideas-hub/db';
-import { eq, inArray } from 'drizzle-orm';
+import { type IdeaStatus, IdeaAccessError, getAd, lastSaveStoreIds, saveIdea, setIdeaStatus, suggestionForViewer, updateIdea } from '@ideas-hub/db/queries';
+import { stores } from '@ideas-hub/db';
+import { inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { undoIdeas } from '@/lib/ideas-server';
@@ -40,22 +40,14 @@ async function adIdea(source: Extract<SaveSource, { kind: 'ad' }>): Promise<NewI
 
 /** An AI suggestion, only when the user may see it: a keyword report's AI sections follow §4 (AC 4). */
 async function suggestionIdea(user: Awaited<ReturnType<typeof requireUser>>, suggestionId: string): Promise<NewIdea | null> {
-  const [s] = await db
-    .select({ id: suggestions.id, kind: suggestions.kind, text: suggestions.text, reason: suggestions.reason, evidence: suggestions.evidence, keywordId: briefings.keywordId, date: briefings.date })
-    .from(suggestions)
-    .innerJoin(briefings, eq(briefings.id, suggestions.briefingId))
-    .where(eq(suggestions.id, suggestionId))
-    .limit(1);
+  const s = await suggestionForViewer(db, user, suggestionId);
   if (!s) return null;
-  // A keyword briefing's suggestion only when keywordBriefingFor would show it to this user.
-  if (s.keywordId && !(await keywordBriefingFor(db, user, s.keywordId, s.date))?.suggestions.some((x) => x.id === s.id)) return null;
-  const keyword = s.keywordId ? await getKeyword(db, s.keywordId) : null;
   return {
     source: 'suggestion',
     sourceRef: s.id,
     via: 'briefing',
     title: s.text.replace(/\s+/g, ' ').trim().slice(0, 140),
-    snapshot: { kind: s.kind, text: s.text, reason: s.reason, evidence: s.evidence, keyword: keyword?.text ?? null },
+    snapshot: { kind: s.kind, text: s.text, reason: s.reason, evidence: s.evidence, keyword: s.keyword },
   };
 }
 
