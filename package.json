@@ -18,6 +18,7 @@
     "worker": "pnpm --filter @ideas-hub/worker start",
     "crawl:run": "pnpm --filter @ideas-hub/worker crawl:run",
     "watchdog": "pnpm --filter @ideas-hub/worker watchdog",
+    "briefing:build": "pnpm --filter @ideas-hub/worker briefing:build",
     "briefing:preview": "tsx scripts/briefing-preview.ts"
   },
   "devDependencies": {

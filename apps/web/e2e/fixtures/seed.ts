@@ -24,6 +24,9 @@ export const STORES = { a: { id: 'store_e2e_a', name: 'Store A' }, b: { id: 'sto
 export const MUG = { keywordId: 'kw_e2e_mug', keyword: 'dog mom mug', domain: 'dogmom.example' } as const;
 /** Ads of MUG: thumbnails in MinIO except `missing` (a key without an object: the "Chưa có ảnh" tile). */
 export const MUG_ADS = ['e2e_mug_1', 'e2e_mug_2', 'e2e_mug_3', 'e2e_mug_4', 'e2e_mug_5', 'e2e_mug_missing'] as const;
+/** Step 7 briefings: today ready (all 6 sections), 20/10 with the AI sections failed, 19/10 skipped. */
+export const BRIEFINGS = { today: 'brf_e2e_today', failed: 'brf_e2e_failed', skipped: 'brf_e2e_skipped', keyword: 'brf_e2e_kw' } as const;
+export const SUGGESTIONS = { idea: 'sug_e2e_idea', keyword: 'sug_e2e_keyword', kwIdea: 'sug_e2e_kw_idea' } as const;
 export const IDEAS = { fresh: 'idea_e2e_new', picked: 'idea_e2e_picked', done: 'idea_e2e_done', b: 'idea_e2e_b' } as const;
 
 const NOW = new Date(E2E_FIXED_NOW);
@@ -128,10 +131,67 @@ export async function seedE2e(): Promise<void> {
     await idea(IDEAS.done, STORES.a.id, 'done', 'Funny dog mom shirt', 10);
     await idea(IDEAS.b, STORES.b.id, 'new', 'Store B only idea', 5);
 
+    await seedBriefings(q);
     await seedThumbnails();
   } finally {
     await pool.end();
   }
+}
+
+type Query = (text: string, params?: unknown[]) => Promise<unknown>;
+
+/** Sections in the stored shape of `packages/core/src/briefing/sections.ts`. */
+function sections(ai: 'ok' | 'failed' | 'skipped') {
+  const ad = (i: number) => ({
+    adArchiveId: MUG_ADS[i]!,
+    pageName: 'Dog Mom Shop',
+    caption: `Best dog mom mug gift ${i + 1}`,
+    landingDomain: MUG.domain,
+    thumbnailKey: MUG_ADS[i] === 'e2e_mug_missing' ? null : `${MUG_ADS[i]}_image.jpg`,
+    keyword: MUG.keyword,
+    countries: ['CA', 'US'],
+    daysActive: 3 + i,
+    trendScore: 90 - i * 7,
+  });
+  const items = [
+    { id: 'news_e2e_1', title: 'Holiday shoppers start early this year', link: 'https://example.com/news/holiday-shoppers', publishedAt: '2026-10-20', feed: 'Retail News' },
+    { id: 'news_e2e_2', title: 'Personalized mugs top gift lists', link: 'https://example.com/news/mugs', publishedAt: '2026-10-19', feed: 'POD Weekly' },
+  ];
+  const holidays = [
+    { date: '2026-10-31', name: 'Halloween', days: 10 },
+    { date: '2026-11-26', name: 'Thanksgiving', days: 36 },
+  ];
+  const missing = ai === 'failed' ? { state: 'failed', reason: 'ai' } : { state: 'skipped', reason: 'cost_cap' };
+  return {
+    sourceRun: { id: 'run_e2e_sched', scheduledFor: '2026-10-20T18:00:00.000Z', runningAds: 4210, okSearches: 158, plannedSearches: 160 },
+    kpi: { runningAds: 4210, delta: { change: 312, baselineDay: '2026-10-13', partial: false }, okRate: 158 / 160, nextHoliday: { date: '2026-10-31', name: 'Halloween', days: 10 } },
+    topAds: [ad(0), ad(1), ad(2), ad(5)],
+    risingAds: [{ ...ad(3), sightings: 4, bestPosition: 2 }, { ...ad(4), sightings: 2, bestPosition: 7 }],
+    hotKeywords: [
+      { key: MUG.keywordId, label: MUG.keyword, runningAds: 17, delta: { change: 8, baselineDay: '2026-10-17', partial: true } },
+      { key: 'kw_e2e_1', label: 'teacher shirt', runningAds: 3, delta: null },
+    ],
+    risingShops: [{ key: MUG.domain, label: MUG.domain, runningAds: 9, delta: { change: 4, baselineDay: '2026-10-17', partial: true } }],
+    news: ai === 'ok' ? { state: 'ok', summary: 'Người mua sắm dịp lễ bắt đầu sớm; cốc cá nhân hóa đang được ưa chuộng.', items, holidays } : { ...missing, items, holidays },
+    suggestions: ai === 'ok' ? { state: 'ok', count: 2 } : missing,
+  };
+}
+
+async function seedBriefings(q: Query) {
+  const brief = (id: string, date: string, ai: 'ok' | 'failed' | 'skipped', readyAt: string, keywordId: string | null = null) =>
+    q(
+      `insert into briefings (id, date, scope, keyword_id, sections, llm_calls, ai_cost_usd, ready_at) values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)`,
+      [id, date, keywordId ? 'keyword' : 'global', keywordId, JSON.stringify(sections(ai)), ai === 'skipped' ? 0 : ai === 'failed' ? 2 : 1, ai === 'ok' ? '0.0420' : '0', readyAt],
+    );
+  await brief(BRIEFINGS.today, '2026-10-21', 'ok', '2026-10-20T23:40:00Z');
+  await brief(BRIEFINGS.failed, '2026-10-20', 'failed', '2026-10-19T23:45:00Z');
+  await brief(BRIEFINGS.skipped, '2026-10-19', 'skipped', '2026-10-18T23:41:00Z');
+  await brief(BRIEFINGS.keyword, '2026-10-21', 'ok', '2026-10-20T23:50:00Z', MUG.keywordId);
+  const sug = (id: string, briefingId: string, kind: string, text: string, reason: string, evidence: object) =>
+    q(`insert into suggestions (id, briefing_id, kind, text, reason, evidence) values ($1, $2, $3, $4, $5, $6::jsonb)`, [id, briefingId, kind, text, reason, JSON.stringify(evidence)]);
+  await sug(SUGGESTIONS.idea, BRIEFINGS.today, 'idea', 'Cốc "Dog Mom" in tên thú cưng', 'Ba ads cốc dog mom đang lên trong 3 ngày.', { ads: ['e2e_mug_1', 'e2e_mug_4'], news: ['news_e2e_2'] });
+  await sug(SUGGESTIONS.keyword, BRIEFINGS.today, 'keyword', 'halloween dog mom shirt', 'Halloween còn 10 ngày, dog mom đang nóng.', { ads: ['e2e_mug_2'], news: ['news_e2e_1'] });
+  await sug(SUGGESTIONS.kwIdea, BRIEFINGS.keyword, 'idea', 'Bộ cốc đôi dog mom và dog dad', 'Keyword dog mom mug tăng 8 ads.', { ads: ['e2e_mug_1'], news: [] });
 }
 
 /** Thumbnails of MUG_ADS in the e2e bucket, as the worker stores them (`thumbs/<key>`), but not `missing`. */

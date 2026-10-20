@@ -2,7 +2,7 @@
 // attention states, with the seed data and the frozen clock; compared once the owner approves the
 // baselines (support/screens.ts).
 import { expect, test } from '@playwright/test';
-import { USERS } from './fixtures/seed';
+import { USERS, e2ePool } from './fixtures/seed';
 import { expectScreen } from './support/screens';
 import { freezeClock, signIn } from './support/session';
 
@@ -48,6 +48,7 @@ for (const [name, path] of [
   ['keyword-report', '/keywords/kw_e2e_mug'],
   ['ideas-table', '/ideas?store=store_e2e_a&view=table'],
   ['ideas-board', '/ideas?store=store_e2e_a&view=board'],
+  ['briefing', '/briefing'],
 ] as const) {
   test(`${name} @phone`, async ({ page }, info) => {
     await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(path)}`);
@@ -65,4 +66,25 @@ test('Step 6 states: missing thumbnail, out of top, less than 7 days, no data ye
   await expectScreen(page.getByText('17 +8 ▲ từ 17/10 (chưa đủ 7 ngày dữ liệu)'), 'state-less-than-7-days', info);
   await page.goto('/keywords/kw_e2e_mug/2026-10-01');
   await expectScreen(page.getByRole('main'), 'state-no-data', info);
+});
+
+test('Step 7 states: briefing late, before the ready time, AI section failed, AI section skipped', async ({ page }, info) => {
+  const pool = e2ePool();
+  await signIn(page, USERS.member.email);
+  try {
+    await pool.query(`update briefings set ready_at = null where id = 'brf_e2e_today'`);
+    await page.goto('/briefing');
+    await expectScreen(page.getByRole('status').filter({ hasText: 'chưa sẵn sàng' }), 'state-briefing-late', info);
+    await pool.query(`update settings set value = '"09:00"'::jsonb where key = 'briefingReadyTime'`);
+    await page.reload();
+    await expectScreen(page.getByRole('status').filter({ hasText: 'Đang hiển thị briefing' }), 'state-before-ready', info);
+  } finally {
+    await pool.query(`update briefings set ready_at = '2026-10-20T23:40:00Z' where id = 'brf_e2e_today'`);
+    await pool.query(`update settings set value = '"07:00"'::jsonb where key = 'briefingReadyTime'`);
+    await pool.end();
+  }
+  await page.goto('/briefing/2026-10-20');
+  await expectScreen(page.getByRole('region', { name: 'Gợi ý từ AI' }), 'state-ai-failed', info);
+  await page.goto('/briefing/2026-10-19');
+  await expectScreen(page.getByRole('region', { name: 'Gợi ý từ AI' }), 'state-ai-skipped', info);
 });

@@ -17,6 +17,10 @@ const RESEARCH_PAGES = [
   `/ideas?store=${STORES.a.id}&view=table`,
   `/ideas?store=${STORES.a.id}&view=board`,
   `/ideas/${IDEAS.fresh}`,
+  // Step 7 briefing, with the ad sheet open and with the AI sections failed.
+  '/briefing',
+  '/briefing?ad=e2e_mug_1',
+  '/briefing/2026-10-20',
 ];
 
 test('sign in passes axe and the a11y checks @phone', async ({ page }) => {

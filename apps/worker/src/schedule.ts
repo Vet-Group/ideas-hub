@@ -1,9 +1,11 @@
 // The scheduler (plan Step 3): every minute it keeps 14 days of `schedule` rows written with their
 // deadline, planned searches and job, records run-time changes, and rewrites future rows (and re-sends
-// their jobs, cancel and send in one transaction) when settings change.
+// their jobs, cancel and send in one transaction) when settings change. It also sends the briefing
+// builds of the next build time (briefing.ts scheduleBriefings).
 import { crawlJobExpirySeconds, plannedSearches, scheduledDeadline, slotsBetween, validateSettings } from '@ideas-hub/core';
 import { withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
+import { scheduleBriefings } from './briefing';
 import { type Ctx, SOURCE, loadSettings } from './context';
 import { CRAWL, jobState, sendCrawlJob } from './queues';
 import { activePairs } from './runs';
@@ -86,5 +88,6 @@ export async function schedulerPass(ctx: Ctx, hooks: SchedulerHooks = {}) {
       inserted += 1;
     });
   }
-  return { problems, inserted, resent, removed };
+  const { briefingsSent, briefingsResent } = await scheduleBriefings(ctx, s, now);
+  return { problems, inserted, resent, removed, briefingsSent, briefingsResent };
 }

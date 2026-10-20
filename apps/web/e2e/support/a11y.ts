@@ -31,8 +31,9 @@ export async function expectVisibleFocus(page: Page, maxStops = 40) {
       const id = `${el.tagName}:${el.getAttribute('href') ?? ''}:${el.getAttribute('name') ?? ''}:${el.textContent?.slice(0, 30) ?? ''}`;
       const focused = getComputedStyle(el);
       const ring = { outline: `${focused.outlineStyle} ${focused.outlineWidth} ${focused.outlineColor}`, shadow: focused.boxShadow };
-      // Move focus to a temporary element: blur() does not leave the inner field of a date input.
-      const away = document.body.appendChild(Object.assign(document.createElement('span'), { tabIndex: -1 }));
+      // Move focus to a temporary element: blur() does not leave the inner field of a date input. Inside a
+      // modal it goes in the dialog, or the focus trap would send focus straight back.
+      const away = (el.closest('[role=dialog]') ?? document.body).appendChild(Object.assign(document.createElement('span'), { tabIndex: -1 }));
       away.focus();
       const plain = getComputedStyle(el);
       const before = { outline: `${plain.outlineStyle} ${plain.outlineWidth} ${plain.outlineColor}`, shadow: plain.boxShadow };

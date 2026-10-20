@@ -8,15 +8,15 @@ import { t } from '@/lib/strings.vi';
 /**
  * Below 1280 px the detail pane is a right sheet, on a phone (≤ 820 px) a bottom sheet (spec §6).
  * Closing it goes back to the grid with the same filters. At 1280 px and up the page shows the sticky
- * pane instead and this renders nothing.
+ * pane instead and this renders nothing, unless `always` (the briefing has no pane column).
  */
-export function PaneSheet({ children, closeHref }: { children: ReactNode; closeHref: string }) {
+export function PaneSheet({ children, closeHref, always }: { children: ReactNode; closeHref: string; always?: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<'none' | 'right' | 'bottom'>('none');
   useEffect(() => {
     const wide = window.matchMedia('(min-width: 1280px)');
     const phone = window.matchMedia('(max-width: 820px)');
-    const update = () => setMode(wide.matches ? 'none' : phone.matches ? 'bottom' : 'right');
+    const update = () => setMode(wide.matches && !always ? 'none' : phone.matches ? 'bottom' : 'right');
     update();
     wide.addEventListener('change', update);
     phone.addEventListener('change', update);
@@ -24,7 +24,7 @@ export function PaneSheet({ children, closeHref }: { children: ReactNode; closeH
       wide.removeEventListener('change', update);
       phone.removeEventListener('change', update);
     };
-  }, []);
+  }, [always]);
   if (mode === 'none') return null;
   return (
     <Sheet open onOpenChange={(o) => (o ? null : router.push(closeHref, { scroll: false }))}>

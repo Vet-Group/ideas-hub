@@ -1,15 +1,17 @@
 import { VIETNAM, canSeeKeywordAi, nextSlotAfter } from '@ideas-hub/core';
-import { type AdRow, type SourceRun, daySeries, getKeyword, hotKeywords, listAds, risingNewAds, risingShops, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
+import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, risingNewAds, risingShops, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
 import { AdGrid } from '@/components/ads/ad-grid';
+import { NewsPanel, SuggestionsPanel } from '@/components/briefing/ai-panels';
 import { toCard } from '@/components/ads/cards';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { PageHeader } from '@/components/page-header';
 import { DeltaLabel } from '@/components/states/delta-label';
 import { NoData } from '@/components/states/no-data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
 import { formatTime } from '@/lib/format';
 import { now } from '@/lib/now';
@@ -58,6 +60,10 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
       `/ads/${encodeURIComponent(a.adArchiveId)}`,
       keyword.text,
     );
+  // AI sections: the keyword briefing of the report's date, only for those §4 allows (AC 4).
+  const aiVisible = canSeeKeywordAi(user, { origin: keyword.origin, trackedBy: keyword.trackedBy });
+  const kw = await keywordBriefingFor(db, user, id, date ?? vnDay(at));
+  const kwBriefing = kw?.aiVisible && kw.briefing.readyAt ? kw : null;
   const runLabel = run ? t.keywords.sourceRun(formatTime(run.scheduledFor), ddmm(vnDate.format(run.scheduledFor))) : null;
   const field = 'border-input bg-surface h-9 rounded-md border px-2 text-sm outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50';
 
@@ -143,7 +149,16 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
           <h2 id="kw-ai" className="font-semibold">
             {t.keywords.ai}
           </h2>
-          <p className="text-fg-2 text-sm">{canSeeKeywordAi(user, { origin: keyword.origin, trackedBy: keyword.trackedBy }) ? t.keywords.aiLater : t.keywords.aiHidden}</p>
+          {!aiVisible ? (
+            <p className="text-fg-2 text-sm">{t.keywords.aiHidden}</p>
+          ) : kwBriefing ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} />
+              <NewsPanel news={kwBriefing.sections.news} />
+            </div>
+          ) : (
+            <p className="text-fg-2 text-sm">{t.keywords.aiNone}</p>
+          )}
         </section>
       </div>
     </>

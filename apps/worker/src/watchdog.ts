@@ -2,6 +2,8 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { boot } from './boot';
+import { loadSettings } from './context';
+import { alertSender, larkConfigFromEnv, larkHttpClient } from './lark';
 import { watchdogPass } from './watchdog-pass';
 
 const run = promisify(execFile);
@@ -19,8 +21,13 @@ async function restartWorker() {
 
 const ctx = await boot({ poolSize: 3 });
 try {
+  const lark = larkConfigFromEnv();
+  if (!lark?.adminChat) ctx.log('watchdog: Lark is not configured, Alerts stay unsent on the admin page');
+  const s = await loadSettings(ctx.db);
   const result = await watchdogPass(ctx, {
     restartWorker: () => restartWorker().catch((e) => ctx.log('worker restart failed', { error: String(e) })),
+    sendAlert: lark?.adminChat ? alertSender(larkHttpClient(lark), lark.adminChat, s.larkSendTimeoutSeconds) : undefined,
+    briefings: { sharedChat: lark?.sharedChat ?? null },
   });
   ctx.log('watchdog', result);
 } finally {

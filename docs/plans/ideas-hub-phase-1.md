@@ -1014,6 +1014,36 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   the ready time, AI section skipped and AI section failed states each have a seeded fixture and a
   screenshot.
 
+- Progress (2026-10-20): built on branches `step-7-briefing` (web) and `step-7-worker` (worker, core, db,
+  RSS), merged into one PR. The shape of `briefings.sections` is a shared contract in
+  `packages/core/src/briefing/sections.ts`; decisions of the build and delivery are in
+  `docs/adr/0004-briefing-build-and-delivery.md`. Built: `packages/sources/rss`, `pnpm db:seed` with
+  `packages/db/seed/{news-feeds,holidays-us}.json`, `packages/core/src/briefing/{prompt,schema,cost}.ts`,
+  the `briefing.build` and `lark.send` jobs with scheduling, crash recovery and the watchdog's
+  `briefing_late` and `lark_send_failed` checks, the Lark bot behind `LARK_*` variables (tests use a fake
+  Lark server, nothing is posted), the LLM client behind an interface (tests use a fake client; no real
+  call was made), the AC 1 Alert, AC 3 and AC 6 checks in `scripts/acceptance.sql`, the read queries in
+  `packages/db/src/queries/briefing-view.ts`, the briefing pages `/briefing` and `/briefing/[date]` with
+  the four states, saves from rows, the ad sheet and suggestions (`via = briefing`), the keyword report's
+  AI sections and the sidebar badges (briefing date, New ideas). Decisions, with reasons:
+  - RSS feeds are fetched by the global `briefing.build` just before section 5 (15 s per feed, one
+    failing feed does not stop the others), so each feed is read once a day and news is fresh at 06:30.
+  - Feeds and holidays are seed data (`pnpm db:seed`, idempotent), not a data migration, so the JSON files
+    stay the one source; a fresh database needs `pnpm db:seed`.
+  - The cost estimate is an upper bound (prompt characters ÷ 3 at the input price plus `max_tokens` at
+    the output price) and is what `ai_cost_usd` records.
+  - Saving a keyword briefing's suggestion goes through `keywordBriefingFor`, the same AC 4 check that
+    decides whether the keyword report shows the AI sections, so the server refuses what the page hides.
+  - The "Before the ready time" state is tested by moving `briefingReadyTime` to 09:00 in the e2e
+    database: the server clock is frozen at 08:30.
+  - The a11y focus check now moves focus inside an open dialog, since the dialog's focus trap returned
+    focus to the element and every control in the ad sheet read as having no focus indicator.
+  - Pending owner: Lark app id and secret, the shared and admin chat ids and a first real post; the LLM
+    endpoint and a first real briefing (`pnpm briefing:build`); review the feed list in
+    `packages/db/seed/news-feeds.json` (the URLs were never fetched); check `MODEL_PRICES` in
+    `packages/core/src/briefing/cost.ts` (not checked against a price list); approve the Step 7
+    screenshots in `e2e/__screenshots__/pending/win32/` (briefing at desktop and phone, the four states).
+
 ### Step 8. Contract, Linux trial, onboarding, acceptance run (weeks 9–11)
 - `docs/contracts/ideas-hub-v1.md` draft (spec §5), reviewed with the POD Studio owner; nothing built.
 - Linux desktop, **only after the owner's go-ahead** (it hosts POD Studio production): first stop the

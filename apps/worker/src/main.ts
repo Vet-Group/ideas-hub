@@ -1,10 +1,15 @@
 // The worker process: crash recovery, then the three queues, the scheduler every minute and the idle
-// heartbeat timer. Started by the Task Scheduler wrapper loop on Windows (Step 4), systemd on Linux.
+// heartbeat timer. briefing.build and lark.send write no heartbeat; they are bounded by their timeouts
+// and job.signal. Started by the Task Scheduler wrapper loop on Windows (Step 4), systemd on Linux.
 import { PlaywrightSession } from '@ideas-hub/fb-ad-library/playwright';
 import { boot } from './boot';
 import { loadSettings } from './context';
 import { IdleHeartbeat, writeHeartbeat } from './heartbeat';
-import { CRAWL, type CrawlJob, createQueues } from './queues';
+import { type BriefingDeps, buildBriefing } from './briefing';
+import { larkConfigFromEnv, larkHttpClient, larkSend } from './lark';
+import { llmFromEnv } from './llm';
+import { refreshFeeds } from './news';
+import { BRIEFING, type BriefingJob, CRAWL, type CrawlJob, LARK, type LarkJob, createQueues } from './queues';
 import { recoverAtStartup } from './recovery';
 import { type RunDeps, runCrawl } from './run';
 import { schedulerPass } from './schedule';
@@ -40,6 +45,22 @@ await ctx.boss.work<CrawlJob>(CRAWL, { localConcurrency: 1, batchSize: 1 }, asyn
   } finally {
     idle.start();
   }
+});
+
+const lark = larkConfigFromEnv();
+const briefingDeps: BriefingDeps = {
+  llm: llmFromEnv(),
+  refreshFeeds: (signal) => refreshFeeds(ctx, { signal }).then((r) => ctx.log('feeds', r)),
+  sharedChat: lark?.sharedChat ?? null,
+};
+await ctx.boss.work<BriefingJob>(BRIEFING, { localConcurrency: 1, batchSize: 1 }, async ([job]) => {
+  ctx.log('briefing', { data: job!.data, outcome: await buildBriefing(ctx, job!.data, briefingDeps, job!.signal) });
+});
+const larkClient = lark ? larkHttpClient(lark) : null;
+await ctx.boss.work<LarkJob>(LARK, { localConcurrency: 1, batchSize: 1 }, async ([job]) => {
+  // Without the bot app nothing can be posted; the watchdog still flags the global briefing (lark_send_failed).
+  if (!larkClient) return ctx.log('lark: LARK_APP_ID and LARK_APP_SECRET are not set, post skipped', { data: job!.data });
+  ctx.log('lark', { data: job!.data, outcome: await larkSend(ctx, job!, { lark: larkClient, appUrl: process.env.APP_URL ?? '' }, job!.signal) });
 });
 
 const tick = () => schedulerPass(ctx).then((r) => r.problems.length || ctx.log('scheduler', r), (e) => ctx.log('scheduler error', { error: String(e) }));

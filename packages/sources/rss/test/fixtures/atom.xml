@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Fixture Atom</title>
+  <id>urn:fixture</id>
+  <updated>2026-10-19T08:00:00Z</updated>
+  <entry>
+    <title>Etsy sellers and Halloween</title>
+    <link href="https://atom.example.test/halloween"/>
+    <id>urn:fixture:1</id>
+    <updated>2026-10-19T08:00:00Z</updated>
+    <summary>Halloween sales are up.</summary>
+  </entry>
+</feed>

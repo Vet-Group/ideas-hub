@@ -1,0 +1,69 @@
+# ADR 0004: Briefing build, AI sections and Lark delivery
+
+Status: accepted for phase 1 (2026-10-20); the feed list, the price table and the Lark credentials wait
+for the owner (see "Open").
+Inputs: spec §1 "Sources", §2, §3 "Trend briefing" and "Delivery", plan Steps 3 and 7, ADR 0001 (stack).
+
+## Context
+
+Each morning the worker builds the global briefing and one report per tracked keyword from the last
+completed scheduled run, adds an AI summary and AI suggestions, and posts a summary to Lark. The plan
+fixes the rules (at most 2 LLM calls per briefing, cost committed before each call, idempotent sections,
+`uuid`-deduplicated posts); this ADR records how they are built and the choices the plan left open.
+
+## Decision
+
+- **Stored shape.** `briefings.sections` follows `packages/core/src/briefing/sections.ts`, one key per
+  section, merged with `new || stored` so a stored key is never overwritten. Sections 5 and 6 are stored
+  together with the `suggestions` rows in one transaction. `ready_at` and the `lark.send` jobs of the
+  briefing are written in one transaction.
+- **Which briefings.** The global one, and one per keyword that is active and tracked by at least one
+  store (`store_keywords`): the plan's "store-tracked keywords until the cap". A seed keyword no store
+  tracks has its live keyword report page (Step 6) but no stored briefing. A keyword briefing has the
+  same sections filtered to its keyword (section 4: shops with ads seen under it, with their overall
+  counts), the global news list, and its own AI call. Its KPI row is the source run's.
+- **Scheduling.** The scheduler's minute pass sends the builds of the next build time not yet reached
+  (`singletonKey` `${date}:global` / `${date}:kw:${id}`, global at priority 10, keywords 0, all in one
+  transaction), and re-sends a queued build whose start no longer matches the build time (later or still
+  ahead: the new time; moved into the past: now). Crash recovery re-sends today's briefing rows without
+  `ready_at` once the build time has passed. The handler inserts its briefing row first, so the window in
+  which a cancelled job has no row is the settings read only; the watchdog's `briefing_late` covers it.
+- **RSS refresh.** No separate job: the global `briefing.build` refreshes the enabled feeds right before
+  section 5 (15 s per feed, all in parallel, each failing on its own), so feeds get one request a day and
+  news is fresh at 06:30. Items keep title, link, date and the feed's own summary clipped to 500
+  characters; `content:encoded` is never read. The section uses items of the last 72 h, newest 15.
+- **Seed data.** `pnpm db:seed` loads the US holidays (`packages/db/seed/holidays-us.json`, 2026–2027)
+  and the default feeds (`news-feeds.json`), idempotently, besides the seed keywords; no data migration,
+  so the JSON files are the one source. A deleted row comes back on the next seed; admins disable feeds.
+- **LLM call.** `openai` 7.30.0 chat completions against `LLM_BASE_URL` with `maxRetries: 0`, so every
+  attempt is one counted call; no `response_format` (not every OpenAI-compatible route supports it), the
+  reply is parsed from its first `{` to its last `}`. Each call is raced against the LLM timeout and the
+  job's `signal`. A reply that fails the zod schema, or cites an id that was not in the prompt, gets the
+  one retry with the problem stated; after it, suggestions with bad refs are dropped (if only the refs
+  were wrong). The state of sections 5 and 6 is `skipped: cost_cap` when the cap refused the first call
+  of the build, else `failed: ai` when no valid reply came.
+- **Cost.** Estimate = prompt characters ÷ 3 × input price + `max_tokens` (4000) × output price, from
+  `MODEL_PRICES` in `packages/core/src/briefing/cost.ts` (an unknown model is priced high). The estimate,
+  an upper bound, is what `ai_cost_usd` records; the check sums all briefings of the day under an
+  advisory lock.
+- **Lark.** A text message (title, 3 key points from the KPI, the top keyword, the top rising shop or the
+  next holiday, the top 5 ads, the AI summary when there is one, and the link to `APP_URL`). The bot's
+  Open API origin is `LARK_BASE_URL`; the shared group and the admin chat are `LARK_SHARED_CHAT_ID` and
+  `LARK_ADMIN_CHAT_ID` (environment, not settings); store chats are `stores.lark_chat_id`. Without the
+  app id and secret nothing is posted. The watchdog gets the Lark sender for Alerts and checks the global
+  briefing (`briefing_late`, `lark_send_failed`) once today's ready time has passed.
+
+## Consequences
+
+- Tests use a fake LLM behind `LlmClient` and a fake Lark server on a random port; nothing in the repo
+  calls a real model or the real Lark in tests. `pnpm briefing:build --fake-llm` builds a day's briefings
+  locally with a canned reply.
+- The estimate over-counts real spend, so fewer keyword briefings get AI sections than the cap would
+  allow; replacing it with the provider's reported usage after the call would change only `cost.ts` and
+  the reservation.
+
+## Open
+
+- Owner: review the feed list in `packages/db/seed/news-feeds.json`.
+- Owner: check `MODEL_PRICES` against the provider's price for the configured model.
+- Owner: the Lark bot app credentials and chat ids, then one real test post.

@@ -12,7 +12,8 @@ Status: phase 1 Step 2 (skeleton, schema and core rules) is in. Phase 1 is speci
 ## Development
 
 Node 24 and pnpm 12. `cp .env.example .env`, then `pnpm install`, `docker compose up -d --wait`
-(Postgres on 5433, MinIO on 9300/9301) and `pnpm db:migrate`. Checks:
+(Postgres on 5433, MinIO on 9300/9301), `pnpm db:migrate` and `pnpm db:seed` (seed keywords, US
+holidays 2026–2027 and the default RSS feeds; idempotent). Checks:
 `pnpm -r typecheck && pnpm -r lint && pnpm -r test`.
 
 ## Phase 1 scope
