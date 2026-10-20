@@ -943,7 +943,8 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   and `job.signal`, passed to the openai client and the Lark `fetch`, with their queries under a 60 s
   `statement_timeout`, because expiry alone does not stop a handler; a global briefing not ready in time
   raises `briefing_late`. Settings validation rejects an LLM call timeout whose two attempts would not
-  fit in one `briefing.build` job's expiry (default 900 s). LLM calls are counted per briefing in
+  fit in one `briefing.build` job's expiry (default 900 s), and a ready time before the build time plus
+  that expiry plus the Lark margin (ADR 0004 "Ready margin", 220 s by default). LLM calls are counted per briefing in
   `briefings.llm_calls`: at most 2 per briefing, job reruns included, since a rerun does not reset the
   count; the increment and the estimated cost are written and committed on their own before each call,
   so a call cut by a crash still counts. After 2 failed calls the briefing still gets `ready_at` with
@@ -1839,3 +1840,10 @@ rect, so the page never scrolls.
 - Correction the same day: the probe's go/no-go threshold is Step 4's decision point (success < 90%
   after tuning), so that item is resolved too. The Alert backlog was decided in #21 (24 h cut-off), so
   the `via` of keyword-report ad saves is the only owner question left.
+
+## Changelog (open-item review → settings safety, 2026-10-21)
+
+- PR #24's two "needs a product decision" items, decided by the owner's delegate on 2026-10-21,
+  reversible: the ready time must leave a 220 s margin (by default) after build time + job expiry for
+  the queue pickups and the Lark send (ADR 0004 "Ready margin"), and stored settings that the scheduler
+  rejects write a `settings_invalid` Alert, at most one per local day (spec §2 "Alert", §3 "Delivery").

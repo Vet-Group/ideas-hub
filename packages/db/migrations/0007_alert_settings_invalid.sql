@@ -1,0 +1,3 @@
+ALTER TABLE "alerts" DROP CONSTRAINT "alerts_kind_check";--> statement-breakpoint
+CREATE UNIQUE INDEX "alerts_settings_invalid_day_key" ON "alerts" USING btree ((("created_at" at time zone 'Asia/Ho_Chi_Minh')::date)) WHERE "alerts"."kind" = 'settings_invalid';--> statement-breakpoint
+ALTER TABLE "alerts" ADD CONSTRAINT "alerts_kind_check" CHECK ("alerts"."kind" in ('blocked', 'network_error', 'parse_error', 'missed_run', 'run_failed', 'heartbeat_lost', 'briefing_late', 'lark_send_failed', 'settings_invalid'));

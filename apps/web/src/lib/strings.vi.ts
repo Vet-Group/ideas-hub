@@ -367,7 +367,7 @@ export const t = {
         llm_timeout_over_job_expiry: 'Hai lần gọi LLM dài hơn hạn job briefing.',
         briefing_expiry_over_24h: 'Hạn job briefing vượt 24 giờ.',
         feed_refresh_over_job_expiry: `Làm mới RSS (${FEED_TIMEOUT_SECONDS} giây) cộng hai lần gọi LLM dài hơn hạn job briefing.`,
-        ready_before_build_ends: 'Giờ briefing sẵn sàng phải sau giờ dựng briefing cộng hạn job briefing.',
+        ready_before_build_ends: 'Giờ briefing sẵn sàng phải sau giờ dựng briefing cộng hạn job briefing và thời gian dự phòng để gửi Lark.',
         no_run_times: 'Cần ít nhất một giờ chạy.',
       } satisfies Record<SettingsProblem, string> as Record<string, string>,
       labels: {
@@ -443,6 +443,7 @@ export const t = {
         heartbeat_lost: 'mất heartbeat',
         briefing_late: 'briefing trễ',
         lark_send_failed: 'gửi Lark lỗi',
+        settings_invalid: 'cài đặt không hợp lệ',
       } as Record<string, string>,
     },
   },

@@ -1,7 +1,7 @@
 // The three pg-boss queues (plan Step 3 "Queues"; ADR 0001 "Jobs and schedule"), checked in the pinned
 // pg-boss 12.37.0: `singleton` is index job_i2 (one active job, any number queued), `exclusive` job_i6
 // (one queued or active per singletonKey), `standard` has none (dist/migrationStore.js).
-import { type Settings, crawlJobExpirySeconds } from '@ideas-hub/core';
+import { LARK_RETRY_DELAY_SECONDS, LARK_RETRY_LIMIT, type Settings, crawlJobExpirySeconds } from '@ideas-hub/core';
 import { type BossDb } from '@ideas-hub/db/client';
 import { type PgBoss } from 'pg-boss';
 
@@ -13,7 +13,7 @@ export async function createQueues(boss: PgBoss, s: Settings) {
   // retryLimit 0: the pg-boss default of 2 (dist/plans.js QUEUE_DEFAULTS) would run an expired run again.
   await boss.createQueue(CRAWL, { policy: 'singleton', retryLimit: 0, expireInSeconds: crawlJobExpirySeconds(s) });
   await boss.createQueue(BRIEFING, { policy: 'exclusive', retryLimit: 1, expireInSeconds: s.briefingJobExpirySeconds });
-  await boss.createQueue(LARK, { policy: 'standard', retryLimit: LARK_RETRY_LIMIT, retryDelay: 30 });
+  await boss.createQueue(LARK, { policy: 'standard', retryLimit: LARK_RETRY_LIMIT, retryDelay: LARK_RETRY_DELAY_SECONDS });
 }
 
 export interface CrawlJob {
@@ -61,10 +61,8 @@ export interface LarkJob {
   chat: string;
 }
 
-export const LARK_RETRY_LIMIT = 3;
-
 export async function sendLarkJob(boss: PgBoss, db: BossDb, job: LarkJob): Promise<string | null> {
-  return boss.send(LARK, job, { retryLimit: LARK_RETRY_LIMIT, retryDelay: 30, db });
+  return boss.send(LARK, job, { retryLimit: LARK_RETRY_LIMIT, retryDelay: LARK_RETRY_DELAY_SECONDS, db });
 }
 
 /** Ids of a queue's active jobs (pg-boss keeps them in pgboss.job). */

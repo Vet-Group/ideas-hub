@@ -42,7 +42,7 @@ them into a Drizzle schema (`packages/db/src/schema/*.ts`) and a first migration
     one per (run, `cooldown_seq`) for `network_error`, `cooldown_seq` being the run's
     `network_cooldowns` value after the increment written in the same transaction; one open
     `heartbeat_lost` (`resolved_at` null); one per (briefing, kind) for `briefing_late` and
-    `lark_send_failed`.
+    `lark_send_failed`; one per Asia/Ho_Chi_Minh day of `created_at` for `settings_invalid`.
   - `keywords.text` and `users.email` are unique case-insensitively (`lower(...)`).
 - **Permissions**: `store_members` has three booleans (`can_view`, `can_save`, `can_keywords`).
   The rule that `save` and `keywords` imply `view` is applied once, in `packages/core/src/access.ts`,

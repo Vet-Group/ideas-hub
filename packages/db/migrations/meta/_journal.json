@@ -50,6 +50,13 @@
       "when": 1792532142560,
       "tag": "0006_alert_lark_skipped_at",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792539446759,
+      "tag": "0007_alert_settings_invalid",
+      "breakpoints": true
     }
   ]
 }

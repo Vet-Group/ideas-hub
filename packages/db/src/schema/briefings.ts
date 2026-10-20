@@ -14,6 +14,7 @@ export const ALERT_KINDS = [
   'heartbeat_lost',
   'briefing_late',
   'lark_send_failed',
+  'settings_invalid',
 ] as const;
 
 export const briefings = pgTable(
@@ -103,6 +104,10 @@ export const alerts = pgTable(
     uniqueIndex('alerts_briefing_kind_key')
       .on(t.briefingId, t.kind)
       .where(sql`${t.kind} in ('briefing_late', 'lark_send_failed')`),
+    // One per Asia/Ho_Chi_Minh day for the scheduler's rejected settings.
+    uniqueIndex('alerts_settings_invalid_day_key')
+      .on(sql`((${t.createdAt} at time zone 'Asia/Ho_Chi_Minh')::date)`)
+      .where(sql`${t.kind} = 'settings_invalid'`),
     check(
       'alerts_ref_check',
       sql`case
