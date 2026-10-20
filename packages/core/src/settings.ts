@@ -48,6 +48,28 @@ export const DEFAULT_SETTINGS = {
   proxy: null,
   aiDailyCostCapUsd: 3,
   llmModel: 'claude-sonnet-5-5',
+  // Landing domains that are ad trackers, app stores, marketplaces or link shorteners, never a shop
+  // (isNonShopDomain): ads keep them, shops, shop_days and the briefing do not.
+  nonShopDomains: [
+    'doubleclick.net',
+    'googleadservices.com',
+    'play.google.com',
+    'apps.apple.com',
+    'itunes.apple.com',
+    'a.co',
+    'amzn.to',
+    'amazon.*',
+    'ebay.*',
+    'aliexpress.*',
+    'temu.com',
+    'shein.com',
+    'etsy.com',
+    'walmart.com',
+    'tiktok.com',
+    'l.facebook.com',
+    'bit.ly',
+    'linktr.ee',
+  ],
 } as const;
 
 type Widen<T> = T extends string

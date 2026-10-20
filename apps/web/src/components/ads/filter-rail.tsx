@@ -1,6 +1,7 @@
 import { type AdFilters } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/strings.vi';
@@ -53,6 +54,10 @@ export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords:
       <div className="grid gap-1">
         <Label htmlFor="f-domain">{t.ads.domain}</Label>
         <Input id="f-domain" name="domain" defaultValue={f.domain ?? ''} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Checkbox id="f-dedupe" name="dedupe" value="1" defaultChecked={f.dedupe} className="size-6" />
+        <Label htmlFor="f-dedupe">{t.ads.dedupe}</Label>
       </div>
       <div className="grid gap-1">
         <Label htmlFor="f-sort">{t.ads.sort}</Label>

@@ -1,11 +1,13 @@
-import { getAd, listAds, listKeywords } from '@ideas-hub/db/queries';
+import { AD_PAGE_SIZE, getAd, listAds, listKeywords } from '@ideas-hub/db/queries';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
+import { Pager } from '@/components/pager';
 import { db } from '@/lib/db';
 import { loadSettings, statusOptions } from '@/lib/settings';
 import { saveTargets } from '@/lib/store';
 import { requireUser } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
+import { cn } from '@/lib/utils';
 import { AdGrid } from './ad-grid';
 import { toCard } from './cards';
 import { DetailPane } from './detail-pane';
@@ -20,7 +22,7 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
   const o = await statusOptions(settings);
   const f = parseAdFilters(params);
   const qs = adQuery(f);
-  const [ads, keywords, stores, selected] = await Promise.all([
+  const [{ items: ads, total }, keywords, stores, selected] = await Promise.all([
     listAds(db, o, f),
     listKeywords(db, 'text'),
     saveTargets(user),
@@ -29,21 +31,30 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
   if (selectedId && !selected) notFound();
   const filterKeyword = f.keywordId ? keywords.find((k) => k.id === f.keywordId)?.text : undefined;
   const cards = ads.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}${qs}`, filterKeyword));
-  const pane = selected ? <DetailPane ad={selected} saveStores={stores} /> : <p className="text-fg-2 text-sm">{t.ads.pickOne}</p>;
+  const pane = selected ? <DetailPane ad={selected} saveStores={stores} /> : null;
   return (
     <>
       <PageHeader title={t.ads.title}>
-        <span className="text-fg-2 text-sm">{t.ads.count(ads.length)}</span>
+        <span className="text-fg-2 text-sm">{t.ads.count(ads.length, total)}</span>
       </PageHeader>
       <p id="ads-key-help" className="sr-only">
         {t.ads.keyHelp}
       </p>
-      <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_360px]">
+      {/* The 360 px pane only takes a column while an ad is open, so the grid keeps 3+ columns at 1440 px. */}
+      <div className={cn('grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]', selected && 'xl:grid-cols-[200px_minmax(0,1fr)_360px]')}>
         <FilterRail f={f} keywords={keywords.map((k) => ({ id: k.id, text: k.text }))} countries={settings.countries} />
-        <AdGrid ads={cards} selectedId={selectedId} saveStores={stores} />
-        <aside className="hidden xl:block">
-          <div className="bg-surface border-line rounded-card sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto border p-3">{pane}</div>
-        </aside>
+        <div>
+          <AdGrid ads={cards} selectedId={selectedId} saveStores={stores} />
+          <Pager page={f.page ?? 1} pageCount={Math.ceil(total / AD_PAGE_SIZE)} href={(page) => `/ads${adQuery({ ...f, page })}`} />
+        </div>
+        {selected ? (
+          <aside className="hidden xl:block">
+            {/* Below the sticky header (layout.tsx), never under it. */}
+            <div className="bg-surface border-line rounded-card sticky top-[calc(var(--vet-header-h)+1rem)] max-h-[calc(100vh-var(--vet-header-h)-2rem)] overflow-y-auto border p-3">
+              {pane}
+            </div>
+          </aside>
+        ) : null}
       </div>
       {selected ? <PaneSheet closeHref={`/ads${qs}`}>{pane}</PaneSheet> : null}
     </>

@@ -2,7 +2,7 @@
 // backoff and cool-downs, upserts and thumbnails, then one final update with the run's snapshots.
 import { type Settings, type StopReason, createPacer, crawlDay, rotate } from '@ideas-hub/core';
 import { type BrowserSession, type SearchResult, type WaitLimitHits, normalizeAd, runSearch } from '@ideas-hub/fb-ad-library';
-import { adStatusQuery } from '@ideas-hub/db/queries';
+import { adStatusQuery, shopDomainFilter } from '@ideas-hub/db/queries';
 import { type Db, withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
 import { type Ctx, loadSettings } from './context';
@@ -105,7 +105,7 @@ export async function runCrawl(ctx: Ctx, runId: string, deps: RunDeps): Promise<
 
       await withTx(ctx.pool, async ({ db }) => {
         await ensureRunning(db, runId);
-        await upsertAds(db, { runId, keywordId: search.keywordId, country: search.country, crawlDay: day }, ads);
+        await upsertAds(db, { runId, keywordId: search.keywordId, country: search.country, crawlDay: day }, ads, s.nonShopDomains);
         await writeSearch(db, search.id, res, now());
         const at = now();
         if (res.status === 'blocked') await insertAlert(db, { kind: 'blocked', runId, detail: res.reason, at });
@@ -171,7 +171,7 @@ export async function runCrawl(ctx: Ctx, runId: string, deps: RunDeps): Promise<
           running_ads = ${rows[0]!.running}, ok_searches = ${rows[0]!.ok}
         where id = ${runId} and status = 'running'`);
       await refreshShops(db, statusOf);
-      if (run.trigger === 'schedule' && ran > 0) await writeSnapshots(db, statusOf, day, new Date(run.scheduled_for!));
+      if (run.trigger === 'schedule' && ran > 0) await writeSnapshots(db, statusOf, day, new Date(run.scheduled_for!), s.nonShopDomains);
     });
     return status;
   } catch (e) {
@@ -237,7 +237,7 @@ async function refreshShops(db: Db, statusOf: ReturnType<typeof adStatusQuery>) 
 }
 
 /** KeywordDay and ShopDay for the slot (spec §2), in the final run transaction. */
-async function writeSnapshots(db: Db, statusOf: ReturnType<typeof adStatusQuery>, day: string, slot: Date) {
+async function writeSnapshots(db: Db, statusOf: ReturnType<typeof adStatusQuery>, day: string, slot: Date, nonShopDomains: readonly string[]) {
   await db.execute(sql`
     insert into keyword_days (keyword_id, crawl_day, slot, running_ads)
     select k.id, ${day}::date, ${slot}, count(distinct st.ad_archive_id)::int
@@ -249,6 +249,6 @@ async function writeSnapshots(db: Db, statusOf: ReturnType<typeof adStatusQuery>
   await db.execute(sql`
     insert into shop_days (landing_domain, crawl_day, slot, running_ads)
     select st.landing_domain, ${day}::date, ${slot}, count(*)::int from (${statusOf}) st
-    where st.status = 'running' and st.landing_domain is not null group by st.landing_domain
+    where st.status = 'running' and st.landing_domain is not null and ${shopDomainFilter(sql`st.landing_domain`, nonShopDomains)} group by st.landing_domain
     on conflict (landing_domain, crawl_day, slot) do update set running_ads = excluded.running_ads`);
 }

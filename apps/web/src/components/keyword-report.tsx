@@ -46,9 +46,9 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
     run ? topTrendingAds(db, run, o) : [],
     run ? risingNewAds(db, run, o) : [],
     run ? hotKeywords(db, run, { keywordId: id }) : [],
-    run ? risingShops(db, run, { limit: 1000 }) : [],
+    run ? risingShops(db, run, { limit: 1000, nonShopDomains: s.nonShopDomains }) : [],
     canRun ? runNowBlocker(s, at) : Promise.resolve(null),
-    run ? listAds(db, { today: run.crawlDay, staleAfterDays: s.staleAfterDays, countries: s.countries }, { keywordId: id, limit: 10_000 }) : [],
+    run ? listAds(db, { today: run.crawlDay, staleAfterDays: s.staleAfterDays, countries: s.countries }, { keywordId: id, limit: 10_000 }).then((r) => r.items) : [],
   ]);
   // Section 4 for one keyword: the rising shops among the domains of its running ads.
   const domains = new Set(keywordAds.map((a) => a.landingDomain));

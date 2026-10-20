@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_SETTINGS } from './settings';
 import {
   type AdPair,
   type Snapshot,
@@ -6,6 +7,7 @@ import {
   crawlDay,
   daysActive,
   deltaAt,
+  isNonShopDomain,
   isRisingNew,
   pacificDate,
   pacificDateFromUnix,
@@ -69,6 +71,22 @@ describe('trendScore', () => {
     expect(trendScore({ daysActive: 4, seenDays: 3, landingDomain: 'shop.example' })).toBeNull();
     expect(trendScore({ daysActive: 30, seenDays: 3, landingDomain: null })).toBeNull();
     expect(trendScore({ daysActive: 30, seenDays: 3, landingDomain: '' })).toBeNull();
+  });
+});
+
+describe('isNonShopDomain', () => {
+  const list = DEFAULT_SETTINGS.nonShopDomains;
+  it('matches trackers, app stores and marketplaces with their subdomains and any amazon.* TLD', () => {
+    for (const d of ['ad.doubleclick.net', 'play.google.com', 'itunes.apple.com', 'apps.apple.com', 'a.co', 'amazon.com', 'amazon.co.uk', 'smile.amazon.de', 'temu.com', 'l.facebook.com']) {
+      expect(isNonShopDomain(d, list), d).toBe(true);
+    }
+  });
+
+  it('keeps real shops, including names that only contain an entry', () => {
+    for (const d of ['dogmom.example', 'teeshop.com', 'notamazon.com', 'google.com', 'temu.com.shop.example', 'ba.co']) {
+      expect(isNonShopDomain(d, list), d).toBe(false);
+    }
+    expect(isNonShopDomain('play.google.com', [])).toBe(false);
   });
 });
 

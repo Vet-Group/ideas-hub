@@ -122,7 +122,7 @@ export async function buildBriefing(ctx: Ctx, job: BriefingJob, deps: BriefingDe
     topAds: async (db) => (await topTrendingAds(db, run, o)).map(toAd),
     risingAds: async (db) => (await risingNewAds(db, run, o)).map((a) => ({ ...toAd(a), sightings: a.sightings, bestPosition: a.bestPosition })),
     hotKeywords: (db) => hotKeywords(db, run, { keywordId: job.keywordId }),
-    risingShops: (db) => risingShops(db, run, { keywordId: job.keywordId }),
+    risingShops: (db) => risingShops(db, run, { keywordId: job.keywordId, nonShopDomains: s.nonShopDomains }),
   };
   for (const [key, fn] of Object.entries(compute) as [keyof typeof compute, (db: Db) => Promise<unknown>][]) {
     if (key in sections) continue;

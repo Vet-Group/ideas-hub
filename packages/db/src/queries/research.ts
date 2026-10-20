@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
-// computed in TypeScript, as in the briefing.
-import { type AdStatus, VIETNAM, daysActive, trendScore } from '@ideas-hub/core';
+// computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
+import { type AdStatus, VIETNAM, daysActive, nonShopPattern, trendScore } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { adStatusQuery } from './ad-status';
@@ -16,6 +16,7 @@ export interface StatusOptions {
 
 export const AD_SORTS = ['score', 'days', 'last_seen', 'first_seen'] as const;
 export type AdSort = (typeof AD_SORTS)[number];
+export const AD_PAGE_SIZE = 120;
 
 export interface AdFilters {
   /** Default 'running'. */
@@ -27,7 +28,11 @@ export interface AdFilters {
   minScore?: number;
   /** Part of the landing domain. */
   domain?: string;
+  /** Near-duplicate creatives (same caption and landing domain) as one item with their count. */
+  dedupe?: boolean;
   sort?: AdSort;
+  /** 1-based. */
+  page?: number;
   limit?: number;
 }
 
@@ -107,30 +112,67 @@ async function selectAds(db: Db, o: StatusOptions, where: ReturnType<typeof sql>
   return rows.map(toItem);
 }
 
-const BY: Record<AdSort, (a: AdListItem, b: AdListItem) => number> = {
-  score: (a, b) => (b.trendScore ?? -1) - (a.trendScore ?? -1),
-  days: (a, b) => (b.daysActive ?? -1) - (a.daysActive ?? -1),
-  last_seen: (a, b) => b.lastSeenDate.localeCompare(a.lastSeenDate),
-  first_seen: (a, b) => b.firstSeenDate.localeCompare(a.firstSeenDate),
+const DAYS = sql`(a.end_date - a.start_date + 1)`;
+/** trendScore (packages/core) in SQL, so the score filter and sort run in the database. */
+const SCORE = sql`case when ${DAYS} >= 5 and nullif(a.landing_domain, '') is not null then ${DAYS} * a.seen_days end`;
+
+const AD_ORDER: Record<AdSort, ReturnType<typeof sql>> = {
+  score: sql`score desc nulls last, last_seen_date desc, ad_archive_id`,
+  days: sql`days_active desc nulls last, last_seen_date desc, ad_archive_id`,
+  last_seen: sql`last_seen_date desc, ad_archive_id`,
+  first_seen: sql`first_seen_date desc, last_seen_date desc, ad_archive_id`,
 };
 
-/** The ads grid: filters in SQL where they can be, the score filter and sort after scoring. */
-export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Promise<AdListItem[]> {
+export interface AdPage {
+  /** `duplicates`: ads grouped under the item, 1 without `dedupe`. */
+  items: (AdListItem & { duplicates: number })[];
+  /** Items matching the filters on all pages. */
+  total: number;
+}
+
+/** The ads grid: filters, sort, page and total in one SQL query; the score is computed again in TypeScript. */
+export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Promise<AdPage> {
   const status = f.status ?? 'running';
+  const limit = f.limit ?? AD_PAGE_SIZE;
+  const offset = (Math.max(1, f.page ?? 1) - 1) * limit;
+  const order = AD_ORDER[f.sort ?? 'score'];
   const where = sql.join(
     [
       status === 'all' ? sql`` : sql`and st.status = ${status}`,
       f.keywordId ? sql`and exists (select 1 from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.keyword_id = ${f.keywordId})` : sql``,
       f.country ? sql`and exists (select 1 from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.country = ${f.country})` : sql``,
       f.domain ? sql`and a.landing_domain ilike ${`%${escapeLike(f.domain)}%`} escape '\\'` : sql``,
+      f.minDays === undefined ? sql`` : sql`and coalesce(${DAYS}, 0) >= ${f.minDays}`,
+      f.minScore === undefined ? sql`` : sql`and coalesce(${SCORE}, 0) >= ${f.minScore}`,
     ],
     sql` `,
   );
-  const sort = BY[f.sort ?? 'score'];
-  return (await selectAds(db, o, where))
-    .filter((a) => (f.minDays === undefined || (a.daysActive ?? 0) >= f.minDays) && (f.minScore === undefined || (a.trendScore ?? 0) >= f.minScore))
-    .sort((a, b) => sort(a, b) || b.lastSeenDate.localeCompare(a.lastSeenDate) || a.adArchiveId.localeCompare(b.adArchiveId))
-    .slice(0, f.limit ?? 120);
+  // With dedupe, each (caption, landing domain) keeps its first ad in the sort; an ad without a caption stays alone.
+  const group = f.dedupe
+    ? sql`count(*) over w as duplicates, row_number() over (w order by ${order}) as rn from f window w as (partition by coalesce(caption, ad_archive_id), landing_domain)`
+    : sql`1 as duplicates, 1 as rn from f`;
+  const { rows } = await db.execute<Omit<AdSqlRow, 'ad_archive_id'> & { ad_archive_id: string | null; duplicates: number; total: number }>(sql`
+    with f as (
+      select a.ad_archive_id, a.page_name, a.caption, a.title, a.link, a.landing_domain, a.media_type, a.thumbnail_key,
+        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, st.status, ${DAYS} as days_active, ${SCORE} as score
+      from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id
+      where true ${where}
+    ),
+    g as (select f.*, ${group}),
+    p as (select * from g where rn = 1 order by ${order} limit ${limit} offset ${offset})
+    -- The left join keeps one row with the total when the page is empty.
+    select p.ad_archive_id, p.page_name, p.caption, p.title, p.link, p.landing_domain, p.media_type, p.thumbnail_key,
+      p.start_date::text, p.end_date::text, p.first_seen_date::text, p.last_seen_date::text, p.seen_days, p.status,
+      p.duplicates::int, t.total,
+      (select json_agg(distinct jsonb_build_object('id', k.id, 'text', k.text)) from ad_sightings s join keywords k on k.id = s.keyword_id
+        where s.ad_archive_id = p.ad_archive_id) as keywords,
+      (select array_agg(distinct s.country order by s.country) from ad_sightings s where s.ad_archive_id = p.ad_archive_id) as countries
+    from (select count(*)::int as total from g where rn = 1) t left join p on true
+    order by ${order}`);
+  return {
+    items: rows.filter((r) => r.ad_archive_id !== null).map((r) => ({ ...toItem(r as AdSqlRow), duplicates: r.duplicates })),
+    total: rows[0]?.total ?? 0,
+  };
 }
 
 export interface AdSighting {
@@ -168,13 +210,35 @@ const SHOP_ORDER: Record<ShopSort, ReturnType<typeof sql>> = {
   domain: sql`landing_domain`,
 };
 
-/** The shops table, sorted on the server (spec §6). */
-export async function listShops(db: Db, sort: ShopSort = 'running_ads', q?: string, limit = 200): Promise<ShopRow[]> {
+export const SHOP_PAGE_SIZE = 200;
+
+/** Leaves out the landing domains of the `nonShopDomains` setting (isNonShopDomain in SQL). */
+export function shopDomainFilter(column: ReturnType<typeof sql>, nonShopDomains: readonly string[]) {
+  return nonShopDomains.length ? sql`not (${column} ~ any(${sql.param(nonShopDomains.map(nonShopPattern))}::text[]))` : sql`true`;
+}
+
+export interface ShopFilters {
+  sort?: ShopSort;
+  /** Part of the domain. */
+  q?: string;
+  /** 1-based. */
+  page?: number;
+  limit?: number;
+  nonShopDomains?: readonly string[];
+}
+
+/** The shops table, sorted and paged on the server (spec §6), with the total over all pages. */
+export async function listShops(db: Db, f: ShopFilters = {}): Promise<{ items: ShopRow[]; total: number }> {
+  const limit = f.limit ?? SHOP_PAGE_SIZE;
+  const where = sql`${f.q ? sql`landing_domain ilike ${`%${escapeLike(f.q)}%`} escape '\\'` : sql`true`} and ${shopDomainFilter(sql`landing_domain`, f.nonShopDomains ?? [])}`;
   const { rows } = await db.execute<{ landing_domain: string; page_count: number; first_seen_date: string; last_seen_date: string; running_ads: number }>(sql`
     select landing_domain, cardinality(page_ids) as page_count, first_seen_date::text, last_seen_date::text, running_ads from shops
-    where ${q ? sql`landing_domain ilike ${`%${escapeLike(q)}%`} escape '\\'` : sql`true`}
-    order by ${SHOP_ORDER[sort]} limit ${limit}`);
-  return rows.map((r) => ({ landingDomain: r.landing_domain, pageCount: r.page_count, firstSeenDate: r.first_seen_date, lastSeenDate: r.last_seen_date, runningAds: r.running_ads }));
+    where ${where} order by ${SHOP_ORDER[f.sort ?? 'running_ads']} limit ${limit} offset ${(Math.max(1, f.page ?? 1) - 1) * limit}`);
+  const { rows: count } = await db.execute<{ n: number }>(sql`select count(*)::int as n from shops where ${where}`);
+  return {
+    items: rows.map((r) => ({ landingDomain: r.landing_domain, pageCount: r.page_count, firstSeenDate: r.first_seen_date, lastSeenDate: r.last_seen_date, runningAds: r.running_ads })),
+    total: count[0]!.n,
+  };
 }
 
 export async function getShop(db: Db, domain: string): Promise<ShopRow | null> {

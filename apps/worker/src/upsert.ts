@@ -1,5 +1,6 @@
 // Ads, sightings and shops of one search (spec §2): insert or update the ad and its rollups, one
-// sighting per (ad, run, keyword, country), shops by landing domain.
+// sighting per (ad, run, keyword, country), shops by landing domain unless it is a non-shop domain.
+import { isNonShopDomain } from '@ideas-hub/core';
 import { type NormalizedAd } from '@ideas-hub/fb-ad-library';
 import { sql } from 'drizzle-orm';
 import { type Db } from '@ideas-hub/db/client';
@@ -11,7 +12,7 @@ export interface SearchSighting {
   crawlDay: string;
 }
 
-export async function upsertAds(db: Db, at: SearchSighting, ads: readonly NormalizedAd[]) {
+export async function upsertAds(db: Db, at: SearchSighting, ads: readonly NormalizedAd[], nonShopDomains: readonly string[]) {
   for (const [i, ad] of ads.entries()) {
     // Rollups count the run and the crawl day once, however many searches of the run see the ad.
     await db.execute(sql`
@@ -36,7 +37,7 @@ export async function upsertAds(db: Db, at: SearchSighting, ads: readonly Normal
       insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day)
       values (${ad.adArchiveId}, ${at.runId}, ${at.keywordId}, ${at.country}, ${i + 1}, ${at.crawlDay})
       on conflict do nothing`);
-    if (ad.landingDomain) {
+    if (ad.landingDomain && !isNonShopDomain(ad.landingDomain, nonShopDomains)) {
       await db.execute(sql`
         insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date)
         values (${ad.landingDomain}, ${ad.pageId ? sql`array[${ad.pageId}]::text[]` : sql`'{}'::text[]`}, ${at.crawlDay}, ${at.crawlDay})

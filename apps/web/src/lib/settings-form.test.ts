@@ -40,6 +40,12 @@ describe('settings form', () => {
     expect(r.problems).toEqual([]);
   });
 
+  it('lowercases the non-shop domains, accepts an empty list and rejects what is not a domain pattern', () => {
+    expect(parseSettingsForm(form({ nonShopDomains: 'Play.Google.com, AMAZON.*' })).settings.nonShopDomains).toEqual(['play.google.com', 'amazon.*']);
+    expect(parseSettingsForm(form({ nonShopDomains: '' })).fieldErrors).toEqual([]);
+    expect(parseSettingsForm(form({ nonShopDomains: 'https://temu.com/x' })).fieldErrors).toEqual([{ key: 'nonShopDomains', code: 'list' }]);
+  });
+
   it('requires an LLM model', () => {
     expect(parseSettingsForm(form({ llmModel: '  ' })).fieldErrors).toEqual([{ key: 'llmModel', code: 'required' }]);
   });

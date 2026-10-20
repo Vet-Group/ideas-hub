@@ -1,4 +1,4 @@
-import { type AdPair, adStatus } from '@ideas-hub/core';
+import { type AdPair, DEFAULT_SETTINGS, adStatus } from '@ideas-hub/core';
 import { adStatusQuery } from '@ideas-hub/db/queries';
 import { testDatabaseAvailable } from '@ideas-hub/db/testing';
 import { normalizeAd } from '@ideas-hub/fb-ad-library';
@@ -27,12 +27,12 @@ describe.skipIf(!testDatabaseAvailable())('upsert', () => {
     const r1 = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-20T06:00:00Z'), status: 'done' });
     const r2 = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-20T18:00:00Z'), status: 'done' });
     const at = (runId: string, keywordId: string, crawlDay: string) => ({ runId, keywordId, country: 'US', crawlDay });
-    await upsertAds(h.db, at(r1, 'kw_0', '2026-10-19'), [normalizeAd(raw('A', 1792393200))]);
+    await upsertAds(h.db, at(r1, 'kw_0', '2026-10-19'), [normalizeAd(raw('A', 1792393200))], DEFAULT_SETTINGS.nonShopDomains);
     // Same run, another keyword: one more sighting, the run and day counted once.
-    await upsertAds(h.db, at(r1, 'kw_1', '2026-10-19'), [normalizeAd(raw('A', 1792393200))]);
+    await upsertAds(h.db, at(r1, 'kw_1', '2026-10-19'), [normalizeAd(raw('A', 1792393200))], DEFAULT_SETTINGS.nonShopDomains);
     // Retried search: no duplicate sighting.
-    await upsertAds(h.db, at(r1, 'kw_1', '2026-10-19'), [normalizeAd(raw('A', 1792393200))]);
-    await upsertAds(h.db, at(r2, 'kw_0', '2026-10-20'), [normalizeAd(raw('A', 1792479600))]);
+    await upsertAds(h.db, at(r1, 'kw_1', '2026-10-19'), [normalizeAd(raw('A', 1792393200))], DEFAULT_SETTINGS.nonShopDomains);
+    await upsertAds(h.db, at(r2, 'kw_0', '2026-10-20'), [normalizeAd(raw('A', 1792479600))], DEFAULT_SETTINGS.nonShopDomains);
     expect(await one(h, sql`select count(*)::int as n from ads`)).toEqual({ n: 1 });
     expect(await one(h, sql`select seen_runs, seen_days, end_date::text, first_seen_date::text, last_seen_date::text from ads`)).toEqual({
       seen_runs: 2,
@@ -47,6 +47,14 @@ describe.skipIf(!testDatabaseAvailable())('upsert', () => {
       first_seen_date: '2026-10-19',
       last_seen_date: '2026-10-20',
     });
+  });
+
+  it('keeps a non-shop landing domain on the ad but never makes it a shop', async () => {
+    const r = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-21T06:00:00Z'), status: 'done' });
+    const app = { ...raw('APP', 1792393200), snapshot: { body: { text: 'app' }, link_url: 'https://play.google.com/store/apps/details?id=x' } };
+    await upsertAds(h.db, { runId: r, keywordId: 'kw_0', country: 'US', crawlDay: '2026-10-20' }, [normalizeAd(app)], DEFAULT_SETTINGS.nonShopDomains);
+    expect(await one(h, sql`select landing_domain from ads where ad_archive_id = 'APP'`)).toEqual({ landing_domain: 'play.google.com' });
+    expect(await one(h, sql`select count(*)::int as n from shops where landing_domain = 'play.google.com'`)).toEqual({ n: 0 });
   });
 
   it('the SQL ad status agrees with adStatus', async () => {

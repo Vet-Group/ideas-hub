@@ -1,6 +1,7 @@
 // Runs against DATABASE_URL after `pnpm db:migrate` (docker compose locally, a service in CI).
 // Every write happens in a transaction that is rolled back.
-import { DEFAULT_SETTINGS } from '@ideas-hub/core';
+import { readFileSync } from 'node:fs';
+import { DEFAULT_SETTINGS, isNonShopDomain } from '@ideas-hub/core';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -81,5 +82,22 @@ describe.skipIf(!url)('first migration', () => {
       await client.query(insert, ['alert_old', '2026-10-01T00:00:00Z']);
       await client.query(insert, ['alert_open', null]);
       await expect(client.query(insert, ['alert_dup', null])).rejects.toThrow(/alerts_open_heartbeat_key/);
+    }));
+
+  it('0005 removes the non-shop domains from shops and shop_days, as isNonShopDomain matches them', () =>
+    rolledBack(async () => {
+      const domains = ['ad.doubleclick.net', 'play.google.com', 'amazon.co.uk', 'a.co', 'dogmom.e2e-migration', 'notamazon.e2e-migration'];
+      for (const d of domains) {
+        await client.query(`insert into shops (landing_domain, first_seen_date, last_seen_date) values ($1, '2026-10-01', '2026-10-20') on conflict do nothing`, [d]);
+        await client.query(`insert into shop_days (landing_domain, crawl_day, slot, running_ads) values ($1, '2026-10-20', '2026-10-20T18:00:00Z', 1) on conflict do nothing`, [d]);
+      }
+      const statements = readFileSync(new URL('../migrations/0005_non_shop_domains.sql', import.meta.url), 'utf8').split('--> statement-breakpoint');
+      for (const st of statements) await client.query(st);
+      const kept = domains.filter((d) => !isNonShopDomain(d, DEFAULT_SETTINGS.nonShopDomains));
+      expect(kept).toEqual(['dogmom.e2e-migration', 'notamazon.e2e-migration']);
+      for (const table of ['shops', 'shop_days']) {
+        const { rows } = await client.query<{ d: string }>(`select landing_domain as d from ${table} where landing_domain = any($1) order by d`, [domains]);
+        expect(rows.map((r) => r.d), table).toEqual(kept);
+      }
     }));
 });

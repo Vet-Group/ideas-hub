@@ -64,6 +64,19 @@ export function trendScore(ad: TrendInput): number | null {
   return ad.daysActive * ad.seenDays;
 }
 
+/**
+ * A `nonShopDomains` entry as a regex over a landing domain: the domain itself or any subdomain, `*`
+ * standing for the rest of the name (`amazon.*` is amazon.com and amazon.co.uk). Valid in JS and in
+ * Postgres `~`; migration 0005 builds the same pattern in SQL.
+ */
+export function nonShopPattern(entry: string): string {
+  return `^(.+\\.)?${entry.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.+')}$`;
+}
+
+export function isNonShopDomain(domain: string, entries: readonly string[]): boolean {
+  return entries.some((e) => new RegExp(nonShopPattern(e)).test(domain));
+}
+
 export const SEARCH_STATUSES = [
   'pending',
   'running',

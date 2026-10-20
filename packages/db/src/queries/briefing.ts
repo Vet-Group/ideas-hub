@@ -12,6 +12,7 @@ import {
   daysActive,
   daysBetween,
   deltaAt,
+  isNonShopDomain,
   slotKey,
   trendScore,
 } from '@ideas-hub/core';
@@ -46,6 +47,8 @@ export interface BriefingOptions {
   /** Keyword report: only ads seen under this keyword. */
   keywordId?: string;
   limit?: number;
+  /** The `nonShopDomains` setting: left out of the rising shops. */
+  nonShopDomains?: readonly string[];
 }
 
 export interface AdRow {
@@ -178,7 +181,7 @@ export async function hotKeywords(db: Db, run: SourceRun, o: Pick<BriefingOption
 }
 
 /** Section 4: running ads per landing domain, ranked by their change against the same slot; a keyword report keeps the domains of ads seen under its keyword. */
-export async function risingShops(db: Db, run: SourceRun, o: Pick<BriefingOptions, 'keywordId' | 'limit'> = {}): Promise<CountRow[]> {
+export async function risingShops(db: Db, run: SourceRun, o: Pick<BriefingOptions, 'keywordId' | 'limit' | 'nonShopDomains'> = {}): Promise<CountRow[]> {
   const domains = o.keywordId
     ? new Set(
         (
@@ -189,7 +192,7 @@ export async function risingShops(db: Db, run: SourceRun, o: Pick<BriefingOption
       )
     : null;
   return counts(await snapshotsOf(db, 'shop_days', run), run, new Map())
-    .filter((r) => !domains || domains.has(r.key))
+    .filter((r) => (!domains || domains.has(r.key)) && !isNonShopDomain(r.key, o.nonShopDomains ?? []))
     .sort((a, b) => (b.delta?.change ?? -Infinity) - (a.delta?.change ?? -Infinity) || b.runningAds - a.runningAds || a.key.localeCompare(b.key))
     .slice(0, o.limit ?? 10);
 }

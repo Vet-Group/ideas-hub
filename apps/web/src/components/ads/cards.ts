@@ -4,7 +4,7 @@ import { thumbUrl } from '@/lib/thumb-url';
 import { type AdCardData } from './ad-grid';
 
 /** A card's data, with its thumbnail signed on the server. */
-export function toCard(a: AdListItem, href: string, keyword?: string): AdCardData {
+export function toCard(a: AdListItem & { duplicates?: number }, href: string, keyword?: string): AdCardData {
   return {
     adArchiveId: a.adArchiveId,
     href,
@@ -18,5 +18,6 @@ export function toCard(a: AdListItem, href: string, keyword?: string): AdCardDat
     daysActive: a.daysActive,
     trendScore: a.trendScore,
     status: a.status,
+    duplicates: a.duplicates ?? 1,
   };
 }
