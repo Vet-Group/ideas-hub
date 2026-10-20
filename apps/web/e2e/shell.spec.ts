@@ -11,8 +11,10 @@ test('Geist is the body font and is loaded', async ({ page }) => {
   const r = await page.evaluate(() => {
     const family = getComputedStyle(document.documentElement).getPropertyValue('--font-geist-sans').trim();
     // Only Geist itself: the variable also names next/font's local() fallback, which is absent on Linux.
-    const geist = family.split(',')[0]!.trim();
-    return { family, body: getComputedStyle(document.body).fontFamily, loaded: document.fonts.check(`14px ${geist}`) };
+    const geist = family.split(',')[0]!.trim().replace(/^['"]|['"]$/g, '');
+    // fonts.check() is also true when no face of that family exists at all, so look for a loaded face.
+    const faces = [...document.fonts].filter((f) => f.family.replace(/^['"]|['"]$/g, '') === geist);
+    return { family, body: getComputedStyle(document.body).fontFamily, loaded: faces.some((f) => f.status === 'loaded') };
   });
   // The custom property keeps its source quotes; the computed font-family normalizes them.
   const first = (v: string) => v.split(',')[0]!.trim().replace(/^['"]|['"]$/g, '');

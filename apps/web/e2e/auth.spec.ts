@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { STORES, USERS, e2ePool } from './fixtures/seed';
-import { Actions } from './support/actions';
 import { signIn } from './support/session';
 
 test.describe.configure({ mode: 'serial' });
@@ -27,14 +26,16 @@ test('admin gives a member save on store A; the member sees store A only and get
 });
 
 test('a link opens its page with 0 actions on a valid session and is kept through sign-in', async ({ page }) => {
-  const actions = new Actions(page);
   await page.goto('/runs');
   await expect(page).toHaveURL(/\/login\?callbackURL=%2Fruns/);
   await signIn(page, USERS.admin.email, page.url());
   await expect(page).toHaveURL(/\/runs$/);
-  await page.goto('/runs');
+  // With a valid session the link alone shows the page: no redirect on the way and no click or key press.
+  const res = await page.goto('/runs');
+  expect(res?.status()).toBe(200);
+  expect(res?.request().redirectedFrom()).toBeNull();
+  await expect(page).toHaveURL(/\/runs$/);
   await expect(page.getByRole('heading', { name: 'Run log' })).toBeVisible();
-  expect(actions.count).toBe(0);
 });
 
 for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x', '/..//example.com', '/.//example.com', '/%2e%2e//example.com']) {
