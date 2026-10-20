@@ -1,0 +1,1 @@
+ALTER TABLE "alerts" ADD COLUMN "lark_skipped_at" timestamp with time zone;

@@ -85,6 +85,8 @@ export const alerts = pgTable(
     resolvedAt: tstz('resolved_at'),
     larkMessageId: text('lark_message_id'),
     sentAt: tstz('sent_at'),
+    /** Set instead of sent_at when the watchdog found the Alert unsent past the cut-off (ADR 0004). */
+    larkSkippedAt: tstz('lark_skipped_at'),
   },
   (t) => [
     check('alerts_kind_check', oneOf(t.kind, ALERT_KINDS)),

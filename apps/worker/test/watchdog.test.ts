@@ -1,9 +1,10 @@
 import { vietnamInstant } from '@ideas-hub/core';
+import { adminAlerts } from '@ideas-hub/db/queries';
 import { testDatabaseAvailable } from '@ideas-hub/db/testing';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CRAWL, jobState, sendCrawlJob } from '../src/queues';
-import { WATCHDOG_LOCK, watchdogPass } from '../src/watchdog-pass';
+import { type AlertRow, WATCHDOG_LOCK, watchdogPass } from '../src/watchdog-pass';
 import { type Harness, S, all, harness, insertRun, one, seedKeywords, setSettings } from './helpers';
 
 const HOUR = 3_600_000;
@@ -225,5 +226,42 @@ describe.skipIf(!testDatabaseAvailable())('watchdog', () => {
     const second = await watchdogPass(h, { ...deps, sendAlert });
     expect(second).toMatchObject({ alertsSent: 2, alertsLeft: 0 });
     expect(await all(h, sql`select 1 from alerts where lark_message_id is null and kind = 'parse_error'`)).toEqual([]);
+  });
+
+  it('sends only unsent Alerts of the last 24 h, marks older ones as not sent to Lark for good, and still lists them for admins', async () => {
+    await h.db.execute(sql`update run_time_changes set effective_from = ${h.clock.now()}`);
+    // A backlog written before Lark was configured; alert_edge is 2 min short of the cut-off.
+    const ages = { alert_old: 30 * HOUR, alert_edge: 24 * HOUR - 2 * MIN, alert_new: HOUR };
+    for (const [id, age] of Object.entries(ages)) {
+      const run = await insertRun(h, { trigger: 'cli', deadline: h.clock.now(), status: 'done', pairs: [] });
+      await h.db.execute(sql`insert into alerts (id, kind, run_id, created_at) values (${id}, 'parse_error', ${run}, ${new Date(h.clock.t - age)})`);
+    }
+    const sent: string[] = [];
+    let larkDown = true; // the first pass's post of alert_edge fails
+    const sendAlert = async (a: AlertRow) => {
+      if (a.id === 'alert_edge' && larkDown) return null;
+      sent.push(a.id);
+      return `om_${a.id}`;
+    };
+    expect(await watchdogPass(h, { ...deps, sendAlert })).toMatchObject({ alertsSent: 1, alertsTooOld: 1, alertsLeft: 0 });
+    expect(sent).toEqual(['alert_new']);
+
+    // A later pass, once alert_edge has passed the cut-off and Lark works: nothing old is sent.
+    larkDown = false;
+    h.clock.advance(5 * MIN);
+    await fresh();
+    expect(await watchdogPass(h, { ...deps, sendAlert })).toMatchObject({ alertsSent: 0, alertsTooOld: 1, alertsLeft: 0 });
+    h.clock.advance(5 * MIN);
+    await fresh();
+    expect(await watchdogPass(h, { ...deps, sendAlert })).toMatchObject({ alertsSent: 0, alertsTooOld: 0, alertsLeft: 0 });
+    expect(sent).toEqual(['alert_new']);
+    expect(
+      await all(h, sql`select id, lark_message_id, sent_at is not null as sent, lark_skipped_at is not null as skipped from alerts order by id`),
+    ).toEqual([
+      { id: 'alert_edge', lark_message_id: null, sent: false, skipped: true },
+      { id: 'alert_new', lark_message_id: 'om_alert_new', sent: true, skipped: false },
+      { id: 'alert_old', lark_message_id: null, sent: false, skipped: true },
+    ]);
+    expect((await adminAlerts(h.db)).map((a) => a.id)).toEqual(['alert_new', 'alert_edge', 'alert_old']);
   });
 });

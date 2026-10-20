@@ -1,5 +1,4 @@
-import { alerts } from '@ideas-hub/db';
-import { desc, sql } from 'drizzle-orm';
+import { adminAlerts } from '@ideas-hub/db/queries';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,11 +13,7 @@ const s = t.admin.alerts;
 /** Open Alerts first, then the latest resolved ones. */
 export default async function AlertsPage() {
   await requireAdmin();
-  const rows = await db
-    .select()
-    .from(alerts)
-    .orderBy(sql`${alerts.resolvedAt} is not null`, desc(alerts.createdAt))
-    .limit(200);
+  const rows = await adminAlerts(db);
   const open = rows.filter((a) => a.resolvedAt === null).length;
   return (
     <>

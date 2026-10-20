@@ -329,7 +329,7 @@ day 76 (59 + 17), in week 11, instead of day 75 (v18e), day 74 (v18d), day 68 in
   never by the worker. A pass takes `pg_try_advisory_lock` and exits if another pass holds it; it does
   its closes, marks, backfill and heartbeat check first, then sends Alerts (each with a Lark `uuid` from
   the first 32 hex characters of the SHA-256 of the Alert id) within a 60 s budget, the rest left for
-  the next pass. It closes `manual` and `cli` rows still `scheduled` after their deadline as `stopped`
+  the next pass; an unsent Alert older than 24 h is marked not sent to Lark instead (ADR 0004). It closes `manual` and `cli` rows still `scheduled` after their deadline as `stopped`
   with close reason `not_started`; marks rows still `scheduled` 15 min after their slot, and not covered
   by `blocked_until`, as `missed` with a `missed_run` Alert and cancels its job by `job_id`; closes a
   scheduled row whose slot came before `blocked_until` as `stopped`, with its planned searches inserted
@@ -1223,10 +1223,11 @@ or is a question for the owner.
   `via = briefing`"). An ad saved from the report's sections 1–2 gets `via = ads`, the `AdGrid` default
   (`apps/web/src/components/keyword-report.tsx:105,111`); whether those count for AC 6 is an owner
   decision.
-- Alerts written before Lark sending is configured: open, owner decision. The watchdog sends every
-  Alert with no `sent_at`, oldest first, within a 60 s budget per pass
-  (`apps/worker/src/watchdog-pass.ts:173-182`), so the first pass after Lark is configured sends the
-  whole backlog. The dev database has 0 unsent Alerts today.
+- Alerts written before Lark sending is configured: resolved (decided by the owner's delegate on
+  2026-10-21, reversible; ADR 0004). The watchdog sends only unsent Alerts of the last 24 h
+  (`ALERT_MAX_AGE_MS`, `apps/worker/src/watchdog-pass.ts`) and sets `lark_skipped_at` on older unsent
+  ones, which later passes skip; they stay on `/admin/alerts`. Test: `apps/worker/test/watchdog.test.ts`,
+  "sends only unsent Alerts of the last 24 h …".
 
 ## Open items (v18f narrow Critic, left out of v18g)
 

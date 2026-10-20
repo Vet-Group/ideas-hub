@@ -12,6 +12,8 @@ const MINUTE = 60_000;
 const DAY = 86_400_000;
 export const WATCHDOG_LOCK = 4_242_001;
 export const ALERT_BUDGET_MS = 60_000;
+/** Unsent Alerts older than this are not sent to Lark but stay on the admin page (ADR 0004). */
+export const ALERT_MAX_AGE_MS = DAY;
 export const BACKFILL_DAYS = 14;
 export const RESTART_EVERY_MS = WATCHDOG_PERIOD_MINUTES * MINUTE;
 
@@ -86,7 +88,7 @@ async function insertSkipped(db: Db, runId: string, planned: number, s: Settings
 async function pass(ctx: Ctx, deps: WatchdogDeps) {
   const now = ctx.clock.now();
   const s = await loadSettings(ctx.db);
-  const result = { notStarted: 0, missed: 0, blockedSlots: 0, backfilled: 0, hungRuns: 0, heartbeatLost: false, restarted: false, alertsSent: 0, alertsLeft: 0 };
+  const result = { notStarted: 0, missed: 0, blockedSlots: 0, backfilled: 0, hungRuns: 0, heartbeatLost: false, restarted: false, alertsSent: 0, alertsTooOld: 0, alertsLeft: 0 };
 
   // Manual and cli rows still `scheduled` after their deadline.
   const { rows: late } = await ctx.db.execute<{ id: string; job_id: string | null }>(sql`
@@ -170,8 +172,12 @@ async function pass(ctx: Ctx, deps: WatchdogDeps) {
 
   if (deps.sendAlert) {
     const started = ctx.clock.now().getTime();
+    const skipped = await ctx.db.execute(sql`
+      update alerts set lark_skipped_at = ${ctx.clock.now()}
+      where sent_at is null and lark_skipped_at is null and created_at < ${new Date(started - ALERT_MAX_AGE_MS)}`);
+    result.alertsTooOld = skipped.rowCount ?? 0;
     const { rows: unsent } = await ctx.db.execute<AlertRow>(sql`
-      select id, kind, run_id, briefing_id, detail from alerts where sent_at is null order by created_at`);
+      select id, kind, run_id, briefing_id, detail from alerts where sent_at is null and lark_skipped_at is null order by created_at`);
     for (const [i, a] of unsent.entries()) {
       if (ctx.clock.now().getTime() - started >= ALERT_BUDGET_MS) {
         result.alertsLeft = unsent.length - i;

@@ -52,6 +52,12 @@ fixes the rules (at most 2 LLM calls per briefing, cost committed before each ca
   `LARK_ADMIN_CHAT_ID` (environment, not settings); store chats are `stores.lark_chat_id`. Without the
   app id and secret nothing is posted. The watchdog gets the Lark sender for Alerts and checks the global
   briefing (`briefing_late`, `lark_send_failed`) once today's ready time has passed.
+- **Alert cut-off.** The watchdog sends only unsent Alerts created in the last 24 h
+  (`ALERT_MAX_AGE_MS` in `apps/worker/src/watchdog-pass.ts`, next to the 60 s `ALERT_BUDGET_MS`).
+  Before sending, it sets `alerts.lark_skipped_at` on every unsent Alert older than that, so a backlog
+  written before Lark was configured, or an Alert Lark kept rejecting for a day, is never posted later;
+  such Alerts keep `sent_at` and `lark_message_id` empty and stay on `/admin/alerts` (spec §3). A
+  nullable column rather than a `sent_at` without a message id, so `sent_at` keeps meaning "posted".
 
 ## Consequences
 
@@ -67,3 +73,9 @@ fixes the rules (at most 2 LLM calls per briefing, cost committed before each ca
 - Owner: review the feed list in `packages/db/seed/news-feeds.json`.
 - Owner: check `MODEL_PRICES` against the provider's price for the configured model.
 - Owner: the Lark bot app credentials and chat ids, then one real test post.
+
+## Changelog
+
+- 2026-10-21: added "Alert cut-off" (option B of the morning status question 2, with a 24 h cut-off).
+  Decided by the owner's delegate on 2026-10-21, reversible: dropping the cut-off and clearing
+  `lark_skipped_at` sends those Alerts again.
