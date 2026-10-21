@@ -1,0 +1,19 @@
+# The daily off-host backup (ADR 0007): scripts/linux/ideashub-backup, linked into ~/.local/bin by
+# install-units.sh. restic runs in a container capped at 1 CPU and 1 GB; this unit caps the rest. The
+# repository and its password file are named in ~/.config/ideas-hub/backup.env, chmod 600.
+[Unit]
+Description=Ideas Hub off-host backup
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=%h/.local/bin:@PATH@
+# Rootless Docker (ADR 0005): the user's own daemon socket.
+Environment=DOCKER_HOST=unix://%t/docker.sock
+EnvironmentFile=-%h/.config/ideas-hub/backup.env
+ExecStart=%h/.local/bin/ideashub-backup
+TimeoutStartSec=3h
+MemoryMax=1G
+CPUQuota=100%
+Nice=15
+IOSchedulingClass=idle

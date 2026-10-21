@@ -1,0 +1,16 @@
+# The daily size, disk and peak line (ADR 0007): scripts/linux/ideashub-sizes, linked into ~/.local/bin
+# by install-units.sh; disk_space Alerts at 80% and 90%.
+[Unit]
+Description=Ideas Hub sizes and disk check
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=%h/.local/bin:@PATH@
+Environment=DOCKER_HOST=unix://%t/docker.sock
+ExecStart=%h/.local/bin/ideashub-sizes
+TimeoutStartSec=45min
+MemoryMax=256M
+CPUQuota=50%
+Nice=15
+IOSchedulingClass=idle

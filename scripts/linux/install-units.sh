@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Linux side of the trial, part 2 (docs/ops/linux-trial.md, step 7). Installs the systemd user units from
-# deploy/linux into ~/.config/systemd/user with this checkout's paths filled in, links ideashub-deploy into
-# ~/.local/bin (so it follows the checkout), enables lingering unless it is on already, and enables and
+# deploy/linux into ~/.config/systemd/user with this checkout's paths filled in, links ideashub-deploy,
+# ideashub-backup and ideashub-sizes into ~/.local/bin (so they follow the checkout), enables lingering
+# unless it is on already, and enables and
 # starts: the Xvfb display, the web app, the worker, the watchdog timer, the auto-deploy timer (phase 2
-# plan Step 2a), and the tunnel when ~/.cloudflared/ideas-hub.yml exists. Only ideashub-* units are written; POD
+# plan Step 2a), and the tunnel when ~/.cloudflared/ideas-hub.yml exists. The backup, drill and sizes timers
+# are written but stay disabled until phase 2 Step 5. Only ideashub-* units are written; POD
 # Studio's units and tunnel are never touched. ONLY after the owner's go-ahead, with Windows stopped.
 #   scripts/linux/install-units.sh [--dry-run]
 # --dry-run prints the filled-in units and every command instead of running them.
@@ -48,7 +50,9 @@ for src in "$repo"/deploy/linux/ideashub-*.service "$repo"/deploy/linux/ideashub
 done
 
 run mkdir -p "$HOME/.local/bin"
-run ln -sfn "$repo/scripts/linux/ideashub-deploy" "$HOME/.local/bin/ideashub-deploy"
+for f in ideashub-deploy ideashub-backup ideashub-sizes; do
+  run ln -sfn "$repo/scripts/linux/$f" "$HOME/.local/bin/$f"
+done
 # Root turned lingering on when it created the user (phase 2 plan Step 3); enable-linger as the user
 # would need polkit.
 if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" = yes ]; then

@@ -1,120 +1,27 @@
-// scripts/linux/ideashub-deploy (and ideashub-retention's lock and Alert) in a temporary git repo, with fake gh, systemctl, pnpm, docker, curl,
-// psql, pg_dump, pg_restore, pgrep and sleep on PATH (deploy-fake.sh): one case per branch of phase 2
-// plan Step 2a. Runs with bash on Linux (CI) and Git Bash on Windows. The integration case at the end
-// restores a real dump on a disposable database through `docker exec` into the Postgres container named
-// by IDEASHUB_TEST_PG_CONTAINER (CI sets the service container's id).
-import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+// scripts/linux/ideashub-deploy (and ideashub-retention's lock and Alert) on the fake host of ops-host.ts
+// (deploy-fake.sh): one case per branch of phase 2 plan Step 2a. The integration case at the end restores
+// a real dump on a disposable database through `docker exec` into the Postgres container named by
+// IDEASHUB_TEST_PG_CONTAINER (CI sets the service container's id).
+import { spawnSync } from 'node:child_process';
+import { chmodSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createTestDatabase, testDatabaseAvailable } from '@ideas-hub/db/testing';
 import pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
+import { bash, git, Host as BaseHost, posix, scriptPath } from './ops-host';
 
-const posix = (p: string) => p.replace(/\\/g, '/');
 const here = dirname(fileURLToPath(import.meta.url));
-const script = posix(join(here, '../../../scripts/linux/ideashub-deploy'));
-const retentionScript = posix(join(here, '../../../scripts/linux/ideashub-retention'));
+const retentionScript = scriptPath('ideashub-retention');
 const fakeSource = readFileSync(join(here, 'deploy-fake.sh'), 'utf8');
 const migrationsDir = join(here, '../../../packages/db/migrations');
-const FAKES = ['gh', 'systemctl', 'pnpm', 'docker', 'curl', 'psql', 'pg_dump', 'pg_restore', 'dropdb', 'createdb', 'pgrep', 'sleep'];
-// Git Bash's bash on Windows (the bin/bash.exe above git.exe), not WSL's bash.exe from System32.
-function gitBash(): string {
-  for (let d = dirname(execFileSync('where', ['git'], { encoding: 'utf8' }).split(/\r?\n/)[0]!); d !== dirname(d); d = dirname(d)) {
-    if (existsSync(join(d, 'bin', 'bash.exe'))) return join(d, 'bin', 'bash.exe');
-  }
-  throw new Error('Git Bash not found');
-}
-const bash = process.platform === 'win32' ? gitBash() : 'bash';
-const hasFlock = spawnSync(bash, ['-c', 'command -v flock']).status === 0;
 const UNITS = ['ideashub-watchdog.timer', 'ideashub-worker', 'ideashub-web'];
 const HOUR_S = 3600;
 
-const git = (cwd: string, args: string[], env: Record<string, string> = {}) =>
-  execFileSync('git', ['-c', 'user.name=test', '-c', 'user.email=test@example.com', '-c', 'core.autocrlf=false', ...args], {
-    cwd,
-    encoding: 'utf8',
-    env: { ...process.env, ...env },
-  }).trim();
-
-interface Run {
-  status: number | null;
-  out: string;
-}
-
-class Host {
-  root = posix(mkdtempSync(join(tmpdir(), 'ih-deploy-')));
-  origin = `${this.root}/origin.git`;
-  work = `${this.root}/work`;
-  repo = `${this.root}/repo`;
-  home = `${this.root}/home`;
-  fake = `${this.root}/fake`;
-  bin = `${this.root}/bin`;
-  state = `${this.root}/home/.local/state/ideas-hub`;
-  old = '';
-
-  constructor(files: Record<string, string> = {}) {
-    for (const d of [this.home, `${this.fake}/units`, this.bin]) mkdirSync(d, { recursive: true });
-    for (const f of [...FAKES, ...(hasFlock ? [] : ['flock'])]) {
-      writeFileSync(`${this.bin}/${f}`, fakeSource);
-      chmodSync(`${this.bin}/${f}`, 0o755);
-    }
-    git(this.root, ['init', '-q', '--bare', '-b', 'main', this.origin]);
-    git(this.root, ['clone', '-q', this.origin, this.work]);
-    git(this.work, ['checkout', '-q', '-b', 'main']);
-    this.old = this.commit({ 'docker-compose.yml': 'services: {}\n', 'packages/db/migrations/0000_init.sql': 'select 1;\n', ...files });
-    git(this.root, ['clone', '-q', '-b', 'main', this.origin, this.repo]);
-    git(this.repo, ['config', 'core.autocrlf', 'false']);
-  }
-
-  /** A commit on origin/main; `ageSeconds` back-dates it (the CI-pending clock). */
-  commit(files: Record<string, string>, ageSeconds = 0): string {
-    for (const [p, body] of Object.entries(files)) {
-      mkdirSync(dirname(`${this.work}/${p}`), { recursive: true });
-      writeFileSync(`${this.work}/${p}`, body);
-    }
-    const date = `${Math.floor(Date.now() / 1000) - ageSeconds} +0000`;
-    git(this.work, ['add', '-A']);
-    git(this.work, ['commit', '-q', '--allow-empty', '-m', 'change'], { GIT_COMMITTER_DATE: date, GIT_AUTHOR_DATE: date });
-    git(this.work, ['push', '-q', 'origin', 'main']);
-    return git(this.work, ['rev-parse', 'HEAD']);
-  }
-
-  run(args: string[] = [], env: Record<string, string> = {}, file = script): Run {
-    // The fakes go first inside bash: Git Bash's bin/bash.exe puts its own /usr/bin (curl, sleep) in front.
-    const inner = 'PATH="$(cygpath -u "$1" 2>/dev/null || echo "$1"):$PATH"; shift; exec "$BASH" "$@"';
-    const r = spawnSync(bash, ['-c', inner, 'bash', this.bin, file, ...args], {
-      encoding: 'utf8',
-      timeout: 120_000,
-      env: {
-        ...process.env,
-        HOME: this.home,
-        FAKE: this.fake,
-        IDEASHUB_REPO: this.repo,
-        IDEASHUB_REPO_SLUG: 'test/ideas-hub',
-        ...env,
-      },
-    });
-    return { status: r.status, out: `${r.stdout}${r.stderr}` };
-  }
-
-  head = () => git(this.repo, ['rev-parse', 'HEAD']);
-  calls = () => (existsSync(`${this.fake}/calls.log`) ? readFileSync(`${this.fake}/calls.log`, 'utf8').trim().split('\n') : []);
-  /** The fake calls of one command, without the command name. */
-  callsOf = (name: string) => this.calls().filter((l) => l.startsWith(`${name} `)).map((l) => l.slice(name.length + 1));
-  alerts = () => this.callsOf('pnpm').filter((l) => l.startsWith('--silent ops:alert ')).map((l) => l.slice('--silent ops:alert deploy_failed '.length));
-  unit = (u: string) => (existsSync(`${this.fake}/units/${u}`) ? readFileSync(`${this.fake}/units/${u}`, 'utf8').trim() : 'active');
+class Host extends BaseHost {
   units = () => UNITS.map(this.unit);
-  file = (name: string) => (existsSync(`${this.state}/${name}`) ? readFileSync(`${this.state}/${name}`, 'utf8').trim() : null);
-  dumps = () => (existsSync(`${this.state}/predeploy`) ? readdirSync(`${this.state}/predeploy`).sort() : []);
-  quiet = (...lines: string[]) => writeFileSync(`${this.fake}/quiet`, lines.join('\n') + '\n');
-  reset() {
-    rmSync(`${this.fake}/calls.log`, { force: true });
-    rmSync(`${this.fake}/quiet.n`, { force: true });
-  }
-  close = () => rmSync(this.root, { recursive: true, force: true });
 }
+const script = scriptPath('ideashub-deploy');
 
 const ALL_ACTIVE = ['active', 'active', 'active'];
 const hosts: Host[] = [];

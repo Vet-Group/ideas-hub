@@ -1035,3 +1035,13 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   [the WebP measurement](../research/2026-10-21-thumbnail-size.md) (WebP 640 q75 = 24% of today's bytes;
   format unchanged). Deviation: the bucket in the integration tests is the harness's in-memory store;
   the S3 delete call has its own unit test.
+- Step 2c (2026-10-21): `scripts/linux/ideashub-backup` (with `--drill`) and `scripts/linux/ideashub-sizes`,
+  their units and timers (written by `install-units.sh`, left disabled until Step 5), restic
+  0.19.1 pinned by digest with the cache volume `ideas-hub_restic-cache`, and a fake-command suite on the
+  2a harness (now shared in `apps/worker/test/ops-host.ts`). Deviations: `counts.txt` row counts are read
+  from the dump itself (`pg_restore --data-only`), so they match the snapshot exactly even while the
+  worker writes; the drill also compares the bucket's bytes, restores the MinIO volume into a temporary
+  Docker volume and runs the temporary MinIO without a published port; backup, drill and sizes wait for
+  `ops.lock` (40, 40 and 30 minutes; sizes then measures anyway) instead of skipping the day;
+  `IDEASHUB_ALERT_KEY` replaces only the date part of a key, so a test's warning and critical stay
+  apart. Not run against a real repository or host; the first real backup and drill are Step 5.

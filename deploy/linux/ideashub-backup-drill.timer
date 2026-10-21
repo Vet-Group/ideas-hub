@@ -1,0 +1,11 @@
+# The restore drill on the 1st of each month at 09:30. Installed disabled; enabled in phase 2 Step 5.
+[Unit]
+Description=Ideas Hub backup restore drill, monthly
+
+[Timer]
+OnCalendar=*-*-01 09:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=ideashub-backup-drill.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+# Daily at 08:30, when no crawl or briefing runs (ADR 0007); a missed run starts at the next boot.
+# Installed disabled; enabled in phase 2 Step 5 after the repository and its password exist.
+[Unit]
+Description=Ideas Hub off-host backup at 08:30
+
+[Timer]
+OnCalendar=*-*-* 08:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=ideashub-backup.service
+
+[Install]
+WantedBy=timers.target
