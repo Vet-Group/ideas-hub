@@ -140,6 +140,17 @@ Asia/Ho_Chi_Minh.
 - Windows tasks are turned off with `Disable-ScheduledTask`, never unregistered.
 - One writer per working tree: each session works in its own worktree
   `C:\Users\User\dev\wt\ideas-hub-<step>`.
+- Host access from the development PC (owner decision 2026-10-21): the existing SSH alias
+  `podstudio-prod` in `~/.ssh/config` (also a Tabby profile) logs in as **root**. It is used only for
+  the one-off root commands of Steps 3.1 and 4.1, which a session may run itself after printing them and
+  getting the owner's go-ahead in that session (or the owner runs them in Tabby); never for deploys,
+  daily operation, measurement or any unattended task. Everything else uses a new alias `ideashub-prod`
+  (same `HostName` and `Port` as `podstudio-prod`, `User ideashub`, `IdentityFile ~/.ssh/ideashub_admin`,
+  `IdentitiesOnly yes`), added to `~/.ssh/config` in Step 3.1 after a backup of that file. The
+  unattended runner (Step 4.12) uses `-F none`, so it takes the host name and port from
+  `ssh -G ideashub-prod` when it is registered. The host name is an mDNS `.local` name: reachable only
+  from the office network, which the Step 4.12 `-DryRun` and every report run check first (an
+  unreachable host is reported, not retried in a loop).
 - Never two crawlers: the Windows worker stays unregistered (`IdeasHub-Ops-StartWorker` stays
   disabled), and the measurement counts no slot before the Windows probe ends (last probe slot
   2026-10-22 13:00; 72 h re-fetch 2026-10-23 04:57).
@@ -158,13 +169,13 @@ Times are Asia/Ho_Chi_Minh unless marked Z.
 | 0 | Owner decisions D1–D9 | 0 | 20 | — | 2026-10-22 |
 | 1 | Repo transfer to Vet-Group | 1 | 10 | $0 (org's plan) | 2026-10-22 |
 | 2 | Ops code: deploy, health, caps, Alerts (2a); retention (2b); backup and sizes (2c) | 3 | 0 | $0 | 2026-10-22 |
-| 3 | `ideashub` user (owner, 10 min) and resource measurement (24 h, read-only) | 1 | 10 + 5 | $0 | 2026-10-22 |
-| 4 | Install, auto-deploy, drills, read-only access for reports | 2 | 30 + 15 | $0 (+ ~$1 domain, D5) | 2026-10-23 |
+| 3 | `ideashub` user (root via `podstudio-prod`) and resource measurement (24 h, read-only) | 1 | 5 + 5 | $0 | 2026-10-22 |
+| 4 | Install, auto-deploy, drills, read-only access for reports | 2 | 20 + 15 | $0 (+ ~$1 domain, D5) | 2026-10-23 |
 | 5 | Off-host backup, drill, retention and disk Alerts on | 1 | 20 | $0–0.50 | 2026-10-24 |
 | 6 | Production LLM and Lark | 1 | 15 | ~$3 LLM (cap $90) | 2026-10-24 |
 | 7 | Measurement on the host (3–5 days, code frozen) and its report | 1 | 5 | — | `T_first` ≥ 2026-10-23 13:00 |
 | 8 | 14-day pilot | 2 | 15, then reading Lark | — | after Step 7 passes |
-| **Total** | | **12** | **about 2.5 h over ~3 weeks** | **about $4–5/month** (worst case ~$92) | |
+| **Total** | | **12** | **about 2 h over ~3 weeks** | **about $4–5/month** (worst case ~$92) | |
 
 ### Step 0. Owner decisions
 
@@ -389,9 +400,13 @@ lint and tests green locally and in CI on its head commit, then merged.
 
 ### Step 3. `ideashub` user and resource measurement (read-only, 24 h)
 
-1. **Owner, `sudo`, about 10 minutes (D6):** `useradd -m -s /bin/bash ideashub`;
+1. **Root, about 5 owner minutes (D6), through `podstudio-prod`** (the session prints the commands,
+   runs them only after the owner's go-ahead, and changes nothing of POD Studio's):
+   `useradd -m -s /bin/bash ideashub`;
    `loginctl enable-linger ideashub`; an admin key of the development PC, `~/.ssh/ideashub_admin`,
-   **with a passphrase**, into `~ideashub/.ssh/authorized_keys`. Interactive host sessions use it after
+   **with a passphrase** (the owner types it once, in Tabby or a terminal), into
+   `~ideashub/.ssh/authorized_keys`; the `ideashub-prod` alias in `~/.ssh/config` (backup first; check
+   `ssh -G ideashub-prod` shows `user ideashub`). Interactive host sessions use it after
    the owner unlocks it for a few hours (`ssh-add -t 4h ~/.ssh/ideashub_admin`, about one minute);
    unattended sessions never get it (Step 4.10). Nothing else yet. POD Studio's user is never used by a
    session.
@@ -434,15 +449,16 @@ lint and tests green locally and in CI on its head commit, then merged.
 - Check: `grep -E '^Verdict: (go|no-go)' docs/research/2026-10-2x-host-resources.md`.
 - Rollback: `rm -rf /tmp/ideas-hub-measure`; the user stays for Step 4 (removing it: `sudo userdel -r
   ideashub`, owner).
-- Sessions: 1. Owner: 10 minutes (`sudo`) + 5 minutes (go-ahead, read the verdict).
+- Sessions: 1. Owner: 5 minutes (go-ahead for the root commands, the key passphrase) + 5 minutes (read the verdict).
 
 ### Step 4. Install, auto-deploy, drills
 
 Prerequisites: Steps 1, 2a–2c merged; Step 3 go; D5, D6, D9 decided. Quiet window 09:00–11:00, not
 before 2026-10-23.
 
-1. **Owner, `sudo`, about 30 minutes, one sitting** (the session prints the exact commands; it never
-   runs `sudo`): `apt install uidmap docker-ce-rootless-extras=<the installed docker-ce version> xvfb
+1. **Root, one sitting, through `podstudio-prod`** (the session prints the exact commands and runs them
+   only after the owner's go-ahead; the owner does the parts that need a browser or a secret: the GitHub
+   token, the Cloudflare login): `apt install uidmap docker-ce-rootless-extras=<the installed docker-ce version> xvfb
    fonts-noto` (or the distribution's rootless package; no engine upgrade, since POD Studio may use it) and Google Chrome stable; `systemctl set-property user-<uid>.slice MemoryMax=5G
    CPUQuota=200%` for the `ideashub` uid only; `fuse-overlayfs` if the kernel is older than 5.11, the
    AppArmor profile for `rootlesskit` if user namespaces are restricted, a subuid/subgid range if missing
@@ -525,7 +541,7 @@ before 2026-10-23.
     action is fixed code and the model only writes prose**:
     1. stop if `%LOCALAPPDATA%\ideas-hub-ops\<report>.done` exists;
     2. collect: each fixed SQL file of `scripts/sql/<report>/*.sql` through
-       `ssh -F none -o BatchMode=yes -o IdentityAgent=none -o IdentitiesOnly=yes -i ~/.ssh/ideashub_ro ideashub@<host>`,
+       `ssh -F none -o BatchMode=yes -o IdentityAgent=none -o IdentitiesOnly=yes -i ~/.ssh/ideashub_ro ideashub@<HostName and Port from ssh -G ideashub-prod>`,
        and the stats files through the `ideashub_stats` key, into `%LOCALAPPDATA%\ideas-hub-ops\<report>\data\`;
     3. decide in code (no model): N = 5 when now is past `T_first` + 5 days + 5 hours, else 3; Step 7's
        pass / extend / fail rule from the collected ratio and blocked count; on "extend" at N = 3, write
@@ -553,7 +569,7 @@ before 2026-10-23.
        leaves the PR open and says so in Lark;
     7. a Lark summary assembled by the script from the collected figures and the PR link (not from model
        text), sent with `pnpm --silent lark:post`;
-    8. on a pass only: `ssh ... -i ~/.ssh/ideashub_timer ideashub@<host>` (ends the freeze); write
+    8. on a pass only: `ssh ... -i ~/.ssh/ideashub_timer ideashub@<HostName and Port from ssh -G ideashub-prod>` (ends the freeze); write
        `.done`.
     `-DryRun` runs items 1–3 for real (read-only) and fakes 4–8; its run in this session proves the keys
     and the collection. The admin key stays passphrase-locked; the runner never uses it.
@@ -571,8 +587,9 @@ before 2026-10-23.
   keep volumes; the Windows database is the source of truth while no scheduled run happened on the
   host); the slice cap stays harmless; `userdel -r ideashub` only on the owner's word; disable the
   Windows task (`Disable-ScheduledTask`).
-- Sessions: 2 (install items 1–8; drills, access, `T_start`, task and docs items 9–13). Owner: 30
-  minutes (`sudo`) + 15 minutes (window, reboot permission, `.env`).
+- Sessions: 2 (install items 1–8; drills, access, `T_start`, task and docs items 9–13). Owner: 20
+  minutes (go-ahead for the root commands, GitHub token, Cloudflare login) + 15 minutes (window, reboot
+  permission, `.env`).
 
 ### Step 5. Off-host backup, drill, retention and disk Alerts on
 
@@ -828,9 +845,9 @@ Acceptance: Step 2c "Done when".
 ### Prompt, Step 3 (user and resource measurement)
 
 ```text
-Run Step 3 of docs/plans/ideas-hub-phase-2.md. First print the sudo commands of item 1 for me to run
-(useradd, linger, SSH key); do not run sudo. Then, over SSH as ideashub@<host> only (never POD Studio's
-user), run item 2's one-off commands and start the 24 h sampling loop, writing only under
+Run Step 3 of docs/plans/ideas-hub-phase-2.md. First print the root commands of item 1 (useradd,
+linger, SSH key, the ideashub-prod alias); run them through "ssh podstudio-prod" only after I say go, and
+use podstudio-prod for nothing else. Then, over "ssh ideashub-prod" only, run item 2's one-off commands and start the 24 h sampling loop, writing only under
 /tmp/ideas-hub-measure; change nothing else. Come back after 24 h (a one-shot Windows task with
 StartWhenAvailable, or a /loop wake-up), compute every threshold of item 4 and write
 docs/research/2026-10-2x-host-resources.md with "Verdict: go" or "Verdict: no-go" and POD Studio's health
@@ -842,10 +859,11 @@ Acceptance: Step 3 "Done when" and "Check".
 ### Prompt, Step 4, session 1 (install)
 
 ```text
-Run Step 4 items 1–8 of docs/plans/ideas-hub-phase-2.md on the Linux host (ideashub@<host>) in the quiet
-window I give. First confirm Steps 1–3 and 2a–2c are done and D5, D6, D9 are decided; start the POD
-Studio health watch (item 3) and stop and roll back on any non-200 or slow answer. Print the sudo
-commands of item 1 for me; never run sudo. Then items 2 and 4–8 in order, each script with its dry run
+Run Step 4 items 1–8 of docs/plans/ideas-hub-phase-2.md on the Linux host ("ssh ideashub-prod") in the
+quiet window I give. First confirm Steps 1–3 and 2a–2c are done and D5, D6, D9 are decided; start the
+POD Studio health watch (item 3) and stop and roll back on any non-200 or slow answer. Print the root
+commands of item 1, run them through "ssh podstudio-prod" only after I say go (I do the GitHub token and
+the Cloudflare login myself), and use podstudio-prod for nothing else. Then items 2 and 4–8 in order, each script with its dry run
 first. Never print .env, tokens or tunnel credentials. Report the smoke and reboot results.
 Acceptance: items 7 and 8 pass; the health log clean.
 ```
@@ -989,3 +1007,6 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
 - Step 0 (2026-10-21): the owner decided D5 (a personal domain on a personal Cloudflare account; the
   domain name before Step 4), D6 (a dedicated `ideashub` user with rootless Docker) and D9 (deploy time
   measured from CI completion); ADR 0005 updated. D1–D4 and D7–D8 stay open until their steps.
+- Host access (2026-10-21, owner): the root alias `podstudio-prod` only for the one-off root commands of
+  Steps 3.1 and 4.1 (run by the session after the owner's go-ahead); a new `ideashub-prod` alias for
+  everything else; owner minutes of Steps 3 and 4 lowered accordingly.
