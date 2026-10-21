@@ -23,7 +23,8 @@
     "ops:alert": "tsx apps/worker/src/ops-cli.ts alert",
     "ops:quiet": "tsx apps/worker/src/ops-cli.ts quiet",
     "ro-query": "tsx apps/worker/src/ops-cli.ts ro-query",
-    "lark:post": "tsx apps/worker/src/ops-cli.ts lark-post"
+    "lark:post": "tsx apps/worker/src/ops-cli.ts lark-post",
+    "retention": "tsx apps/worker/src/ops-cli.ts retention"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

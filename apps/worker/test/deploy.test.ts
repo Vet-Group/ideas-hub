@@ -1,4 +1,4 @@
-// scripts/linux/ideashub-deploy in a temporary git repo, with fake gh, systemctl, pnpm, docker, curl,
+// scripts/linux/ideashub-deploy (and ideashub-retention's lock and Alert) in a temporary git repo, with fake gh, systemctl, pnpm, docker, curl,
 // psql, pg_dump, pg_restore, pgrep and sleep on PATH (deploy-fake.sh): one case per branch of phase 2
 // plan Step 2a. Runs with bash on Linux (CI) and Git Bash on Windows. The integration case at the end
 // restores a real dump on a disposable database through `docker exec` into the Postgres container named
@@ -15,6 +15,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 const posix = (p: string) => p.replace(/\\/g, '/');
 const here = dirname(fileURLToPath(import.meta.url));
 const script = posix(join(here, '../../../scripts/linux/ideashub-deploy'));
+const retentionScript = posix(join(here, '../../../scripts/linux/ideashub-retention'));
 const fakeSource = readFileSync(join(here, 'deploy-fake.sh'), 'utf8');
 const migrationsDir = join(here, '../../../packages/db/migrations');
 const FAKES = ['gh', 'systemctl', 'pnpm', 'docker', 'curl', 'psql', 'pg_dump', 'pg_restore', 'dropdb', 'createdb', 'pgrep', 'sleep'];
@@ -80,10 +81,10 @@ class Host {
     return git(this.work, ['rev-parse', 'HEAD']);
   }
 
-  run(args: string[] = [], env: Record<string, string> = {}): Run {
+  run(args: string[] = [], env: Record<string, string> = {}, file = script): Run {
     // The fakes go first inside bash: Git Bash's bin/bash.exe puts its own /usr/bin (curl, sleep) in front.
     const inner = 'PATH="$(cygpath -u "$1" 2>/dev/null || echo "$1"):$PATH"; shift; exec "$BASH" "$@"';
-    const r = spawnSync(bash, ['-c', inner, 'bash', this.bin, script, ...args], {
+    const r = spawnSync(bash, ['-c', inner, 'bash', this.bin, file, ...args], {
       encoding: 'utf8',
       timeout: 120_000,
       env: {
@@ -450,6 +451,46 @@ describe('ideashub-deploy', () => {
     expect(r.status, r.out).toBe(0);
     expect(r.out).toContain(`deployed ${h.old}`);
     expect(h.callsOf('pg_dump')).toHaveLength(1);
+  });
+});
+
+describe('ideashub-retention', () => {
+  // The fake flock even where a real one exists, so a held lock is one variable.
+  const retentionHost = () => {
+    const h = host();
+    writeFileSync(`${h.bin}/flock`, fakeSource);
+    chmodSync(`${h.bin}/flock`, 0o755);
+    return h;
+  };
+  const today = () => new Date().toISOString().slice(0, 10);
+  const opsAlerts = (h: Host) => h.callsOf('pnpm').filter((l) => l.startsWith('--silent ops:alert '));
+
+  it('passes bash -n', () => {
+    expect(spawnSync(bash, ['-n', retentionScript]).status).toBe(0);
+  });
+
+  it('runs pnpm retention under ops.lock and writes no Alert when it succeeds', () => {
+    const h = retentionHost();
+    const r = h.run([], {}, retentionScript);
+    expect(r.status, r.out).toBe(0);
+    expect(h.callsOf('flock')).toEqual(['-w 3600 9']);
+    expect(h.callsOf('pnpm')).toEqual(['--silent retention']);
+  });
+
+  it('skips the pass with an Alert when the lock stays held', () => {
+    const h = retentionHost();
+    const r = h.run([], { FAKE_FLOCK_RC: '1', IDEASHUB_LOCK_WAIT: '5' }, retentionScript);
+    expect(r.status, r.out).toBe(1);
+    expect(h.callsOf('flock')).toEqual(['-w 5 9']);
+    expect(h.callsOf('pnpm')).toEqual([`--silent ops:alert retention_failed ${today()} ops.lock still held after 5 s; retention skipped today`]);
+  });
+
+  it('writes an Alert under the same daily key when the pass fails', () => {
+    const h = retentionHost();
+    const r = h.run([], { FAKE_RETENTION_RC: '3' }, retentionScript);
+    expect(r.status, r.out).toBe(1);
+    expect(r.out).toContain('pnpm retention exited 3');
+    expect(opsAlerts(h)).toEqual([`--silent ops:alert retention_failed ${today()} retention exited 3; see journalctl --user -u ideashub-retention`]);
   });
 });
 

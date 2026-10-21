@@ -64,8 +64,8 @@ jobs:
 
       - name: Shell scripts
         run: |
-          for f in scripts/linux/*.sh scripts/linux/ideashub-deploy apps/worker/test/deploy-fake.sh; do bash -n "$f"; done
-          shellcheck scripts/linux/*.sh scripts/linux/ideashub-deploy apps/worker/test/deploy-fake.sh
+          for f in scripts/linux/*.sh scripts/linux/ideashub-* apps/worker/test/deploy-fake.sh; do bash -n "$f"; done
+          shellcheck scripts/linux/*.sh scripts/linux/ideashub-* apps/worker/test/deploy-fake.sh
 
       - name: Test
         run: pnpm -r test

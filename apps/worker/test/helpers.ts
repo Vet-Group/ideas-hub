@@ -43,7 +43,7 @@ export async function harness(start = '2026-10-21T06:00:00Z'): Promise<Harness> 
     clock,
     objects,
     url,
-    store: { put: async (key, body, contentType) => void objects.set(key, { body, contentType }) },
+    store: { put: async (key, body, contentType) => void objects.set(key, { body, contentType }), delete: async (key) => void objects.delete(key) },
     log: () => {},
     async close() {
       await boss.stop({ graceful: false });

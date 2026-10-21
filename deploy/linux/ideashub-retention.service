@@ -1,0 +1,17 @@
+# One data-retention pass (ADR 0007): scripts/linux/ideashub-retention waits for ops.lock and runs
+# `pnpm retention` (sightings over 180 days; thumbnails of ads not seen for 90 days unless a saved idea
+# shows them). Capped and idle-IO, like the deploy pass, so it never crowds POD Studio.
+[Unit]
+Description=Ideas Hub data retention pass
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=@PATH@
+ExecStart=@REPO@/scripts/linux/ideashub-retention
+# Up to an hour waiting for the lock, then the pass itself.
+TimeoutStartSec=2h
+MemoryMax=768M
+CPUQuota=50%
+Nice=15
+IOSchedulingClass=idle
