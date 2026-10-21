@@ -1,0 +1,16 @@
+# The pilot's daily check (phase 2 plan Step 8): scripts/linux/ideashub-acceptance runs
+# scripts/acceptance.sql through the read-only role, appends to acceptance.log and Alerts only when a
+# threshold fails. Read-only, so no ops.lock; capped and idle-IO like the other ops passes.
+[Unit]
+Description=Ideas Hub pilot acceptance check
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=@PATH@
+ExecStart=@REPO@/scripts/linux/ideashub-acceptance
+TimeoutStartSec=10min
+MemoryMax=512M
+CPUQuota=50%
+Nice=15
+IOSchedulingClass=idle

@@ -1045,3 +1045,11 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   `ops.lock` (40, 40 and 30 minutes; sizes then measures anyway) instead of skipping the day;
   `IDEASHUB_ALERT_KEY` replaces only the date part of a key, so a test's warning and critical stay
   apart. Not run against a real repository or host; the first real backup and drill are Step 5.
+- Step 8 code ahead (2026-10-21), so it is installed with Step 4 instead of deployed mid-pilot:
+  `scripts/linux/ideashub-acceptance` and `ideashub-acceptance.service`/`.timer` (07:30, capped; written
+  by `install-units.sh`, not enabled), the `acceptance_failed` ops Alert keyed by the Asia/Ho_Chi_Minh date
+  (migration 0009), the `ac3_today` query in `scripts/acceptance.sql`, and the day-14 files
+  `scripts/sql/pilot-verdict/*.sql` (the runner prepends `set pilot.run_start = '<run-start>';`), all tested
+  through a role holding only the column grants listed in `apps/worker/test/acceptance.test.ts`
+  (`RO_GRANTS`). Left to the start session: those grants on `ideashub_ro`, enabling the timer, the
+  tracking issue, the `pilot-verdict` report in `ops-report.ps1` and its day-14 task.

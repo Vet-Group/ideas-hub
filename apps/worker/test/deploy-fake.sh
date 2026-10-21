@@ -98,6 +98,10 @@ case "$name" in
         exit 10 ;;
       "--silent lark:post") cat > "$FAKE/lark.txt" ;;
       "--silent retention") exit "${FAKE_RETENTION_RC:-0}" ;;
+      "--silent ro-query")
+        cat > "$FAKE/ro.sql"
+        if [ -n "${FAKE_RO_ERR:-}" ]; then echo "$FAKE_RO_ERR" >&2; exit 1; fi
+        cat "$FAKE/ro.csv" ;;
       "--filter @ideas-hub/web build") [ "$head" != "${FAKE_BUILD_FAIL:-}" ] || exit 1 ;;
       db:migrate)
         [ "$head" != "${FAKE_MIGRATE_FAIL:-}" ] || exit 1

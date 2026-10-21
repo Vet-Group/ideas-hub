@@ -1,0 +1,4 @@
+ALTER TABLE "alerts" DROP CONSTRAINT "alerts_kind_check";--> statement-breakpoint
+DROP INDEX "alerts_ops_dedupe_key";--> statement-breakpoint
+CREATE UNIQUE INDEX "alerts_ops_dedupe_key" ON "alerts" USING btree ("kind","dedupe_key") WHERE "alerts"."kind" in ('deploy_failed', 'backup_failed', 'disk_space', 'retention_failed', 'acceptance_failed');--> statement-breakpoint
+ALTER TABLE "alerts" ADD CONSTRAINT "alerts_kind_check" CHECK ("alerts"."kind" in ('blocked', 'network_error', 'parse_error', 'missed_run', 'run_failed', 'heartbeat_lost', 'briefing_late', 'lark_send_failed', 'settings_invalid', 'deploy_failed', 'backup_failed', 'disk_space', 'retention_failed', 'acceptance_failed'));

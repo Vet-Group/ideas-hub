@@ -1,7 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { testDatabaseAvailable } from '@ideas-hub/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { roQuery } from '../src/ops';
 import { type Harness, harness, seedKeywords } from './helpers';
+import { Host, scriptPath } from './ops-host';
 
 const checks = Object.fromEntries(
   readFileSync(new URL('../../../scripts/acceptance.sql', import.meta.url), 'utf8')
@@ -103,4 +106,92 @@ describe.skipIf(!testDatabaseAvailable())('scripts/acceptance.sql', () => {
     await ideas('st_3', 'u_m1', 2, 'briefing', 20);
     expect(await q('ac6_ideas')).toEqual({ ideas: 21, stores_with_10: 2, per_store: { S1: 11, S2: 10 } });
   });
+
+  // Phase 2 plan Step 8 on the data above: the checks through a role holding only RO_GRANTS, the day-14
+  // verdict files, and the daily script on the real output.
+  describe('through the read-only role', () => {
+    const role = `ih_acc_${randomBytes(4).toString('hex')}`;
+    let roUrl: string;
+    beforeAll(async () => {
+      await h.pool.query(`create role ${role} login password 'ro-test-only'`);
+      for (const [table, cols] of Object.entries(RO_GRANTS)) await h.pool.query(`grant select (${cols}) on ${table} to ${role}`);
+      const u = new URL(h.url);
+      u.username = role;
+      u.password = 'ro-test-only';
+      roUrl = u.toString();
+    });
+    afterAll(async () => {
+      // The role outlives the test database otherwise.
+      await h.pool.query(`drop owned by ${role}`);
+      await h.pool.query(`drop role ${role}`);
+    });
+    const vnDay = (daysAgo: number) => new Date(Date.parse(new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })) - daysAgo * 86_400_000).toISOString().slice(0, 10);
+    const verdict = (name: string) => readFileSync(new URL(`../../../scripts/sql/pilot-verdict/${name}.sql`, import.meta.url), 'utf8');
+    const withStart = (start: Date, text: string) => `set pilot.run_start = '${start.toISOString()}';\n${text}`;
+
+    it('the verdict files give the daily figures when the run is the last 14 days, and need run-start', async () => {
+      // Day 1 is 13 days ago, so AC 3's 14 dates are the daily query's; every seeded row is inside both windows.
+      const start = new Date(Date.now() - 13 * 86_400_000);
+      for (const name of ['ac1_success_ratio', 'ac1_alerts', 'ac2_violations', 'ac6_ideas']) {
+        expect(await roQuery(roUrl, withStart(start, verdict(name))), name).toBe(await roQuery(roUrl, checks[name]!));
+      }
+      expect(await roQuery(roUrl, checks.ac3_briefings!)).toBe('days,days_ok,unresolved_refs,days_over_cap\n14,11,1,1\n');
+      expect(await roQuery(roUrl, withStart(start, verdict('ac3_briefings')))).toBe(
+        `days,days_ok,late_days,unresolved_refs,days_over_cap\n14,11,${vnDay(7)} ${vnDay(5)} ${vnDay(0)},1,1\n`,
+      );
+      await expect(roQuery(roUrl, verdict('ac1_success_ratio'))).rejects.toThrow('unrecognized configuration parameter');
+    });
+
+    it('the verdict window ends 14 days after run-start', async () => {
+      // A run starting tomorrow sees none of the rows; one that ended 2 days ago neither (the seeded ideas
+      // are 1 and 20 days old).
+      for (const start of [new Date(Date.now() + 86_400_000), new Date(Date.now() - 16 * 86_400_000)]) {
+        expect(await roQuery(roUrl, withStart(start, verdict('ac1_success_ratio')))).toBe('ok_searches,planned_searches,success_ratio\n0,0,\n');
+        expect(await roQuery(roUrl, withStart(start, verdict('ac6_ideas')))).toBe('ideas,stores_with_10,per_store\n0,0,{}\n');
+      }
+    });
+
+    it('the daily script Alerts every failed threshold of the real output', async () => {
+      const acceptanceSql = readFileSync(new URL('../../../scripts/acceptance.sql', import.meta.url), 'utf8');
+      const host = new Host({ 'scripts/acceptance.sql': acceptanceSql }, scriptPath('ideashub-acceptance'));
+      try {
+        writeFileSync(`${host.fake}/ro.csv`, await roQuery(roUrl, acceptanceSql));
+        const r = host.run();
+        expect(r.status, r.out).toBe(0);
+        expect(host.alerts('acceptance_failed')).toEqual([
+          `${vnDay(0)} AC 1: success_ratio 0.3333 (7/21) < 0.90; AC 1: parse_error_unsent 1; AC 1: network_mismatch 2; ` +
+            `AC 2: ok_without_embedded 1; AC 2: silent_stops 2; AC 3: today's briefing ready at 07:50, not before 07:00`,
+        ]);
+      } finally {
+        host.close();
+      }
+    });
+  });
+
+  it('ac3_today reads today\'s global briefing alone', async () => {
+    expect(await q('ac3_today')).toMatchObject({ ready_at: '07:50', on_time: false, sections_ok: true });
+    await h.pool.query(`update briefings set ready_at = ready_at - interval '1 hour', sections = sections - 'news' where id = 'brf_d0'`);
+    expect(await q('ac3_today')).toMatchObject({ ready_at: '06:50', on_time: true, sections_ok: false });
+    await h.pool.query(`update briefings set date = date - 30 where id = 'brf_d0'`);
+    expect(await q('ac3_today')).toMatchObject({ ready_at: null, on_time: false, sections_ok: false });
+  });
 });
+
+/**
+ * The column grants these queries need, and all the pilot's read-only role needs for them (phase 2 plan
+ * Step 8): counts and flags only, no ad text, no personal data beyond a user's role.
+ */
+const RO_GRANTS: Record<string, string> = {
+  crawl_runs: 'id, trigger, scheduled_for, created_at, status, planned_searches, network_cooldowns',
+  crawl_searches: 'run_id, status, embedded_count, embedded_has_next, pages_read, ads_found, last_has_next, stop_reason',
+  alerts: 'run_id, kind, lark_message_id',
+  settings: 'key, value',
+  briefings: 'id, date, scope, ready_at, sections, ai_cost_usd',
+  lark_messages: 'briefing_id, message_id',
+  suggestions: 'briefing_id, evidence',
+  ads: 'ad_archive_id',
+  news_items: 'id',
+  stores: 'id, name',
+  saved_ideas: 'id, store_id, via, created_at, created_by',
+  users: 'id, role',
+};

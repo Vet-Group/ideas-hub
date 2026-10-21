@@ -182,6 +182,7 @@ const ALERT_LABELS: Record<string, string> = {
   backup_failed: 'Backup thất bại',
   disk_space: 'Ổ đĩa sắp đầy',
   retention_failed: 'Dọn dữ liệu cũ thất bại',
+  acceptance_failed: 'Kiểm tra nghiệm thu hằng ngày không đạt',
 };
 
 export function alertMessage(a: AlertRow): string {

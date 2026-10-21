@@ -64,6 +64,13 @@
       "when": 1792572856626,
       "tag": "0008_ops_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792590571429,
+      "tag": "0009_acceptance_alert",
+      "breakpoints": true
     }
   ]
 }

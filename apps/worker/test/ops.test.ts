@@ -75,6 +75,19 @@ describe.skipIf(!testDatabaseAvailable())('ops CLIs', () => {
       expect((await runCli(['alert', 'nope', 'k', 'x'], '', env)).status).toBe(2);
       expect((await runCli(['alert', 'retention_failed', 'k'], '', env)).status).toBe(2);
     });
+
+    it('takes the pilot check\'s acceptance_failed once per date, and the watchdog posts it', async () => {
+      const at = h.clock.now();
+      expect(await opsAlert(h.db, 'acceptance_failed', '2026-10-21', 'AC 1: success_ratio 0.8800 (88/100) < 0.90', at)).toBe(true);
+      expect(await opsAlert(h.db, 'acceptance_failed', '2026-10-21', 'again', at)).toBe(false);
+      expect(await opsAlert(h.db, 'acceptance_failed', '2026-10-22', 'next day', at)).toBe(true);
+      const sent: AlertRow[] = [];
+      await watchdogPass(h, { restartWorker: async () => {}, sendAlert: async (a) => (sent.push(a), `om_${a.id}`) });
+      expect(sent.map((a) => [a.kind, a.detail])).toEqual([
+        ['acceptance_failed', 'AC 1: success_ratio 0.8800 (88/100) < 0.90'],
+        ['acceptance_failed', 'next day'],
+      ]);
+    });
   });
 
   describe('retention', () => {

@@ -1,4 +1,5 @@
--- Acceptance checks (plan "Acceptance criteria"), run daily during the 14-day run:
+-- Acceptance checks (plan "Acceptance criteria"), run daily during the 14-day run by
+-- scripts/linux/ideashub-acceptance through the read-only role, or by hand:
 --   psql "$DATABASE_URL" -f scripts/acceptance.sql
 -- Each query is one check; apps/worker/test/acceptance.test.ts runs them on seeded data.
 
@@ -70,6 +71,18 @@ select
   (select count(*) from (
     select b.date from briefings b where b.date in (select date from days) group by b.date
     having sum(b.ai_cost_usd) > (select (value #>> '{}')::numeric from settings where key = 'aiDailyCostCapUsd')) x)::int as days_over_cap;
+
+-- name: ac3_today
+-- AC 3 for today's Asia/Ho_Chi_Minh date alone (scripts/linux/ideashub-acceptance, 07:30): on_time when the
+-- global briefing's ready_at is before 07:00, sections_ok when all 6 sections are stored with 5 and 6
+-- generated. No briefing yet is neither.
+select d.date,
+  to_char(b.ready_at at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') as ready_at,
+  coalesce(b.ready_at < (d.date + time '07:00') at time zone 'Asia/Ho_Chi_Minh', false) as on_time,
+  coalesce(b.sections ?& array['sourceRun', 'kpi', 'topAds', 'risingAds', 'hotKeywords', 'risingShops', 'news', 'suggestions']
+    and b.sections #>> '{news,state}' = 'ok' and b.sections #>> '{suggestions,state}' = 'ok', false) as sections_ok
+from (select (now() at time zone 'Asia/Ho_Chi_Minh')::date as date) d
+left join briefings b on b.date = d.date and b.scope = 'global';
 
 -- name: ac6_ideas
 -- AC 6: ideas created by non-admin members with via = briefing in the last 14 days, counted per store row
