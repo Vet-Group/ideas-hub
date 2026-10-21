@@ -132,7 +132,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
                           </Link>
                         </TableCell>
                         <TableCell className="text-right font-mono">{r.runningAds}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-normal">
                           <DeltaLabel delta={r.delta} />
                         </TableCell>
                       </TableRow>

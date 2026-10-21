@@ -77,7 +77,7 @@ export function AdGrid({ ads, selectedId, saveStores, via = 'ads' }: { ads: AdCa
 
   if (ads.length === 0) return <p className="text-fg-2">{t.ads.empty}</p>;
   return (
-    <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3" aria-describedby="ads-key-help">
+    <ul className="grid grid-cols-2 gap-3 min-[821px]:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]" aria-describedby="ads-key-help">
       {ads.map((a, i) => (
         <li
           key={a.adArchiveId}

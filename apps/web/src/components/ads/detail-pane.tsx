@@ -14,17 +14,19 @@ const ddmm = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.
 export function DetailPane({ ad, saveStores, via = 'ads' }: { ad: AdListItem & { cta: string | null; sightings: AdSighting[] }; saveStores: SaveTarget[]; via?: 'ads' | 'briefing' }) {
   const rows: [string, string][] = [
     [t.ads.started, ddmm(ad.startDate)],
-    [t.ads.days(ad.daysActive), `${t.ads.seenDays}: ${ad.seenDays}`],
+    [t.ads.daysActive, t.ads.days(ad.daysActive)],
+    [t.ads.seenDays, String(ad.seenDays)],
     [t.ads.score, ad.trendScore === null ? t.common.none : String(ad.trendScore)],
     [t.ads.firstSeen, ddmm(ad.firstSeenDate)],
     [t.ads.lastSeen, ddmm(ad.lastSeenDate)],
   ];
+  const save = <SaveButton source={{ kind: 'ad', adArchiveId: ad.adArchiveId, via, keyword: ad.keywords[0]?.text }} stores={saveStores} />;
   return (
     <article className="grid gap-3" aria-label={t.ads.detail}>
       <Thumb src={ad.thumbnailKey ? thumbUrl(ad.thumbnailKey) : null} mediaType={ad.mediaType} alt={ad.caption ?? ''} className="rounded-card" />
       <div className="flex items-center justify-between gap-2">
         <AdStatusChip status={ad.status} />
-        <SaveButton source={{ kind: 'ad', adArchiveId: ad.adArchiveId, via, keyword: ad.keywords[0]?.text }} stores={saveStores} />
+        <div className="group-data-[pane=bottom]:hidden">{save}</div>
       </div>
       <h2 className="font-semibold">{ad.pageName ?? ad.adArchiveId}</h2>
       {ad.caption ? <p className="text-sm whitespace-pre-line">{ad.caption}</p> : null}
@@ -69,6 +71,8 @@ export function DetailPane({ ad, saveStores, via = 'ads' }: { ad: AdListItem & {
           </ul>
         </details>
       ) : null}
+      {/* In the phone's bottom sheet "Lưu" stays pinned at the bottom (spec §6 "Phones"). */}
+      <div className="bg-surface border-line sticky bottom-0 -mx-4 -mb-4 hidden justify-end border-t p-4 group-data-[pane=bottom]:flex">{save}</div>
     </article>
   );
 }
