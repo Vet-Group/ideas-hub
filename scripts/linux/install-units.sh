@@ -5,8 +5,8 @@
 # unless it is on already, and enables and
 # starts: the Xvfb display, the web app, the worker, the watchdog timer, the auto-deploy timer (phase 2
 # plan Step 2a), and the tunnel when ~/.cloudflared/ideas-hub.yml exists. The backup, drill and sizes timers
-# are written but stay disabled until phase 2 Step 5. Only ideashub-* units are written; POD
-# Studio's units and tunnel are never touched. ONLY after the owner's go-ahead, with Windows stopped.
+# are written but stay disabled until phase 2 Step 5, the pilot's acceptance timer until Step 8. Only
+# ideashub-* units are written; POD Studio's units and tunnel are never touched. ONLY after the owner's go-ahead, with Windows stopped.
 #   scripts/linux/install-units.sh [--dry-run]
 # --dry-run prints the filled-in units and every command instead of running them.
 set -euo pipefail

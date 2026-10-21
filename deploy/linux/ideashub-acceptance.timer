@@ -1,0 +1,13 @@
+# Daily at 07:30 Asia/Ho_Chi_Minh, after the 07:00 briefing deadline. install-units.sh writes it but does
+# not enable it: the pilot's start session (phase 2 plan Step 8) does
+# (`systemctl --user enable --now ideashub-acceptance.timer`).
+[Unit]
+Description=Ideas Hub pilot acceptance check daily at 07:30
+
+[Timer]
+OnCalendar=*-*-* 07:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=ideashub-acceptance.service
+
+[Install]
+WantedBy=timers.target

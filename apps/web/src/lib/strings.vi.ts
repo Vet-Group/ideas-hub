@@ -449,6 +449,7 @@ export const t = {
         backup_failed: 'backup lỗi',
         disk_space: 'sắp đầy ổ đĩa',
         retention_failed: 'dọn dữ liệu lỗi',
+        acceptance_failed: 'nghiệm thu không đạt',
       } as Record<string, string>,
     },
   },

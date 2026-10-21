@@ -6,7 +6,7 @@ import { crawlRuns, keywords } from './crawl';
 export const BRIEFING_SCOPES = ['global', 'keyword'] as const;
 export const SUGGESTION_KINDS = ['idea', 'keyword'] as const;
 /** Written by the host's ops scripts through `pnpm ops:alert` (phase 2 plan Step 2a), one per dedupe key. */
-export const OPS_ALERT_KINDS = ['deploy_failed', 'backup_failed', 'disk_space', 'retention_failed'] as const;
+export const OPS_ALERT_KINDS = ['deploy_failed', 'backup_failed', 'disk_space', 'retention_failed', 'acceptance_failed'] as const;
 export const ALERT_KINDS = [
   'blocked',
   'network_error',
@@ -91,7 +91,7 @@ export const alerts = pgTable(
     sentAt: tstz('sent_at'),
     /** Set instead of sent_at when the watchdog found the Alert unsent past the cut-off (ADR 0004). */
     larkSkippedAt: tstz('lark_skipped_at'),
-    /** Ops Alerts: `<sha>:<stage>`, `<date>:<stage>`, `<date>:<filesystem>:<level>`, `<date>`; tests use `test:<timestamp>`. */
+    /** Ops Alerts: `<sha>:<stage>`, `<date>:<stage>`, `<date>:<filesystem>:<level>`, `<date>` (retention, acceptance); tests use `test:<timestamp>`. */
     dedupeKey: text('dedupe_key'),
   },
   (t) => [
@@ -115,7 +115,7 @@ export const alerts = pgTable(
       .where(sql`${t.kind} = 'settings_invalid'`),
     uniqueIndex('alerts_ops_dedupe_key')
       .on(t.kind, t.dedupeKey)
-      .where(sql`${t.kind} in ('deploy_failed', 'backup_failed', 'disk_space', 'retention_failed')`),
+      .where(sql`${t.kind} in ('deploy_failed', 'backup_failed', 'disk_space', 'retention_failed', 'acceptance_failed')`),
     check(
       'alerts_ref_check',
       sql`case

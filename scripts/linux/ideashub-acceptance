@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# ideashub-acceptance: the pilot's daily check (phase 2 plan Step 8), started at 07:30 by
+# ideashub-acceptance.timer as the ideashub user. Runs scripts/acceptance.sql through the read-only role
+# (`pnpm --silent ro-query`, RO_DATABASE_URL), appends the output to acceptance.log, and writes an
+# acceptance_failed Alert keyed by today's Asia/Ho_Chi_Minh date only when a threshold fails: AC 1 below
+# 0.90, any AC 1 Alert or AC 2 violation count above 0, or today's global briefing late (ready at 07:00
+# or later, or missing) or without its 6 generated sections. A check that cannot run Alerts under the
+# same key, so the owner only reads Lark.
+# Environment: IDEASHUB_REPO (default: the checkout holding this script).
+# Exit: 0 checked (passed, or the Alert written); 1 not checked, or the Alert could not be written.
+set -uo pipefail
+
+repo="${IDEASHUB_REPO:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.." && pwd)}"
+state="$HOME/.local/state/ideas-hub"
+log="$state/acceptance.log"
+mkdir -p "$state"
+cd "$repo" || exit 1
+
+# Asia/Ho_Chi_Minh as a POSIX zone (UTC+7, no DST), so a host without tzdata cannot fall back to UTC.
+day="$(TZ=UTC-7 date +%F)"
+say() { printf '%s [acceptance] %s\n' "$(date -u +%FT%TZ)" "$*" | tee -a "$log"; }
+alert() {
+  pnpm --silent ops:alert acceptance_failed "$day" "$1" && return 0
+  say "warning: the Alert could not be written"
+  return 1
+}
+
+say "check for $day"
+err="$(mktemp)"
+trap 'rm -f "$err"' EXIT
+# stderr apart, so a runtime warning never lands in the CSV.
+if ! out="$(pnpm --silent ro-query < scripts/acceptance.sql 2>"$err")"; then
+  tail -n 5 "$err" >> "$log"
+  say "the acceptance queries failed"
+  alert "acceptance queries failed: $(tail -n 1 "$err" | cut -c1-300)"
+  exit 1
+fi
+printf '%s\n' "$out" >> "$log"
+
+# ro-query prints each result as a CSV header line and its rows, results separated by a blank line;
+# every check here is a one-row result with plain values, read by column name.
+failures="$(printf '%s\n' "$out" | awk -F, '
+  /^$/ { inblock = 0; next }
+  !inblock { n = split($0, head); inblock = 1; next }
+  { for (i = 1; i <= n; i++) v[head[i]] = $i }
+  END {
+    k = split("success_ratio ok_searches planned_searches blocked_unsent parse_error_unsent network_mismatch ok_without_embedded has_next_without_page silent_stops on_time sections_ok", need, " ")
+    for (j = 1; j <= k; j++) if (!(need[j] in v)) { print "column " need[j] " missing from the output"; bad = 1 }
+    if (bad) exit
+    if (v["success_ratio"] == "") print "AC 1: no planned searches in 14 days"
+    else if (v["success_ratio"] + 0 < 0.9) print "AC 1: success_ratio " v["success_ratio"] " (" v["ok_searches"] "/" v["planned_searches"] ") < 0.90"
+    for (j = 4; j <= 9; j++) if (v[need[j]] + 0 > 0) print (j <= 6 ? "AC 1: " : "AC 2: ") need[j] " " v[need[j]]
+    if (v["on_time"] != "t") print "AC 3: today'"'"'s briefing " (v["ready_at"] == "" ? "not ready" : "ready at " v["ready_at"]) ", not before 07:00"
+    if (v["sections_ok"] != "t") print "AC 3: today'"'"'s briefing lacks its 6 generated sections"
+  }')"
+
+if [ -z "$failures" ]; then
+  say "passed"
+  exit 0
+fi
+printf '%s\n' "$failures" | sed 's/^/  failed: /' >> "$log"
+say "failed; Alert acceptance_failed $day"
+alert "$(printf '%s' "$failures" | paste -sd ';' - | sed 's/;/; /g')" || exit 1
+exit 0

@@ -39,6 +39,12 @@ docker compose -p ideas-hub exec -T postgres psql -U ideashub -d ideashub -v ON_
 With a `psql` client on the host, `psql "$DATABASE_URL" -f scripts/acceptance.sql` gives the same output.
 Each `-- name:` block is one query and prints one result. Read-only: the file only selects.
 
+On the production host, `ideashub-acceptance.timer` (phase 2 plan Step 8, enabled by the pilot's start
+session) runs this file at 07:30 through the read-only role, appends the output to
+`~/.local/state/ideas-hub/acceptance.log`, and sends an `acceptance_failed` Alert to Lark only when AC 1 is
+under 0.90, an AC 1 or AC 2 count is above 0, or today's briefing (`ac3_today`) is late or lacks its 6
+sections.
+
 The queries look back 14 days from now. Until day 14 the window still holds rows from before
 `<run-start>` (the Linux re-check, Windows): read days 1–13 as a trend, and take the **verdict from the
 run made at or after `<run-start>` + 14 days**, when the window is exactly the run.
