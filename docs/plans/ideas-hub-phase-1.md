@@ -27,6 +27,7 @@ Critic findings: shadcn `white` and `black`, one size-refusal message, the `(app
 route details, notify polling, KeywordDay `slot`). Planning only: no code, no commit.
 Inputs: `docs/specs/phase-1.md` (canonical spec), `docs/adr/0001-stack.md` (accepted),
 `docs/research/2026-10-19-sources-and-crawlers.md`.
+Next: production and the pilot are planned in [phase 2](ideas-hub-phase-2.md).
 
 ## Requirements summary
 
