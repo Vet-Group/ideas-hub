@@ -70,8 +70,8 @@ bucket_counts() {
     awk '/"type":"file"/ { n++; if (match($0, /"size":[0-9]+/)) b += substr($0, RSTART + 7, RLENGTH - 7) } END { printf "%d %.0f\n", n, b }'
 }
 
-[ -n "${RESTIC_REPOSITORY:-}" ] && [ -r "${RESTIC_PASSWORD_FILE:-}" ] ||
-  fail config "RESTIC_REPOSITORY or a readable RESTIC_PASSWORD_FILE is missing (~/.config/ideas-hub/backup.env)"
+[ -n "${RESTIC_REPOSITORY:-}" ] || fail config "RESTIC_REPOSITORY is not set (~/.config/ideas-hub/backup.env)"
+[ -r "${RESTIC_PASSWORD_FILE:-}" ] || fail config "RESTIC_PASSWORD_FILE is not a readable file (~/.config/ideas-hub/backup.env)"
 
 if [ "$drill" = 0 ]; then
   # A database a failed deploy restore left broken is never snapshotted over the good ones.
@@ -85,7 +85,8 @@ if [ "$drill" = 0 ]; then
     awk '/^COPY / { t = $2; n = 0; next } t != "" && /^\\\.$/ { print "rows", t, n; t = ""; next } t != "" { n++ }' \
       > "$staging/counts.txt" || fail counts "reading the dump's row counts failed"
   grep -q '^rows ' "$staging/counts.txt" || fail counts "the dump holds no table"
-  minio="$("${compose[@]}" ps -q minio)" && [ -n "$minio" ] || fail counts "the minio container is not running"
+  minio="$("${compose[@]}" ps -q minio)" || minio=""
+  [ -n "$minio" ] || fail counts "the minio container is not running"
   objects="$(bucket_counts "$minio")" || fail counts "listing bucket $bucket failed"
   echo "objects $bucket $objects" >> "$staging/counts.txt"
   say "dumped: $(grep -c '^rows ' "$staging/counts.txt") tables, $(sed -n 's/^objects [^ ]* //p' "$staging/counts.txt") (objects bytes)"
