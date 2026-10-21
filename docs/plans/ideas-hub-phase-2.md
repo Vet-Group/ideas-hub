@@ -1053,3 +1053,17 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   through a role holding only the column grants listed in `apps/worker/test/acceptance.test.ts`
   (`RO_GRANTS`). Left to the start session: those grants on `ideashub_ro`, enabling the timer, the
   tracking issue, the `pilot-verdict` report in `ops-report.ps1` and its day-14 task.
+- Step 4 item 12 done ahead (2026-10-21): `scripts/windows/ops-report.ps1`, the fixed SQL of
+  `scripts/sql/prod-measure/` (T_first, window, counted runs, backfilled and pre-measurement slots, counts
+  only) and the Step 7 prompt template `scripts/windows/prod-measure-prompt.md`, tested on a disposable
+  database together with the runner's `-FakeData` mode (pass, extend, fail, `.done`, item 6's refusals); the
+  `-DryRun` canary ran for real on the development PC (Claude Code 2.1.306 has `--tools`; allow rules need
+  `//c/Users/...` paths, `/C:/...` silently matches nothing). Step 4 session 2 now only runs `-DryRun` for
+  real (keys, collection) and registers the task. Deviations: T_start is read from
+  `%LOCALAPPDATA%\ideas-hub-ops\prod-measure\t-start.txt` and the runner writes `prompt.md` from the
+  template; the stats key's four files land in one `stats.txt`; a pass also needs all 2N runs counted;
+  the freeze ends (item 8) before the Lark summary (item 7), so the summary states the outcome; the runner
+  drops `CLAUDE_CODE_PLUGIN_DIRS` for the model's session; a runner error posts one Lark line; the
+  excluded-slots query prints a `backfilled` flag instead of the Alert detail. The SQL runs in the test
+  through a role holding only `PROD_MEASURE_GRANTS` (`apps/worker/test/prod-measure.test.ts`), which
+  session 2 grants to `ideashub_ro` next to Step 8's `RO_GRANTS`.
