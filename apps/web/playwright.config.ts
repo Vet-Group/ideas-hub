@@ -13,7 +13,9 @@ export default defineConfig({
   // Approved baselines only (e2e/support/screens.ts); a run never writes one.
   updateSnapshots: 'none',
   snapshotPathTemplate: '{testDir}/__screenshots__/{platform}/{arg}-{projectName}{ext}',
-  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: 'disabled' } },
+  // scale 'device': the pending screenshots the owner reviews are taken at the device's pixel ratio (2.625
+  // on the phone project), so the comparison uses the same pixels.
+  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: 'disabled', scale: 'device' } },
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
     channel: 'chrome',

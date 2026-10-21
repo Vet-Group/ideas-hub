@@ -172,6 +172,7 @@ export const t = {
     openLibrary: 'Mở trong Ad Library',
     openLanding: 'Mở trang đích',
     started: 'Bắt đầu chạy',
+    daysActive: 'Số ngày chạy',
     seenDays: 'Số ngày thấy',
     firstSeen: 'Thấy lần đầu',
     lastSeen: 'Thấy gần nhất',

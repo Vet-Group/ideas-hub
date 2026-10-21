@@ -14,8 +14,8 @@ export function DeltaLabel({ delta }: { delta: Delta | null }) {
   const n = delta.change;
   const text = n > 0 ? `+${n} ▲` : n < 0 ? `−${Math.abs(n)} ▼` : '0';
   return (
-    <span className="whitespace-nowrap">
-      <span className={cn('font-mono', n > 0 ? 'text-success' : 'text-fg-2')}>{text}</span>{' '}
+    <span>
+      <span className={cn('font-mono whitespace-nowrap', n > 0 ? 'text-success' : 'text-fg-2')}>{text}</span>{' '}
       <span className="text-fg-muted text-xs">{delta.partial ? t.states.sinceShort(ddmm(delta.baselineDay)) : t.states.vsDate(ddmm(delta.baselineDay))}</span>
     </span>
   );
