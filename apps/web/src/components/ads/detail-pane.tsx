@@ -72,7 +72,7 @@ export function DetailPane({ ad, saveStores, via = 'ads' }: { ad: AdListItem & {
         </details>
       ) : null}
       {/* In the phone's bottom sheet "Lưu" stays pinned at the bottom (spec §6 "Phones"). */}
-      <div className="bg-surface border-line sticky bottom-0 -mx-4 -mb-4 hidden justify-end border-t p-4 group-data-[pane=bottom]:flex">{save}</div>
+      <div className="bg-surface border-line sticky -bottom-4 -mx-4 -mb-4 hidden justify-end border-t px-4 py-2 group-data-[pane=bottom]:flex">{save}</div>
     </article>
   );
 }
