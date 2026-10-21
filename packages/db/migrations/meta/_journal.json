@@ -57,6 +57,13 @@
       "when": 1792539446759,
       "tag": "0007_alert_settings_invalid",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792572856626,
+      "tag": "0008_ops_alerts",
+      "breakpoints": true
     }
   ]
 }

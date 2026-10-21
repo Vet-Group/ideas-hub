@@ -62,6 +62,11 @@ test('signing out ends the session and shows the sign-in page', async ({ page })
   await expect(page).toHaveURL(/\/login\?callbackURL=%2Fruns/);
 });
 
+test('/api/health answers 200 without a session and without a redirect', async ({ request }) => {
+  const res = await request.get('/api/health', { maxRedirects: 0 });
+  expect([res.status(), await res.text()]).toEqual([200, '{"ok":true}']);
+});
+
 test('sign-up is disabled: the auth API refuses it and creates no user', async ({ request }) => {
   const email = 'signup-e2e@test.local';
   const res = await request.post('/api/auth/sign-up/email', {

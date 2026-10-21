@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Linux side of the trial, part 2 (docs/ops/linux-trial.md, step 7). Installs the systemd user units from
-# deploy/linux into ~/.config/systemd/user with this checkout's paths filled in, enables lingering so they
-# run without a login, and enables and starts: the Xvfb display, the web app, the worker, the watchdog
-# timer, and the tunnel when ~/.cloudflared/ideas-hub.yml exists. Only ideashub-* units are written; POD
+# deploy/linux into ~/.config/systemd/user with this checkout's paths filled in, links ideashub-deploy into
+# ~/.local/bin (so it follows the checkout), enables lingering unless it is on already, and enables and
+# starts: the Xvfb display, the web app, the worker, the watchdog timer, the auto-deploy timer (phase 2
+# plan Step 2a), and the tunnel when ~/.cloudflared/ideas-hub.yml exists. Only ideashub-* units are written; POD
 # Studio's units and tunnel are never touched. ONLY after the owner's go-ahead, with Windows stopped.
 #   scripts/linux/install-units.sh [--dry-run]
 # --dry-run prints the filled-in units and every command instead of running them.
@@ -46,13 +47,21 @@ for src in "$repo"/deploy/linux/ideashub-*.service "$repo"/deploy/linux/ideashub
   fi
 done
 
-run loginctl enable-linger "$USER"
+run mkdir -p "$HOME/.local/bin"
+run ln -sfn "$repo/scripts/linux/ideashub-deploy" "$HOME/.local/bin/ideashub-deploy"
+# Root turned lingering on when it created the user (phase 2 plan Step 3); enable-linger as the user
+# would need polkit.
+if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" = yes ]; then
+  echo "note: lingering is already on for $USER"
+else
+  run loginctl enable-linger "$USER"
+fi
 run systemctl --user daemon-reload
-run systemctl --user enable --now ideashub-xvfb.service ideashub-web.service ideashub-worker.service ideashub-watchdog.timer
+run systemctl --user enable --now ideashub-xvfb.service ideashub-web.service ideashub-worker.service ideashub-watchdog.timer ideashub-deploy.timer
 if [ -f "$HOME/.cloudflared/ideas-hub.yml" ]; then
   [ -x "$cloudflared_bin" ] || fail "cloudflared not found"
   run systemctl --user enable --now ideashub-tunnel.service
 else
   echo "note: ~/.cloudflared/ideas-hub.yml not found; tunnel unit installed but not enabled (docs/ops/linux-trial.md, \"Tunnel\")"
 fi
-run systemctl --user --no-pager status ideashub-xvfb.service ideashub-web.service ideashub-worker.service ideashub-watchdog.timer
+run systemctl --user --no-pager status ideashub-xvfb.service ideashub-web.service ideashub-worker.service ideashub-watchdog.timer ideashub-deploy.timer

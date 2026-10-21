@@ -1010,3 +1010,11 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
 - Host access (2026-10-21, owner): the root alias `podstudio-prod` only for the one-off root commands of
   Steps 3.1 and 4.1 (run by the session after the owner's go-ahead); a new `ideashub-prod` alias for
   everything else; owner minutes of Steps 3 and 4 lowered accordingly.
+- Step 2a (2026-10-21): `GET /api/health` (public in `proxy.ts`), the ops Alert kinds with `alerts.dedupe_key`
+  (migration 0008), `pnpm ops:alert`, `ops:quiet` (the deploy's quiet gate as code, tested on a
+  database), `ro-query` and `lark:post`, `scripts/linux/ideashub-deploy` with its units and the caps,
+  `install-units.sh` linking the script and enabling the deploy timer; a fake-command suite with one case
+  per branch plus the real-database restore case (CI runs it through the Postgres service container).
+  Deviations: the deploy unit carries `DOCKER_HOST=unix://%t/docker.sock` itself instead of
+  `install-units.sh` filling it in; a dirty checkout and a dump failure also Alert (`checkout:<date>`,
+  `<sha>:dump`); unit files changed by a deploy take effect only after `install-units.sh` runs again.

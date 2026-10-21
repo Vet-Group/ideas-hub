@@ -1,0 +1,19 @@
+# One auto-deploy pass (ADR 0006): scripts/linux/ideashub-deploy, linked into ~/.local/bin by
+# install-units.sh. Capped and idle-IO so a build never crowds POD Studio on the shared host. The token
+# (GH_TOKEN, fine-grained, read-only) is in ~/.config/ideas-hub/deploy.env, chmod 600.
+[Unit]
+Description=Ideas Hub auto-deploy pass
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=%h/.local/bin:@PATH@
+# Rootless Docker (ADR 0005): the user's own daemon socket.
+Environment=DOCKER_HOST=unix://%t/docker.sock
+EnvironmentFile=-%h/.config/ideas-hub/deploy.env
+ExecStart=%h/.local/bin/ideashub-deploy
+TimeoutStartSec=30min
+MemoryMax=2G
+CPUQuota=100%
+Nice=15
+IOSchedulingClass=idle

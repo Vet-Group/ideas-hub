@@ -178,6 +178,10 @@ const ALERT_LABELS: Record<string, string> = {
   briefing_late: 'Briefing chưa sẵn sàng đúng giờ',
   lark_send_failed: 'Gửi Lark thất bại',
   settings_invalid: 'Cài đặt không hợp lệ, đã dừng lập lịch',
+  deploy_failed: 'Deploy thất bại',
+  backup_failed: 'Backup thất bại',
+  disk_space: 'Ổ đĩa sắp đầy',
+  retention_failed: 'Dọn dữ liệu cũ thất bại',
 };
 
 export function alertMessage(a: AlertRow): string {

@@ -16,6 +16,13 @@ ExecStart=@PNPM@ --silent worker
 Restart=always
 RestartSec=5
 TimeoutStopSec=30
+# Caps (phase 2 plan Step 2a; starting values, Steps 4 and 7 record peaks). Chrome lives in this cgroup:
+# it is throttled above MemoryHigh and, when the user slice runs short, killed before Postgres.
+MemoryHigh=1750M
+MemoryMax=2500M
+CPUQuota=150%
+Nice=10
+OOMScoreAdjust=500
 
 [Install]
 WantedBy=default.target

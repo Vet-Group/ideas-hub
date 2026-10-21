@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+# ideashub-deploy: deploys origin/main on the production host once its CI run is green and the crawler is
+# quiet (ADR 0006, phase 2 plan Step 2a). Started by ideashub-deploy.timer as the ideashub user; POD
+# Studio's podflow-deploy is the pattern, not the text.
+#   ideashub-deploy                  deploy a new green commit when quiet, else exit 0 (next tick)
+#   ideashub-deploy --check          exit 0 when origin/main has a new commit, 1 when not
+#   ideashub-deploy --force          every step again, even without a new commit (the CI and quiet gates stay)
+#   ideashub-deploy --ci-status SHA  print the CI gate's verdict for SHA, deploy nothing
+# Order: lock → fetch → CI gate → quiet gate → fast-forward, install, build → quiet gate again → stop the
+# watchdog timer, worker and web → pg_dump → compose up (if changed) → migrate → start → health. A build,
+# migrate or health failure goes back to the old commit and starts what it stopped; a health failure after
+# a migration change first restores the dump. Every failure writes a deploy_failed ops Alert.
+# Environment: IDEASHUB_REPO (default: the checkout holding this script), IDEASHUB_REPO_SLUG (owner/name,
+# default from origin's URL), IDEASHUB_BUILD_CMD (the new commit's build; the drill sets `false`), GH_TOKEN
+# (fine-grained, this repo only, Actions and Contents read).
+# Exit: 0 deployed or nothing to do yet; 1 failed and rolled back; 2 a restore failed or its sentinel exists.
+set -Eeuo pipefail
+
+repo="${IDEASHUB_REPO:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.." && pwd)}"
+state="$HOME/.local/state/ideas-hub"
+build_new="${IDEASHUB_BUILD_CMD:-pnpm --filter @ideas-hub/web build}"
+health_url="http://127.0.0.1:3300/api/health"
+sentinel="$state/restore-failed"
+# Stopped in this order, started in reverse.
+units=(ideashub-watchdog.timer ideashub-worker ideashub-web)
+compose=(docker compose -p ideas-hub -f "$repo/docker-compose.yml")
+
+mkdir -p "$state/predeploy"
+exec > >(tee -a "$state/deploy.log") 2>&1
+
+say() { printf '%s [deploy] %s\n' "$(date -u +%FT%TZ)" "$*"; }
+usage() { sed -n '5,8p' "$0" >&2; exit 2; }
+alert() { # $1 = dedupe key, $2 = detail; the watchdog posts it
+  (cd "$repo" && pnpm --silent ops:alert deploy_failed "$1" "$2") || say "warning: the Alert $1 could not be written"
+}
+
+check=0; force=0; ci_only=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --check) check=1 ;;
+    --force) force=1 ;;
+    --ci-status) [ $# -ge 2 ] || usage; ci_only="$2"; shift ;;
+    -h | --help) sed -n '2,17p' "$0"; exit 0 ;;
+    *) usage ;;
+  esac
+  shift
+done
+
+cd "$repo"
+slug="${IDEASHUB_REPO_SLUG:-$(git remote get-url origin | sed -E 's#^.*github\.com[:/]##; s#\.git$##')}"
+
+# The CI gate: prints success, pending, red:<conclusion>, rejected or error:<message> for a full sha.
+ci_verdict() {
+  local out
+  if ! out="$(gh api "repos/$slug/actions/runs?head_sha=$1&branch=main&per_page=20" \
+    --jq '[.workflow_runs[] | select(.name == "CI")] | first | if . == null then "none" else "\(.status) \(.conclusion)" end' 2>&1)"; then
+    case "$out" in *"HTTP 401"* | *"HTTP 403"*) echo rejected ;; *) echo "error:${out//$'\n'/ }" ;; esac
+    return
+  fi
+  case "$out" in
+    "completed success") echo success ;;
+    completed\ *) echo "red:${out#completed }" ;;
+    *) echo pending ;; # no run yet, queued, in_progress, waiting
+  esac
+}
+
+if [ -n "$ci_only" ]; then
+  sha="$(git rev-parse --verify --quiet "$ci_only^{commit}")" || { echo "unknown commit $ci_only (git fetch first?)"; exit 1; }
+  v="$(ci_verdict "$sha")"
+  case "$v" in
+    success) echo "success, deployable" ;;
+    pending) echo "pending, not deployed yet" ;;
+    red:*) echo "${v#red:}, not deployed" ;;
+    rejected) echo "token rejected, not deployed"; exit 1 ;;
+    *) echo "${v#error:}"; exit 1 ;;
+  esac
+  exit 0
+fi
+
+# 1. One ops job at a time (backup, retention and the drill take the same lock).
+exec 9>"$state/ops.lock"
+flock -n 9 || { say "ops.lock is held by another ops job; next tick"; exit 0; }
+if [ -e "$sentinel" ]; then
+  say "refusing: $sentinel exists (a restore failed; a person restores by hand, then removes it):"
+  cat "$sentinel"
+  exit 2
+fi
+today="$(date -u +%F)"
+if [ -n "$(git status --porcelain --untracked-files=no)" ] || [ "$(git rev-parse --abbrev-ref HEAD)" != main ]; then
+  say "refusing: the checkout is dirty or not on main (git -C $repo status)"
+  alert "checkout:$today" "the checkout at $repo is dirty or not on main; deploys are paused"
+  exit 1
+fi
+if pgrep -f podflow-deploy >/dev/null; then
+  say "POD Studio's deploy is running; next tick"
+  exit 0
+fi
+
+# 2. Anything new?
+git fetch --quiet origin main || { say "git fetch failed; next tick"; exit 0; }
+old="$(git rev-parse HEAD)"
+new="$(git rev-parse origin/main)"
+if [ "$old" = "$new" ]; then
+  [ "$check" = 1 ] && { say "no new commit (${old:0:8})"; exit 1; }
+  [ "$force" = 1 ] || exit 0
+else
+  git merge-base --is-ancestor "$old" "$new" || { say "origin/main does not fast-forward from ${old:0:8}"; alert "$new:fetch" "origin/main ${new:0:8} does not fast-forward from ${old:0:8}"; exit 1; }
+  [ "$check" = 1 ] && { say "new commit ${new:0:8} (now ${old:0:8})"; exit 0; }
+  if [ "$force" != 1 ] && [ "$(cat "$state/failed-sha" 2>/dev/null)" = "$new" ]; then
+    exit 0 # failed before; skipped until origin/main moves or --force
+  fi
+fi
+
+# 3. CI gate.
+verdict="$(ci_verdict "$new")"
+case "$verdict" in
+  success) ;;
+  pending)
+    age=$(($(date +%s) - $(git log -1 --format=%ct "$new")))
+    say "CI of ${new:0:8} not finished (commit ${age}s old); next tick"
+    [ "$age" -lt 3600 ] || alert "$new:ci-pending" "no finished CI run for ${new:0:8} after 60 minutes"
+    exit 0 ;;
+  red:*)
+    say "CI ${verdict#red:} on ${new:0:8}; not deployed"
+    alert "$new:ci" "CI ${verdict#red:} on ${new:0:8}"
+    exit 0 ;;
+  rejected)
+    say "the GitHub token was rejected"
+    alert "token:$today" "deploy token rejected"
+    exit 1 ;;
+  *)
+    say "GitHub API: ${verdict#error:}; next tick"
+    exit 0 ;;
+esac
+
+# 4. Quiet gate; it needs the database, so an unreachable one also waits.
+quiet() {
+  local out rc=0
+  out="$(pnpm --silent ops:quiet 2>&1)" || rc=$?
+  [ "$rc" = 0 ] && return 0
+  if [ "$rc" = 10 ]; then say "not quiet: ${out//$'\n'/; }"; else say "quiet gate could not read the database: ${out//$'\n'/ }"; fi
+  return 1
+}
+quiet || exit 0
+
+stopped=()
+compose_changed=0
+back_note=""
+
+start_stopped() {
+  local i
+  for ((i = ${#stopped[@]} - 1; i >= 0; i--)); do systemctl --user start "${stopped[i]}" || say "warning: could not start ${stopped[i]}"; done
+  stopped=()
+}
+
+# Any exit this script did not plan (set -e) still starts what it stopped; a failed restore (2) does not.
+on_exit() {
+  local rc=$?
+  if [ "$rc" != 0 ] && [ "$rc" != 2 ] && [ ${#stopped[@]} -gt 0 ]; then
+    say "unexpected exit $rc: starting ${stopped[*]}"
+    start_stopped
+  fi
+}
+trap on_exit EXIT
+
+# The old code back as it ran: reset, reinstall, rebuild with the real build (never IDEASHUB_BUILD_CMD:
+# the drill's `false` must not keep the old commit from coming back), restart web if it kept running (its
+# .next was rebuilt) and start whatever this run stopped. Problems go to back_note for the Alert.
+old_code_back() {
+  back_note=""
+  git reset --hard --quiet "$old"
+  if [ "$compose_changed" = 1 ]; then "${compose[@]}" up -d --wait || back_note="$back_note compose up of the old file failed;"; fi
+  { pnpm install --frozen-lockfile && pnpm --filter @ideas-hub/web build; } || back_note="$back_note rebuilding ${old:0:8} failed;"
+  systemctl --user try-restart ideashub-web || back_note="$back_note web did not restart;"
+  start_stopped
+}
+
+fail_back() { # $1 = stage; build, compose, migrate and health failures mark the commit
+  say "deploy of ${new:0:8} failed at $1; back to ${old:0:8}"
+  old_code_back
+  case "$1" in build | compose | migrate | health) echo "$new" > "$state/failed-sha" ;; esac
+  # Written after the restart, so the watchdog posts it.
+  alert "$new:$1" "deploy of ${new:0:8} failed at $1; back to ${old:0:8}.$back_note"
+  exit 1
+}
+
+# 5. Fast-forward, install, build.
+git merge --ff-only --quiet "$new"
+say "building ${new:0:8}"
+{ pnpm install --frozen-lockfile && bash -c "$build_new"; } || fail_back build
+
+# 6. Quiet gate again; the build took minutes.
+if ! quiet; then
+  say "back to ${old:0:8}; next tick"
+  old_code_back
+  exit 0
+fi
+
+# 7. Stop, dump, compose, migrate, start.
+for u in "${units[@]}"; do
+  if systemctl --user is-active --quiet "$u"; then stopped+=("$u"); systemctl --user stop "$u"; fi
+done
+dump="$state/predeploy/$new-$(date -u +%Y%m%dT%H%M%SZ).dump"
+if ! "${compose[@]}" exec -T postgres pg_dump -U ideashub -d ideashub -Fc > "$dump.part"; then
+  rm -f "$dump.part"
+  fail_back dump
+fi
+mv "$dump.part" "$dump"
+# Keep the last 3 dumps, and any dump a sentinel names.
+find "$state/predeploy" -name '*.dump' -printf '%T@ %p\n' | sort -rn | tail -n +4 | cut -d' ' -f2- | while read -r f; do
+  grep -qF "$f" "$sentinel" 2>/dev/null || rm -f "$f"
+done
+if ! git diff --quiet "$old" "$new" -- docker-compose.yml; then
+  compose_changed=1
+  "${compose[@]}" up -d --wait || fail_back compose
+fi
+pnpm db:migrate || fail_back migrate
+t0="$(date +%s)"
+stopped=("${units[@]}")
+start_stopped
+stopped=("${units[@]}") # from here on, a failure stops and starts all three
+
+# 8. Health: web within 2 minutes, the worker active, a heartbeat newer than the restart within 4 minutes.
+psql_db() { "${compose[@]}" exec -T postgres psql -U ideashub -d ideashub -AtX -v ON_ERROR_STOP=1 -c "$1"; }
+healthy() {
+  local i
+  for ((i = 0; i < 40; i++)); do curl -fsS -o /dev/null --max-time 5 "$health_url" && break; sleep 3; done
+  [ "$i" -lt 40 ] || { say "no 200 from $health_url within 2 minutes"; return 1; }
+  systemctl --user is-active --quiet ideashub-worker || { say "ideashub-worker is not active"; return 1; }
+  for ((i = 0; i < 48; i++)); do
+    [ "$(psql_db "select count(*) from crawler_state where heartbeat_at > to_timestamp($t0)" 2>/dev/null)" = 1 ] && return 0
+    sleep 5
+  done
+  say "no worker heartbeat within 4 minutes of the restart"
+  return 1
+}
+
+restore_failed() {
+  say "RESTORE FAILED: web, worker and the watchdog timer stay stopped"
+  printf 'restore of %s failed at %s while deploying %s over %s.\nweb, worker and the watchdog timer are stopped, ideashub-deploy.timer is disabled.\nRestore the database by hand, then: pnpm install --frozen-lockfile, pnpm --filter @ideas-hub/web build, start the units, enable the timer, and remove this file.\n' \
+    "$dump" "$(date -u +%FT%TZ)" "$new" "$old" > "$sentinel"
+  systemctl --user disable --now ideashub-deploy.timer || say "warning: could not disable ideashub-deploy.timer"
+  # Straight to Lark: the database may be gone, so no Alert row.
+  printf '[Ideas Hub] Deploy %s: khôi phục database thất bại. Web, worker và watchdog đã dừng, auto-deploy đã tắt. Cần khôi phục tay theo %s trên máy chủ.\n' "${new:0:8}" "$sentinel" \
+    | pnpm --silent lark:post || say "warning: the Lark post failed"
+  git reset --hard --quiet "$old"
+  exit 2
+}
+
+if ! healthy; then
+  for u in "${units[@]}"; do systemctl --user stop "$u" || true; done
+  if ! git diff --quiet "$old" "$new" -- packages/db/migrations; then
+    say "migrations changed: restoring $dump"
+    # A re-created database leaves no table or type the new migrations added, and the journal matches.
+    { "${compose[@]}" exec -T postgres dropdb -U ideashub --force ideashub &&
+      "${compose[@]}" exec -T postgres createdb -U ideashub -O ideashub ideashub &&
+      "${compose[@]}" exec -T postgres pg_restore -U ideashub -d ideashub --no-owner --exit-on-error < "$dump" &&
+      psql_db "revoke temp on database ideashub from public"; } || restore_failed
+  fi
+  fail_back health
+fi
+
+echo "$new" > "$state/deployed-sha"
+rm -f "$state/failed-sha"
+say "deployed $new"

@@ -62,8 +62,16 @@ jobs:
       - name: Lint
         run: pnpm -r lint
 
+      - name: Shell scripts
+        run: |
+          for f in scripts/linux/*.sh scripts/linux/ideashub-deploy apps/worker/test/deploy-fake.sh; do bash -n "$f"; done
+          shellcheck scripts/linux/*.sh scripts/linux/ideashub-deploy apps/worker/test/deploy-fake.sh
+
       - name: Test
         run: pnpm -r test
+        env:
+          # The deploy suite's restore case runs pg_dump and pg_restore inside the Postgres service container.
+          IDEASHUB_TEST_PG_CONTAINER: ${{ job.services.postgres.id }}
 
       # A service container cannot take the `server /data` command, so MinIO (docker-compose.yml's image)
       # starts here, for the e2e thumbnails and uploads.

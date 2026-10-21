@@ -9,7 +9,8 @@ import { auth } from './lib/auth';
  */
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-  if (pathname === '/login' || pathname.startsWith('/api/auth/') || pathname.startsWith('/thumbs/')) return NextResponse.next();
+  // /api/health is the deploy's and the tunnel's probe; it returns no data.
+  if (pathname === '/login' || pathname === '/api/health' || pathname.startsWith('/api/auth/') || pathname.startsWith('/thumbs/')) return NextResponse.next();
 
   const soft = req.headers.get('rsc') === '1' && !req.headers.get('next-action');
   const { response: session, headers } = await auth.api.getSession({
