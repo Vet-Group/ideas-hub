@@ -1,0 +1,17 @@
+# The monthly restore drill (ADR 0007): `ideashub-backup --drill` restores the latest snapshot into a
+# temporary database and a temporary MinIO and compares them with its counts.txt.
+[Unit]
+Description=Ideas Hub backup restore drill
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=%h/.local/bin:@PATH@
+Environment=DOCKER_HOST=unix://%t/docker.sock
+EnvironmentFile=-%h/.config/ideas-hub/backup.env
+ExecStart=%h/.local/bin/ideashub-backup --drill
+TimeoutStartSec=3h
+MemoryMax=1G
+CPUQuota=100%
+Nice=15
+IOSchedulingClass=idle

@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# ideashub-sizes: the daily size and disk line (ADR 0007, phase 2 plan Step 2c), run as the ideashub user
+# by ideashub-sizes.timer at 08:45.
+#   ~/.local/state/ideas-hub/sizes.csv  date, database bytes, bucket bytes and objects, used % of the
+#                                       filesystem holding the Docker data root and of $HOME
+#   ~/.local/state/ideas-hub/peaks.csv  per unit (ideashub-worker, -web, -deploy): MemoryPeak, CPUUsageNSec
+# A disk_space ops Alert at >= IDEASHUB_DISK_WARN_PCT (default 80, warning) and >= 90 (critical), keyed
+# <date>:<mount point>:<warning|critical>; IDEASHUB_ALERT_KEY replaces the date (the Step 5 check).
+# Sessions that restart a unit by hand append "<UTC time> <unit> <reason>" to restarts.log next to these.
+# Exit: 0 done; 1 a size could not be read (its field is left empty; the disk check still runs).
+set -Euo pipefail
+
+repo="${IDEASHUB_REPO:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.." && pwd)}"
+state="$HOME/.local/state/ideas-hub"
+warn="${IDEASHUB_DISK_WARN_PCT:-80}"
+critical=90
+compose=(docker compose -p ideas-hub -f "$repo/docker-compose.yml")
+
+mkdir -p "$state"
+exec > >(tee -a "$state/sizes.log") 2>&1
+say() { printf '%s [sizes] %s\n' "$(date -u +%FT%TZ)" "$*"; }
+cd "$repo" || exit 1
+bucket="$(sed -n 's/^S3_BUCKET=//p' .env 2>/dev/null | tr -d '\r"')"
+bucket="${bucket:-ideas-hub}"
+
+# Read-only, so it measures anyway when another ops job holds the lock too long.
+exec 9>"$state/ops.lock"
+flock -w 1800 9 || say "ops.lock still held after 30 minutes; measuring anyway"
+
+rc=0
+db_bytes="$("${compose[@]}" exec -T postgres psql -U ideashub -d ideashub -AtX -c "select pg_database_size('ideashub')")" ||
+  { say "database size not readable"; db_bytes=""; rc=1; }
+objects="" bytes=""
+minio="$("${compose[@]}" ps -q minio)"
+if [ -n "$minio" ] && listing="$(docker exec "$minio" sh -c 'MC_HOST_ih="http://$MINIO_ROOT_USER:$MINIO_ROOT_PASSWORD@127.0.0.1:9000" exec mc ls --recursive --json "ih/$1"' mc "$bucket")"; then
+  read -r objects bytes < <(printf '%s\n' "$listing" |
+    awk '/"type":"file"/ { n++; if (match($0, /"size":[0-9]+/)) b += substr($0, RSTART + 7, RLENGTH - 7) } END { printf "%d %.0f\n", n, b }')
+else
+  say "bucket $bucket not readable"
+  rc=1
+fi
+
+docker_root="$(docker info -f '{{.DockerRootDir}}' 2>/dev/null)" || docker_root=""
+# "<used %> <mount point>" of the filesystem holding $1.
+use() { df -P "$1" | awk 'NR == 2 { sub("%", "", $5); print $5, $6 }'; }
+read -r docker_pct docker_mnt < <(use "${docker_root:-$HOME}")
+read -r home_pct home_mnt < <(use "$HOME")
+[ -n "$docker_root" ] || { say "docker info failed; the Docker data root is measured as \$HOME"; rc=1; }
+
+[ -s "$state/sizes.csv" ] || echo "date,db_bytes,bucket_bytes,bucket_objects,docker_root_used_pct,home_used_pct" > "$state/sizes.csv"
+echo "$(date +%F),$db_bytes,$bytes,$objects,$docker_pct,$home_pct" >> "$state/sizes.csv"
+
+[ -s "$state/peaks.csv" ] || echo "time,unit,memory_peak_bytes,cpu_usage_nsec" > "$state/peaks.csv"
+now="$(date -u +%FT%TZ)"
+for u in ideashub-worker ideashub-web ideashub-deploy; do
+  props="$(systemctl --user show "$u" -p MemoryPeak -p CPUUsageNSec 2>/dev/null)" || props=""
+  echo "$now,$u,$(sed -n 's/^MemoryPeak=//p' <<< "$props"),$(sed -n 's/^CPUUsageNSec=//p' <<< "$props")" >> "$state/peaks.csv"
+done
+
+# One check per filesystem: rootless Docker keeps its data root under $HOME.
+key_date="${IDEASHUB_ALERT_KEY:-$(date -u +%F)}"
+check() { # $1 = used %, $2 = mount point
+  local level=""
+  if [ "$1" -ge "$critical" ]; then level=critical; elif [ "$1" -ge "$warn" ]; then level=warning; fi
+  [ -n "$level" ] || return 0
+  say "disk $2 at $1% ($level)"
+  pnpm --silent ops:alert disk_space "$key_date:$2:$level" "disk $2 at $1% used ($level, threshold $([ "$level" = critical ] && echo "$critical" || echo "$warn")%)" ||
+    { say "warning: the Alert could not be written"; rc=1; }
+}
+check "$docker_pct" "$docker_mnt"
+[ "$home_mnt" = "$docker_mnt" ] || check "$home_pct" "$home_mnt"
+say "db ${db_bytes:-?} B, bucket ${bytes:-?} B in ${objects:-?} objects, disk ${docker_mnt} ${docker_pct}%, ${home_mnt} ${home_pct}%"
+exit "$rc"

@@ -1,0 +1,12 @@
+# Daily at 08:45, after the backup has started (it waits for ops.lock). Installed disabled; enabled in
+# phase 2 Step 5.
+[Unit]
+Description=Ideas Hub sizes and disk check at 08:45
+
+[Timer]
+OnCalendar=*-*-* 08:45:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=ideashub-sizes.service
+
+[Install]
+WantedBy=timers.target
