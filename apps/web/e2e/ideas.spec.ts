@@ -3,11 +3,16 @@
 import { readFile } from 'node:fs/promises';
 import { type Locator, type Page, expect, test } from '@playwright/test';
 import { E2E_PORT } from './fixtures/env';
-import { IDEAS, STORES, USERS, e2ePool } from './fixtures/seed';
+import { IDEAS, STORES, USERS, e2ePool, resetIdeas } from './fixtures/seed';
 import { Actions } from './support/actions';
 import { freezeClock, signIn } from './support/session';
 
-test.beforeEach(async ({ page }) => freezeClock(page));
+// Each test starts from the seeded ideas, so a failed test or a repeat (--repeat-each) cannot leave a moved
+// status or a manual idea behind for the next one.
+test.beforeEach(async ({ page }) => {
+  await resetIdeas();
+  await freezeClock(page);
+});
 
 const ideasUrl = (view: 'table' | 'board', status = 'new') => `/ideas?store=${STORES.a.id}&view=${view}&status=${status}`;
 const statusOf = async (id: string) => {
@@ -51,6 +56,8 @@ test('changing a status from its menu takes 2 actions in the table and on the bo
   await b.click(column(page, 'Picked').getByRole('button', { name: 'Đổi trạng thái: Mug with paw print' }));
   await b.click(page.getByRole('menuitemradio', { name: 'Dropped' }));
   await expect(column(page, 'Dropped').getByText('Mug with paw print')).toBeVisible();
+  // The board moves the card before the server answers; the toast comes after the status is stored.
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Đã chuyển sang Dropped' })).toBeVisible();
   expect(b.count).toBe(2);
   expect(await statusOf(IDEAS.fresh)).toBe('dropped');
   await setStatus(IDEAS.fresh, 'new');
