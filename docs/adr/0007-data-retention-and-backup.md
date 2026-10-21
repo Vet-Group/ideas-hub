@@ -22,7 +22,8 @@ production, whose own backups sit on the same disk. Saved ideas and stored brief
   `thumbnail_key`, except ads referenced by a saved idea's snapshot, which keep both. An ad seen again
   gets a new thumbnail; a stored briefing that showed a pruned ad renders the missing-thumbnail state.
   The stored format does not change now; a smaller stored WebP is measured first and decided after the
-  pilot.
+  pilot ([measured 2026-10-21](../research/2026-10-21-thumbnail-size.md): WebP 640 px q75 is 24% of
+  today's bytes).
 - **Backup:** daily at 08:30 Asia/Ho_Chi_Minh (no crawl or briefing then): a `pg_dump -Fc`, a
   `counts.txt` of per-table row counts and the bucket's object count, and the MinIO volume, sent with
   `restic` (client-side encrypted, deduplicated, incremental; a fixed `--host` so snapshots chain and

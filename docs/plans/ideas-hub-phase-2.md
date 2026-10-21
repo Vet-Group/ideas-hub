@@ -1025,3 +1025,13 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   policy, fine-grained token policy and Actions billing need an org admin and stay unchecked; repo
   Actions are enabled. Remotes and the push proof are done; old links in `docs/status` now point to the
   new path, while historical mentions of the old name stay as written.
+- Step 2b (2026-10-21): `pnpm retention` (sightings over 180 crawl days in batches of 10,000;
+  thumbnails of ads not seen for 90 days, except keys in a saved idea's snapshot; a `retention_failed`
+  Alert keyed by the UTC date on an error), `SIGHTINGS_RETENTION_DAYS` and `THUMBNAIL_RETENTION_DAYS` in
+  `packages/core`, `scripts/linux/ideashub-retention` (waits up to an hour for `ops.lock`, Alerts under
+  the same key when the lock stays held or the pass dies), `ideashub-retention.service`/`.timer` (09:00,
+  written but not enabled by `install-units.sh` until Step 5), integration tests on a disposable database,
+  the 2a fake-command cases for the lock and Alert, an e2e case for a pruned briefing thumbnail, and
+  [the WebP measurement](../research/2026-10-21-thumbnail-size.md) (WebP 640 q75 = 24% of today's bytes;
+  format unchanged). Deviation: the bucket in the integration tests is the harness's in-memory store;
+  the S3 delete call has its own unit test.

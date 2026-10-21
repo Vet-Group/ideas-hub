@@ -16,6 +16,8 @@ export const systemClock: Clock = { now: () => new Date() };
 /** Object storage (MinIO in development); keys include their prefix (`thumbs/…`). */
 export interface ObjectStore {
   put(key: string, body: Buffer, contentType: string): Promise<void>;
+  /** Succeeds when the key has no object. */
+  delete(key: string): Promise<void>;
 }
 
 export interface Ctx {

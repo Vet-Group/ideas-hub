@@ -163,6 +163,23 @@ test('Briefing late and Before the ready time show the latest ready briefing wit
   }
 });
 
+test('a stored briefing whose thumbnail object was pruned shows the missing-thumbnail tile', async ({ page }) => {
+  // Retention (ADR 0007) deletes the object but never rewrites a stored briefing, so its key stays.
+  const setKey = (key: string) =>
+    sql(`update briefings set sections = jsonb_set(sections, '{topAds,0,thumbnailKey}', to_jsonb($1::text)) where id = $2`, [key, BRIEFINGS.failed]);
+  await signIn(page, USERS.member.email);
+  try {
+    await setKey('e2e_mug_pruned_image.jpg');
+    await page.goto('/briefing/2026-10-20');
+    const pruned = row(page, 'Ads trend nhất', 'Best dog mom mug gift 1');
+    await expect(pruned.getByText('Chưa có ảnh')).toBeVisible();
+    await expect(pruned.locator('img')).toHaveCount(0);
+    await expect(row(page, 'Ads trend nhất', 'Best dog mom mug gift 2').locator('img')).toHaveJSProperty('complete', true);
+  } finally {
+    await setKey('e2e_mug_1_image.jpg');
+  }
+});
+
 test('AI section failed and AI section skipped keep sections 1–4', async ({ page }) => {
   await signIn(page, USERS.member.email, `/login?callbackURL=${encodeURIComponent('/briefing/2026-10-20')}`);
   await expect(panel(page, 'Gợi ý từ AI')).toContainText('Chưa tạo được phần AI hôm nay');

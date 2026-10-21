@@ -77,6 +77,30 @@ describe.skipIf(!testDatabaseAvailable())('ops CLIs', () => {
     });
   });
 
+  describe('retention', () => {
+    it('prints the counts, and on an error exits 1 with a retention_failed Alert keyed by the UTC date', async () => {
+      // Nothing past retention: the object store is never called, so an unreachable one does not matter.
+      const env = { DATABASE_URL: h.url, S3_ENDPOINT: 'http://127.0.0.1:1', S3_ACCESS_KEY: 'x', S3_SECRET_KEY: 'x' };
+      const ok = await runCli(['retention'], '', env);
+      expect(ok.status, ok.stderr).toBe(0);
+      expect(JSON.parse(ok.stdout)).toMatchObject({ msg: 'retention', sightings: 0, thumbnails: 0 });
+
+      await h.db.execute(sql`insert into ads (ad_archive_id, first_seen_date, last_seen_date, thumbnail_key, parsed)
+        values ('ad_cli', '2000-01-01', '2000-01-01', 'ad_cli_image.jpg', '{}'::jsonb)`);
+      try {
+        const failed = await runCli(['retention'], '', env);
+        expect(failed.status).toBe(1);
+        const rows = await all<{ dedupe_key: string; detail: string }>(h, sql`select dedupe_key, detail from alerts where kind = 'retention_failed'`);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.dedupe_key).toBe(new Date().toISOString().slice(0, 10));
+        expect(rows[0]!.detail).toMatch(/^retention failed: /);
+        expect(await all(h, sql`select thumbnail_key from ads`)).toEqual([{ thumbnail_key: 'ad_cli_image.jpg' }]);
+      } finally {
+        await h.db.execute(sql`truncate ads cascade`);
+      }
+    }, 60_000);
+  });
+
   describe('ops:quiet', () => {
     const at = new Date('2026-10-21T03:00:00Z'); // 10:00, far from the 06:30 build
     const deadline = new Date(at.getTime() + 5 * 3_600_000);

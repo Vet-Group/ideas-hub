@@ -29,7 +29,7 @@ export async function toStoredImage(adArchiveId: string, kind: 'image' | 'video'
 }
 
 export interface DownloadDeps {
-  store: ObjectStore;
+  store: Pick<ObjectStore, 'put'>;
   fetch: typeof fetch;
   now: () => number;
   /** Heartbeat between downloads. */

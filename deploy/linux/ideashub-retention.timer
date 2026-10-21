@@ -1,0 +1,12 @@
+# Daily at 09:00 Asia/Ho_Chi_Minh (ADR 0007). install-units.sh writes it but does not enable it: deleted
+# data comes back only from a backup, so phase 2 Step 5 enables it after the first off-host backup and
+# drill (`systemctl --user enable --now ideashub-retention.timer`).
+[Unit]
+Description=Ideas Hub data retention daily at 09:00
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 Asia/Ho_Chi_Minh
+Unit=ideashub-retention.service
+
+[Install]
+WantedBy=timers.target

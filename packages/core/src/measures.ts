@@ -5,6 +5,11 @@ export const VIETNAM = 'Asia/Ho_Chi_Minh';
 
 const DAY_MS = 86_400_000;
 
+/** `ad_sightings` older than this many crawl days are deleted; the counts on `ads` stay (ADR 0002, 0007). */
+export const SIGHTINGS_RETENTION_DAYS = 180;
+/** An ad not seen for this many crawl days loses its thumbnail, unless a saved idea shows it (ADR 0007). */
+export const THUMBNAIL_RETENTION_DAYS = 90;
+
 const pacificFormat = new Intl.DateTimeFormat('en-CA', {
   timeZone: PACIFIC,
   year: 'numeric',

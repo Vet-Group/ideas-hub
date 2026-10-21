@@ -3,10 +3,13 @@
 //   pnpm --silent ops:quiet                                exit 0 when a deploy may restart units, 10 with the reasons
 //   pnpm --silent ro-query < query.sql                     run the text as RO_DATABASE_URL's role, print CSV
 //   pnpm --silent lark:post < message.txt                  post the text to the admin chat (no database)
+//   pnpm --silent retention                                one retention pass (ADR 0007); an error is a retention_failed Alert
 // Exit 2 is a usage error; 1 any other failure, including an unreachable database.
 import { text } from 'node:stream/consumers';
 import { createDb, createPool, databaseUrl } from '@ideas-hub/db/client';
 import { larkPost, opsAlert, quietReasons, roQuery } from './ops';
+import { retention } from './retention';
+import { s3StoreFromEnv } from './s3';
 
 const RO_QUERY_TIMEOUT_MS = 60_000;
 
@@ -46,8 +49,18 @@ try {
     process.stdout.write(await roQuery(url, await text(process.stdin), RO_QUERY_TIMEOUT_MS));
   } else if (cmd === 'lark-post') {
     console.log(`posted ${await larkPost(await text(process.stdin))}`);
+  } else if (cmd === 'retention') {
+    const at = new Date();
+    try {
+      console.log(JSON.stringify({ at: at.toISOString(), msg: 'retention', ...(await withDb((db) => retention(db, s3StoreFromEnv(), at))) }));
+    } catch (e) {
+      // The UTC date, as scripts/linux/ideashub-retention keys its own Alert, so the two never double up.
+      const detail = `retention failed: ${e instanceof Error ? e.message : String(e)}`;
+      await withDb((db) => opsAlert(db, 'retention_failed', at.toISOString().slice(0, 10), detail, at)).catch(() => {});
+      throw e;
+    }
   } else {
-    console.error('usage: ops-cli alert|quiet|ro-query|lark-post');
+    console.error('usage: ops-cli alert|quiet|ro-query|lark-post|retention');
     process.exitCode = 2;
   }
 } catch (e) {

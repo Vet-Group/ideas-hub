@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# One fake for every host command ideashub-deploy calls (apps/worker/test/deploy.test.ts copies it under
-# each command's name). It appends its call to $FAKE/calls.log and answers from FAKE_* variables and
-# files in $FAKE; unit states live in $FAKE/units/<unit>. With FAKE_PG_EXEC set, the Postgres tools run
+# One fake for every host command ideashub-deploy and ideashub-retention call (apps/worker/test/
+# deploy.test.ts copies it under each command's name). It appends its call to $FAKE/calls.log and answers
+# from FAKE_* variables and files in $FAKE; unit states live in $FAKE/units/<unit>. With FAKE_PG_EXEC set, the Postgres tools run
 # for real through that prefix (`docker exec -i <container>`), on the test database $FAKE_DB.
 name="$(basename "$0")"
 printf '%s %s\n' "$name" "$*" >> "$FAKE/calls.log"
@@ -25,7 +25,8 @@ case "$name" in
     if [ -n "${FAKE_GH_ERR:-}" ]; then echo "$FAKE_GH_ERR" >&2; exit 1; fi
     echo "${FAKE_GH:-completed success}" ;;
   pgrep) exit "${FAKE_PGREP:-1}" ;;
-  sleep | flock) ;;
+  sleep) ;;
+  flock) exit "${FAKE_FLOCK_RC:-0}" ;;
   curl) [ "${FAKE_HEALTH:-200}" = 200 ] || exit 22 ;;
   systemctl)
     shift # --user
@@ -59,6 +60,7 @@ case "$name" in
         echo "$reason"
         exit 10 ;;
       "--silent lark:post") cat > "$FAKE/lark.txt" ;;
+      "--silent retention") exit "${FAKE_RETENTION_RC:-0}" ;;
       "--filter @ideas-hub/web build") [ "$head" != "${FAKE_BUILD_FAIL:-}" ] || exit 1 ;;
       db:migrate)
         [ "$head" != "${FAKE_MIGRATE_FAIL:-}" ] || exit 1

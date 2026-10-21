@@ -1,5 +1,5 @@
 // ObjectStore on the S3 API (MinIO in development and on the Linux desktop).
-import { CreateBucketCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { CreateBucketCommand, DeleteObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { type ObjectStore } from './context';
 
 export function s3StoreFromEnv(): ObjectStore {
@@ -32,6 +32,9 @@ export function s3Store(client: Pick<S3Client, 'send'>, bucket: string): ObjectS
       });
       await ready;
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+    },
+    async delete(key) {
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
   };
 }
