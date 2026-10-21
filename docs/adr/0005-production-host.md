@@ -1,7 +1,7 @@
 # ADR 0005: Production host
 
-Status: accepted (2026-10-21) for the host, isolation, caps and unattended access (phase 2 plan v5); the Linux account,
-Docker access and public hostname wait for the owner (phase 2 plan, D5 and D6).
+Status: accepted (2026-10-21) for the host, isolation, caps and unattended access (phase 2 plan v5), the
+Linux account and Docker access (D6) and the public hostname (D5); the domain name is given before Step 4.
 Deciders: owner.
 Inputs: [phase 2 plan](../plans/ideas-hub-phase-2.md), ADR 0001 (ports, units), ADR 0003 (browser
 mode), `docs/ops/linux-trial.md`.
@@ -22,7 +22,7 @@ every time `main` changes.
 - **Isolation from POD Studio:** Ideas Hub's own compose project (`ideas-hub`), volumes, `ideashub-*`
   systemd user units, ports (web 3300 on 127.0.0.1, Postgres 5433, MinIO 9300/9301) and named tunnel;
   nothing of POD Studio's is edited.
-- **An unprivileged Linux user `ideashub` with rootless Docker** (proposed, D6): its own home, user
+- **An unprivileged Linux user `ideashub` with rootless Docker** (decided 2026-10-21, D6): its own home, user
   manager, units, `~/.cloudflared` and cgroup; not in the `docker` group, which would be root-equivalent
   on the POD Studio host for anyone who can merge to `main`. Rootless Docker keeps `restore.sh` and the
   compose file unchanged and puts the containers inside the user's cgroup. Created before the resource
@@ -42,7 +42,7 @@ every time `main` changes.
   the Lark summary. The model only writes prose in `docs/`, in a session cut off from the user's
   settings and MCP servers, with no shell, proven by a canary. The admin key for interactive sessions
   is passphrase-locked.
-- **Public hostname** (proposed, D5): a personal domain on a personal Cloudflare account, with its own
+- **Public hostname** (decided 2026-10-21, D5): a personal domain on a personal Cloudflare account, with its own
   origin certificate in the `ideashub` home.
 
 ## Alternatives considered
