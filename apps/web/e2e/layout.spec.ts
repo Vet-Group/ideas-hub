@@ -58,7 +58,7 @@ test('ideas table: the source is not repeated, and on a phone each idea is a car
   await resetIdeas();
   await open(page, `/ideas?store=${STORES.a.id}&view=table`);
   await expect(page.getByText('Thủ công · thủ công')).toHaveCount(0);
-  await expect(page.getByText(/^Thủ công( · dog mom mug)?$/)).toBeVisible();
+  await expect(page.getByText(/^Thủ công( · dog mom mug)?$/).filter({ visible: true })).toBeVisible();
   if (info.project.name !== 'phone') return;
   await expect(page.getByRole('table')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Đổi trạng thái: Mug with paw print' })).toBeInViewport();
