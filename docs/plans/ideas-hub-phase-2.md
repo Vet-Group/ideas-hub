@@ -109,7 +109,7 @@ Step 8 intended; env-only restarts outside crawl windows stay allowed and are lo
 | D5 | Public hostname | (1) A subdomain on the company's Cloudflare zone: $0, company-visible, needs that account; (2) a personal domain on a personal Cloudflare account: about $1/month ($10–15/year domain), tunnel free; (3) no public URL, Tailscale only: $0, only the owner's devices, Lark links open only there | (2), its origin certificate in the `ideashub` user's home (POD Studio's `~/.cloudflared` never read or written) | Before Step 4 | 2026-10-21: (2), a personal domain on a personal Cloudflare account; the domain name is given before Step 4 |
 | D6 | Linux account and Docker access | (1) A dedicated `ideashub` user with rootless Docker: $0, +10 owner minutes of `sudo`; (2) the `docker` group: root-equivalent (see Options); (3) the user that runs POD Studio: shares its units, `~/.cloudflared` and `~/.local/bin`; rejected | (1) | Before Step 3 | 2026-10-21: (1), a dedicated `ideashub` user with rootless Docker |
 | D7 | Go / no-go after the resource measurement | Go when every Step 3 threshold passes; otherwise the session stops and reports, and the owner picks: free resources on the host, lower Ideas Hub's caps, or a VPS (option B, about €7–15/month) | Follow the thresholds | Right after Step 3 | — |
-| D8 | Confirm the repo transfer | Typed confirmation right before the transfer call; $0 (the org's plan pays Actions) | Confirm after reading Step 1's pre-checks | Step 1 | — |
+| D8 | Confirm the repo transfer | Typed confirmation right before the transfer call; $0 (the org's plan pays Actions) | Confirm after reading Step 1's pre-checks | Step 1 | 2026-10-21: yes, transferred to `Vet-Group/ideas-hub` |
 | D9 | Accept the deploy-time criterion as "≤ 10 minutes after CI completes" (see "Deviations from the brief") | Keep "≤ 10 minutes from merge" (only possible without the CI gate) or accept the redefinition; $0 | Accept | Before Step 4 | 2026-10-21: accepted |
 
 Defaults the agents use unless the owner says otherwise (not blocking): thumbnails of ads not seen for
@@ -1010,3 +1010,10 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
 - Host access (2026-10-21, owner): the root alias `podstudio-prod` only for the one-off root commands of
   Steps 3.1 and 4.1 (run by the session after the owner's go-ahead); a new `ideashub-prod` alias for
   everything else; owner minutes of Steps 3 and 4 lowered accordingly.
+- Step 1 (2026-10-21): the owner confirmed D8 and the repo moved to `Vet-Group/ideas-hub`. The owner is
+  an org `member` (not `admin`; members may create private repos) and keeps admin on the repo; the org
+  plan is `free`, so no ruleset and the deploy gate is (b) alone. Secrets, variables and PRs were empty
+  before and after; Dependabot alerts were off before and after (404, not 204). The org's Actions
+  policy, fine-grained token policy and Actions billing need an org admin and stay unchecked; repo
+  Actions are enabled. Remotes and the push proof are done; old links in `docs/status` now point to the
+  new path, while historical mentions of the old name stay as written.
