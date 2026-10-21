@@ -1,5 +1,6 @@
 // A fake LLM behind LlmClient and a fake Lark Open API server on a random local port. Tests never reach a
 // real LLM or the real Lark.
+import { createHmac } from 'node:crypto';
 import { type IncomingMessage, type Server, type ServerResponse, createServer } from 'node:http';
 import { type AddressInfo } from 'node:net';
 import { type LlmClient, type LlmRequest, cannedReply } from '../src/llm';
@@ -33,12 +34,15 @@ export interface FakeLarkRequest {
  * The two Lark Open API calls the bot uses: tenant_access_token and im/v1/messages. Like Lark, a message
  * with a uuid already seen returns the first message instead of posting again. `failNext` answers the
  * next message calls with an error; `hangNext` never answers them, after accepting the message
- * (`accept`) or not.
+ * (`accept`) or not. It also serves a custom-bot webhook at `webhookUrl`: when `webhookSecret` is set it
+ * checks Lark's `timestamp` and `sign`, and `failNext` answers with Lark's rate-limit code 11232.
  */
+const WEBHOOK_PATH = '/open-apis/bot/v2/hook/test-hook';
+
 export async function fakeLark() {
   const requests: FakeLarkRequest[] = [];
   const messages: { chat: string; text: string; uuid: string; messageId: string }[] = [];
-  const state = { failNext: 0, hangNext: 0, hangAccepts: false };
+  const state = { failNext: 0, hangNext: 0, hangAccepts: false, webhookSecret: null as string | null };
   const hung: ServerResponse[] = [];
   const read = (req: IncomingMessage) =>
     new Promise<string>((resolve) => {
@@ -55,6 +59,20 @@ export async function fakeLark() {
       return body.app_id === 'cli_test' && body.app_secret === 'test-secret'
         ? json(200, { code: 0, msg: 'ok', tenant_access_token: 't-fake', expire: 7200 })
         : json(200, { code: 10014, msg: 'app secret invalid' });
+    }
+    if (path === WEBHOOK_PATH) {
+      if (state.webhookSecret !== null) {
+        const sign = createHmac('sha256', `${String(body.timestamp)}\n${state.webhookSecret}`).update('').digest('base64');
+        const fresh = Math.abs(Date.now() / 1000 - Number(body.timestamp)) <= 3600;
+        if (body.sign !== sign || !fresh) return json(200, { code: 19021, msg: 'sign match fail or timestamp is not within one hour from current time' });
+      }
+      if (state.failNext > 0) {
+        state.failNext -= 1;
+        return json(200, { code: 11232, msg: 'frequency limited' });
+      }
+      if (body.msg_type !== 'text') return json(200, { code: 9499, msg: 'Bad Request', data: {} });
+      messages.push({ chat: 'webhook', text: (body.content as { text: string }).text, uuid: '', messageId: '' });
+      return json(200, { StatusCode: 0, StatusMessage: 'success', code: 0, data: {}, msg: 'success' });
     }
     if (path.startsWith('/open-apis/im/v1/messages')) {
       if (req.headers.authorization !== 'Bearer t-fake') return json(401, { code: 99991663, msg: 'invalid token' });
@@ -85,14 +103,16 @@ export async function fakeLark() {
   return {
     url,
     config: { baseUrl: url, appId: 'cli_test', appSecret: 'test-secret' },
+    webhookUrl: `${url}${WEBHOOK_PATH}`,
     requests,
     messages,
     state,
     messageCalls: () => requests.filter((r) => r.path.startsWith('/open-apis/im/v1/messages')),
+    webhookCalls: () => requests.filter((r) => r.path === WEBHOOK_PATH),
     reset() {
       requests.length = 0;
       messages.length = 0;
-      Object.assign(state, { failNext: 0, hangNext: 0, hangAccepts: false });
+      Object.assign(state, { failNext: 0, hangNext: 0, hangAccepts: false, webhookSecret: null });
     },
     async close() {
       for (const r of hung) r.destroy();
