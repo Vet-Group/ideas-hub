@@ -1,20 +1,21 @@
 // Run-row helpers shared by the crawl job, crash recovery, the scheduler and the watchdog.
 import { type Settings, plannedSearches } from '@ideas-hub/core';
+import { type ALERT_KINDS } from '@ideas-hub/db';
 import { type Db, withTx } from '@ideas-hub/db/client';
 import { type Pool } from 'pg';
 import { sql } from 'drizzle-orm';
 
-export type AlertKind = 'blocked' | 'network_error' | 'parse_error' | 'missed_run' | 'run_failed' | 'heartbeat_lost' | 'briefing_late' | 'lark_send_failed' | 'settings_invalid';
+export type AlertKind = (typeof ALERT_KINDS)[number];
 
 /** Inserts an Alert unless its dedupe key already has one (spec §2 "Alert"); true when it inserted. */
 export async function insertAlert(
   db: Db,
-  a: { kind: AlertKind; runId?: string | null; briefingId?: string | null; cooldownSeq?: number | null; affected?: number | null; detail?: string | null; at: Date },
+  a: { kind: AlertKind; runId?: string | null; briefingId?: string | null; cooldownSeq?: number | null; affected?: number | null; detail?: string | null; dedupeKey?: string | null; at: Date },
 ): Promise<boolean> {
   const { rowCount } = await db.execute(sql`
-    insert into alerts (id, kind, run_id, briefing_id, cooldown_seq, affected_searches, detail, created_at)
+    insert into alerts (id, kind, run_id, briefing_id, cooldown_seq, affected_searches, detail, dedupe_key, created_at)
     values (${`alert_${crypto.randomUUID().replace(/-/g, '').slice(0, 21)}`}, ${a.kind}, ${a.runId ?? null}, ${a.briefingId ?? null},
-      ${a.cooldownSeq ?? null}, ${a.affected ?? null}, ${a.detail ?? null}, ${a.at})
+      ${a.cooldownSeq ?? null}, ${a.affected ?? null}, ${a.detail ?? null}, ${a.dedupeKey ?? null}, ${a.at})
     on conflict do nothing`);
   return (rowCount ?? 0) > 0;
 }

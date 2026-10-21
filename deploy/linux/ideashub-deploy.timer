@@ -1,0 +1,13 @@
+# 3 minutes after boot, then 5 minutes after the previous pass ends (ADR 0006). Disabled for the
+# block-rate measurement's code freeze (`systemctl --user disable --now ideashub-deploy.timer`).
+[Unit]
+Description=Ideas Hub auto-deploy every 5 min
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=30s
+Unit=ideashub-deploy.service
+
+[Install]
+WantedBy=timers.target

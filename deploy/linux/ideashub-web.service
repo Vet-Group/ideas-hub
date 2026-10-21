@@ -11,6 +11,9 @@ Environment=NODE_ENV=production
 ExecStart=@PNPM@ exec next start --port 3300 --hostname 127.0.0.1
 Restart=always
 RestartSec=5
+# Caps (phase 2 plan Step 2a).
+MemoryMax=768M
+CPUQuota=100%
 
 [Install]
 WantedBy=default.target

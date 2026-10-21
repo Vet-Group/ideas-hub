@@ -19,7 +19,11 @@
     "crawl:run": "pnpm --filter @ideas-hub/worker crawl:run",
     "watchdog": "pnpm --filter @ideas-hub/worker watchdog",
     "briefing:build": "pnpm --filter @ideas-hub/worker briefing:build",
-    "briefing:preview": "tsx scripts/briefing-preview.ts"
+    "briefing:preview": "tsx scripts/briefing-preview.ts",
+    "ops:alert": "tsx apps/worker/src/ops-cli.ts alert",
+    "ops:quiet": "tsx apps/worker/src/ops-cli.ts quiet",
+    "ro-query": "tsx apps/worker/src/ops-cli.ts ro-query",
+    "lark:post": "tsx apps/worker/src/ops-cli.ts lark-post"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
