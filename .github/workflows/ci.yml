@@ -82,12 +82,3 @@ jobs:
           S3_ENDPOINT: http://127.0.0.1:9300
           S3_ACCESS_KEY: ideashub
           S3_SECRET_KEY: ideashub-local-only
-
-      # Until the baselines are approved, the Linux screenshots this run wrote are printed for review, as a
-      # base64 tar.gz between two markers: the account's artifact storage quota is full.
-      - name: Print pending Linux screenshots
-        if: ${{ !cancelled() && hashFiles('apps/web/e2e/__screenshots__/APPROVED') == '' }}
-        run: |
-          echo '--- pending-linux-screenshots begin ---'
-          tar czf - -C apps/web/e2e/__screenshots__/pending linux | base64 -w 1000
-          echo '--- pending-linux-screenshots end ---'
