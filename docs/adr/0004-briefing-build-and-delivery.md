@@ -52,6 +52,16 @@ fixes the rules (at most 2 LLM calls per briefing, cost committed before each ca
   `LARK_ADMIN_CHAT_ID` (environment, not settings); store chats are `stores.lark_chat_id`. Without the
   app id and secret nothing is posted. The watchdog gets the Lark sender for Alerts and checks the global
   briefing (`briefing_late`, `lark_send_failed`) once today's ready time has passed.
+- **Lark custom-bot webhook (temporary).** While the app id and secret are empty and `LARK_WEBHOOK_URL`
+  is set, every post (global briefing, store briefings, Alerts) goes to that group's custom bot as the
+  same text message, signed with `timestamp` and `sign` when `LARK_WEBHOOK_SECRET` is set; a reply with
+  `code` other than 0 is a failed post, retried by `lark.send`. Posts are recorded under the chat
+  `webhook`, and since a custom bot returns no message id, the stored id is `webhook:<uuid>`, so the row
+  written before the post, the watchdog's checks and AC 1 and AC 3 work unchanged. Lark does **not**
+  dedupe webhook posts (the `uuid` is only ours): a worker that dies between Lark's answer and the row
+  update posts once more on the retry. Each process keeps to the custom bot's 5 posts a second and 100 a
+  minute. Back to the bot app: set the app id, secret and chat ids and restart the worker
+  (`docs/ops/lark-and-llm.md`); the app wins whenever its id and secret are set.
 - **Ready margin.** Settings are rejected when the ready time is before the build time plus the briefing
   job expiry plus `briefingReadyMarginSeconds` (`packages/core/src/validate-settings.ts`): one 2 s queue
   pickup for the build, then 4 `lark.send` attempts (first + `LARK_RETRY_LIMIT` 3) of a 2 s pickup plus
@@ -88,3 +98,6 @@ fixes the rules (at most 2 LLM calls per briefing, cost committed before each ca
   on 2026-10-21, reversible: dropping `briefingReadyMarginSeconds` from the check restores the old rule.
 - 2026-10-21: stored settings that fail validation write a `settings_invalid` Alert, one per local day,
   sent by the watchdog like any Alert. Decided by the owner's delegate on 2026-10-21, reversible.
+- 2026-10-21: added "Lark custom-bot webhook (temporary)", used until the bot app's credentials exist.
+  Decided by the owner's delegate on 2026-10-21, reversible: setting `LARK_APP_ID` and
+  `LARK_APP_SECRET` switches back to the bot app, and removing `larkWebhookClient` removes the mode.

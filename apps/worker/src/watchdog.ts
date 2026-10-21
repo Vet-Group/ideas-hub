@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { boot } from './boot';
 import { loadSettings } from './context';
-import { alertSender, larkConfigFromEnv, larkHttpClient } from './lark';
+import { alertSender, larkClientFor, larkConfigFromEnv } from './lark';
 import { watchdogPass } from './watchdog-pass';
 
 const run = promisify(execFile);
@@ -26,7 +26,7 @@ try {
   const s = await loadSettings(ctx.db);
   const result = await watchdogPass(ctx, {
     restartWorker,
-    sendAlert: lark?.adminChat ? alertSender(larkHttpClient(lark), lark.adminChat, s.larkSendTimeoutSeconds) : undefined,
+    sendAlert: lark?.adminChat ? alertSender(larkClientFor(lark), lark.adminChat, s.larkSendTimeoutSeconds) : undefined,
     briefings: { sharedChat: lark?.sharedChat ?? null },
   });
   ctx.log('watchdog', result);

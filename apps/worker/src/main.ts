@@ -7,7 +7,7 @@ import { boot } from './boot';
 import { loadSettings } from './context';
 import { IdleHeartbeat, writeHeartbeat } from './heartbeat';
 import { type BriefingDeps, buildBriefing } from './briefing';
-import { larkConfigFromEnv, larkHttpClient, larkSend } from './lark';
+import { larkClientFor, larkConfigFromEnv, larkSend } from './lark';
 import { llmFromEnv } from './llm';
 import { refreshFeeds } from './news';
 import { BRIEFING, type BriefingJob, CRAWL, type CrawlJob, LARK, type LarkJob, createQueues } from './queues';
@@ -57,10 +57,10 @@ const briefingDeps: BriefingDeps = {
 await ctx.boss.work<BriefingJob>(BRIEFING, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {
   ctx.log('briefing', { data: job!.data, outcome: await buildBriefing(ctx, job!.data, briefingDeps, job!.signal) });
 });
-const larkClient = lark ? larkHttpClient(lark) : null;
+const larkClient = lark ? larkClientFor(lark) : null;
 await ctx.boss.work<LarkJob>(LARK, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {
-  // Without the bot app nothing can be posted; the watchdog still flags the global briefing (lark_send_failed).
-  if (!larkClient) return ctx.log('lark: LARK_APP_ID and LARK_APP_SECRET are not set, post skipped', { data: job!.data });
+  // Without the bot app or a webhook nothing can be posted; the watchdog still flags the global briefing (lark_send_failed).
+  if (!larkClient) return ctx.log('lark: neither the bot app (LARK_APP_ID, LARK_APP_SECRET) nor LARK_WEBHOOK_URL is set, post skipped', { data: job!.data });
   ctx.log('lark', { data: job!.data, outcome: await larkSend(ctx, job!, { lark: larkClient, appUrl: process.env.APP_URL ?? '' }, job!.signal) });
 });
 

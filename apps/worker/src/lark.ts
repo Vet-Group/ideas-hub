@@ -2,7 +2,8 @@
 // briefing's summary to its chat and the watchdog's Alerts to admin. Every post carries Lark's `uuid`
 // dedupe field (first 32 hex characters of a SHA-256), and a briefing post's `lark_messages` row is
 // inserted before the call, so a retry never posts twice.
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { type BriefingSections, type Delta, LARK_RETRY_LIMIT } from '@ideas-hub/core';
 import { larkMessages } from '@ideas-hub/db';
 import { and, eq, sql } from 'drizzle-orm';
@@ -21,30 +22,47 @@ export interface LarkClient {
   post(chat: string, uuid: string, text: string, signal: AbortSignal): Promise<string>;
 }
 
-export interface LarkConfig {
-  baseUrl: string;
-  appId: string;
-  appSecret: string;
-  /** The shared group that gets the global briefing. */
-  sharedChat: string | null;
-  /** Where the watchdog sends Alerts. */
-  adminChat: string | null;
+/**
+ * The chat a webhook post is recorded under: a custom bot posts only to its own group, so the shared group
+ * and the admin chat are both this label in `lark_messages` and the watchdog checks.
+ */
+export const WEBHOOK_CHAT = 'webhook';
+
+export type LarkConfig =
+  | {
+      mode: 'app';
+      baseUrl: string;
+      appId: string;
+      appSecret: string;
+      /** The shared group that gets the global briefing. */
+      sharedChat: string | null;
+      /** Where the watchdog sends Alerts. */
+      adminChat: string | null;
+    }
+  | { mode: 'webhook'; webhookUrl: string; webhookSecret: string | null; sharedChat: string; adminChat: string };
+
+/** The bot app when its id and secret are set, else a custom-bot webhook when its URL is set, else null. */
+export function larkConfigFromEnv(env: NodeJS.ProcessEnv = process.env): LarkConfig | null {
+  if (env.LARK_APP_ID && env.LARK_APP_SECRET) {
+    return {
+      mode: 'app',
+      baseUrl: (env.LARK_BASE_URL || 'https://open.larksuite.com').replace(/\/+$/, ''),
+      appId: env.LARK_APP_ID,
+      appSecret: env.LARK_APP_SECRET,
+      sharedChat: env.LARK_SHARED_CHAT_ID || null,
+      adminChat: env.LARK_ADMIN_CHAT_ID || null,
+    };
+  }
+  if (env.LARK_WEBHOOK_URL) {
+    return { mode: 'webhook', webhookUrl: env.LARK_WEBHOOK_URL, webhookSecret: env.LARK_WEBHOOK_SECRET || null, sharedChat: WEBHOOK_CHAT, adminChat: WEBHOOK_CHAT };
+  }
+  return null;
 }
 
-/** Null until the bot app's id and secret are set. */
-export function larkConfigFromEnv(env: NodeJS.ProcessEnv = process.env): LarkConfig | null {
-  if (!env.LARK_APP_ID || !env.LARK_APP_SECRET) return null;
-  return {
-    baseUrl: (env.LARK_BASE_URL || 'https://open.larksuite.com').replace(/\/+$/, ''),
-    appId: env.LARK_APP_ID,
-    appSecret: env.LARK_APP_SECRET,
-    sharedChat: env.LARK_SHARED_CHAT_ID || null,
-    adminChat: env.LARK_ADMIN_CHAT_ID || null,
-  };
-}
+export const larkClientFor = (cfg: LarkConfig): LarkClient => (cfg.mode === 'app' ? larkHttpClient(cfg) : larkWebhookClient(cfg));
 
 /** Lark Open API: tenant_access_token (cached until a minute before it expires) and im/v1/messages. */
-export function larkHttpClient(cfg: Pick<LarkConfig, 'baseUrl' | 'appId' | 'appSecret'>, fetchFn: typeof fetch = fetch): LarkClient {
+export function larkHttpClient(cfg: Pick<Extract<LarkConfig, { mode: 'app' }>, 'baseUrl' | 'appId' | 'appSecret'>, fetchFn: typeof fetch = fetch): LarkClient {
   let token: { value: string; until: number } | null = null;
   const call = async (path: string, body: unknown, signal: AbortSignal, auth?: string) => {
     const res = await fetchFn(`${cfg.baseUrl}${path}`, {
@@ -70,6 +88,51 @@ export function larkHttpClient(cfg: Pick<LarkConfig, 'baseUrl' | 'appId' | 'appS
         token = null; // a rejected token is fetched again on the next post
         throw e;
       }
+    },
+  };
+}
+
+/** Custom-bot limits: 5 posts a second and 100 a minute per bot. */
+const WEBHOOK_PER_SECOND = 5;
+const WEBHOOK_PER_MINUTE = 100;
+
+/** Milliseconds to wait before one more webhook post, given the send times (oldest first) of the last minute. */
+export function webhookWait(sent: readonly number[], now: number): number {
+  const minute = sent.filter((t) => t > now - 60_000);
+  const second = minute.filter((t) => t > now - 1000);
+  return Math.max(
+    0,
+    minute.length >= WEBHOOK_PER_MINUTE ? minute[minute.length - WEBHOOK_PER_MINUTE]! + 60_000 - now : 0,
+    second.length >= WEBHOOK_PER_SECOND ? second[second.length - WEBHOOK_PER_SECOND]! + 1000 - now : 0,
+  );
+}
+
+/**
+ * A Lark custom bot (a group's webhook): a text message with Lark's `timestamp` and `sign` when a secret is
+ * set. Lark returns no message id and does not dedupe, so the id is `webhook:<uuid>`, which keeps the
+ * `lark_messages` row written before the post and the AC 1 and AC 3 checks working.
+ * shortcut: the rate limit is per process (worker and watchdog each count their own posts), enough for a
+ * few posts a day; a shared counter is needed only if posts come near 5 a second.
+ */
+export function larkWebhookClient(cfg: { webhookUrl: string; webhookSecret: string | null }, fetchFn: typeof fetch = fetch): LarkClient {
+  const sent: number[] = [];
+  return {
+    async post(_chat, uuid, text, signal) {
+      for (let wait = webhookWait(sent, Date.now()); wait > 0; wait = webhookWait(sent, Date.now())) await sleep(wait, undefined, { signal });
+      sent.push(Date.now());
+      while (sent.length > WEBHOOK_PER_MINUTE) sent.shift();
+      const timestamp = String(Math.floor(Date.now() / 1000));
+      const signed = cfg.webhookSecret ? { timestamp, sign: createHmac('sha256', `${timestamp}\n${cfg.webhookSecret}`).update('').digest('base64') } : {};
+      const res = await fetchFn(cfg.webhookUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ ...signed, msg_type: 'text', content: { text } }),
+        signal,
+      });
+      const json = (await res.json().catch(() => ({}))) as { code?: number; msg?: string };
+      // The URL carries the bot's token, so it is never part of the error.
+      if (!res.ok || json.code !== 0) throw new Error(`Lark webhook failed: HTTP ${res.status}, code ${json.code}, ${json.msg ?? ''}`.trim());
+      return `webhook:${uuid}`;
     },
   };
 }
