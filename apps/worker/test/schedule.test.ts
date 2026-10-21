@@ -29,6 +29,9 @@ describe.skipIf(!testDatabaseAvailable())('scheduler', () => {
     await h.db.execute(sql`delete from settings where key in ('runTimes', 'morningHardStop', 'searchBudget', 'runDeadlineMinutes')`);
     // Keep only the row the first migration seeded.
     await h.db.execute(sql`delete from run_time_changes where id <> (select id from run_time_changes order by created_at limit 1)`);
+    // The migration seeds it with effective_from = now() by the real clock; pin it just before the harness clock
+    // so a change the scheduler records at 10:00 sorts after it on whatever day the DB was migrated.
+    await h.db.execute(sql`update run_time_changes set effective_from = ${vietnamInstant('2026-10-21', '09:59')}`);
   });
 
   it('keeps 14 days of rows written with deadline, planned searches and a job sent for the slot', async () => {
