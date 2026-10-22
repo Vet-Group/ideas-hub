@@ -417,6 +417,15 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
 
+  spikes/fb-page-posts-probe:
+    dependencies:
+      playwright:
+        specifier: 1.63.0
+        version: 1.63.0
+      sharp:
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@24.19.0)
+
 packages:
 
   '@alloc/quick-lru@5.3.0':
