@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Linux side of the trial, part 2 (docs/ops/linux-trial.md, step 7). Installs the systemd user units from
+# Linux side of the trial, part 2 (docs/ops/production.md, step 7). Installs the systemd user units from
 # deploy/linux into ~/.config/systemd/user with this checkout's paths filled in, links ideashub-deploy,
 # ideashub-backup and ideashub-sizes into ~/.local/bin (so they follow the checkout), enables lingering
 # unless it is on already, and enables and
@@ -23,7 +23,7 @@ run() {
   if [ "$dry" = 1 ]; then printf '[dry-run] %s\n' "$*"; else printf '==> %s\n' "$*"; "$@"; fi
 }
 fail() { echo "error: $*" >&2; exit 1; }
-need() { command -v "$1" || fail "$1 is not installed (${2:-see docs/ops/linux-trial.md})"; }
+need() { command -v "$1" || fail "$1 is not installed (${2:-see docs/ops/production.md})"; }
 
 pnpm_bin="$(need pnpm)"
 node_bin="$(need node)"
@@ -66,6 +66,6 @@ if [ -f "$HOME/.cloudflared/ideas-hub.yml" ]; then
   [ -x "$cloudflared_bin" ] || fail "cloudflared not found"
   run systemctl --user enable --now ideashub-tunnel.service
 else
-  echo "note: ~/.cloudflared/ideas-hub.yml not found; tunnel unit installed but not enabled (docs/ops/linux-trial.md, \"Tunnel\")"
+  echo "note: ~/.cloudflared/ideas-hub.yml not found; tunnel unit installed but not enabled (docs/ops/production.md, \"Tunnel\")"
 fi
 run systemctl --user --no-pager status ideashub-xvfb.service ideashub-web.service ideashub-worker.service ideashub-watchdog.timer ideashub-deploy.timer

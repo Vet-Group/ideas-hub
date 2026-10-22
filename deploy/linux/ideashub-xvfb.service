@@ -1,4 +1,4 @@
-# Virtual X display :99 for the worker's headed (off-screen) Chrome (docs/ops/linux-trial.md, "Display").
+# Virtual X display :99 for the worker's headed (off-screen) Chrome (docs/ops/production.md, "Display").
 # Starts at boot through lingering, with no graphical login, and never shows a window on the desktop.
 [Unit]
 Description=Ideas Hub virtual display (Xvfb :99)

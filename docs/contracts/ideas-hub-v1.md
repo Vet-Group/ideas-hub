@@ -380,7 +380,7 @@ Every error has the same body; `message` is English and meant for developers, no
   support, response and error shapes, rate limits, `pod_studio_store_id` format, and whether POD Studio
   wants to read `/api/v1` with its own service user.
 - The Ideas Hub hostname (`<ideas-hub-hostname>`) is the Linux trial's tunnel hostname, chosen by the
-  owner (`docs/ops/linux-trial.md`).
+  owner (`docs/ops/production.md`).
 - Whether the tunnel hostname is put behind Cloudflare Access. If it is, `/api/v1/` and `/thumbs/` need
   a bypass or a service token for other apps, and this contract gains that header.
 

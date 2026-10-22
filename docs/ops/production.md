@@ -1,9 +1,9 @@
-# Runbook: Linux desktop trial
+# Production: the POD Studio host
 
-Status: **ready to run, not run.** Pending owner: the go-ahead to touch the Linux desktop (it hosts POD
-Studio production) and the installs that need `sudo` (Xvfb, Google Chrome). The tunnel hostname is
-`ideas.vetgroup.net` (phase 2 plan D5). Plan Step 8; spec "Hosting"; ADR 0001 (ports, units) and ADR 0003
-(browser mode).
+Status: **in production since 2026-10-22** (phase 2 plan Step 4), at `https://ideas.vetgroup.net`. The
+host also runs POD Studio production; Ideas Hub runs beside it as the `ideashub` user. What ran and the
+real values are under "Production record (2026-10-22)" below; the steps after it are the runbook used,
+kept for a rebuild. Spec "Hosting"; ADR 0001 (ports, units), ADR 0003 (browser mode), ADR 0005 (host).
 
 Files: `scripts/linux/dump-windows.ps1` (Windows side), `scripts/linux/restore.sh` and
 `scripts/linux/install-units.sh` (Linux side), units under `deploy/linux/`. Every script has a dry run
@@ -220,10 +220,77 @@ under "Display") and bring the options to the owner (ADR 0003 decision point). T
    project and its volumes on Linux are kept until the owner decides to delete them
    (`docker compose -p ideas-hub down` keeps volumes; `-v` would delete them).
 
+## Production record (2026-10-22)
+
+Run on 2026-10-22 from 13:55 (Asia/Ho_Chi_Minh), outside the plan's 09:00–11:00 window by the owner's
+leave (Ideas Hub was not running anywhere and no crawl was due). POD Studio's `/api/health` was logged
+every 30 s on the host for the whole step and checked every minute from the development PC against the
+plan's limit (a non-200, or two consecutive samples over 0.05 s): no breach. The log was in `/tmp` until
+the reboot below wiped it (tmpfs), then in `~/.local/state/ideas-hub/pod-health-step4.txt`.
+
+### Host and user
+
+| | Value |
+|---|---|
+| Host | `auto-System-Product-Name.local` (office network only), Ubuntu 26.04.1, kernel 7.0, 12 CPUs, 15 GB RAM |
+| User | `ideashub`, uid 1001, lingering on; admin SSH alias `ideashub-prod` (passphrase key) |
+| Slice cap | `user-1001.slice`: `MemoryMax=5G`, `CPUQuota=200%` (`memory.max` 5368709120, `cpu.max` `200000 100000`) |
+| Root packages (Step 4.1, through `podstudio-prod`) | Ubuntu's `uidmap`, `rootlesskit` 2.0.2, `slirp4netns` 1.3.3, `xvfb` 2:21.1.22-1ubuntu1.3 (it upgraded the shared `xserver-common`; owner accepted); `google-chrome-stable` 155 and `fonts-noto-core` were already installed |
+| Docker | rootless, `systemctl --user` `docker.service` from `/usr/share/docker.io/contrib/dockerd-rootless-setuptool.sh install --force` (Ubuntu's `docker.io` 29.1.3; the rootful daemon stays for POD Studio); data in `~/.local/share/docker`; `DOCKER_HOST=unix:///run/user/1001/docker.sock` in `~/.profile` and `~/.config/environment.d/10-ideas-hub.conf` |
+| Tools in `~/.local` | Node v24.21.0 (`~/.local/node` → `node-v24.21.0-linux-x64`), pnpm 12.9.1, `cloudflared` 2026.10.3 and `gh` 2.103.0 in `~/.local/bin`, each checked against its published SHA-256 |
+| Checkout | `~/ideas-hub`, cloned from `Vet-Group/ideas-hub` with the git credential store (`~/.git-credentials`, 600) |
+| Secrets | `~/ideas-hub/.env` (600; `APP_URL=https://ideas.vetgroup.net`); `~/.config/ideas-hub/deploy.env` (`GH_TOKEN`), `ro.env` (`RO_DATABASE_URL`), all 600 |
+
+The Windows `.env` had empty `BETTER_AUTH_SECRET` and `THUMB_URL_SECRET` (development accepts that,
+production answers 500), so both were generated on the host (32 random bytes, hex). Sessions and
+thumbnail signatures started fresh; the owner signs in with an admin account made on the host
+(`pnpm --filter @ideas-hub/web auth:create-user`).
+
+### Data moved from Windows
+
+`dump-windows.ps1 -RepoRoot <main checkout> -OutDir <scratch>` at 13:59, Windows commit `b95dedc`:
+`ideashub.dump` 5.8 MB, `minio-data.tgz` 226 MB. `restore.sh` restored both; every row count matched the
+manifest (users 1, stores 1, keywords 41, crawl_runs 1, crawl_searches 20, ads 1556, saved_ideas 8,
+briefings 2, alerts 0) and 1653 MinIO objects. The restore script then compared only the first table
+(`docker compose exec -T` read the rest of the manifest); checked by hand, fixed in PR #49. The Windows
+tasks `IdeasHub-Worker` and `IdeasHub-Watchdog` were never registered; `IdeasHub-Probe-*` run the FB
+probe spike and write only files, not the Windows database.
+
+### Units and tunnel
+
+- `install-units.sh`: `ideashub-xvfb`, `-web`, `-worker`, `-watchdog.timer`, `-deploy.timer` and
+  `-tunnel` enabled; `-backup`, `-backup-drill`, `-sizes`, `-retention` and `-acceptance` timers written
+  and disabled.
+- Tunnel `ideas-hub` (id `4d268316-bf17-4bec-aa40-045dc1e5f6ab`, locally configured), made with
+  `cf --profile ideas-hub`; credentials in `~/.cloudflared/<id>.json` (600, written through SSH stdin),
+  config `~/.cloudflared/ideas-hub.yml`; no `cert.pem`. DNS: `ideas.vetgroup.net` CNAME →
+  `<id>.cfargotunnel.com`, proxied (record `9cd95fd75bae68872c33d2ebad7d4ef7`). Cross-checked with the
+  Cloudflare API MCP server: both tunnels healthy with 4 connections, POD Studio's untouched.
+
+### Checks
+
+| Check | Result |
+|---|---|
+| Units after install | xvfb, web, worker, watchdog timer, deploy timer, tunnel `active` |
+| Caps | worker `memory.max` 2621440000; slice 5368709120 |
+| Sign-in through the hostname | 200; `/runs` 200; `/ads` with 120 signed thumbnails; a signed `/thumbs/...` 200 `image/jpeg`, a wrong signature 404 |
+| `/briefing` | 200; no briefing was ever finished on Windows (`ready_at` empty), so the first full one follows the first host run |
+| Kill test | worker back in 5.2 s; no Chrome left after `stop` |
+| Watchdog | a pass every 5 min; its first pass sent 5 `missed_run` (the slots Windows did not run since 2026-10-20), `briefing_late` and `heartbeat_lost`, and restarted the worker once |
+| Restart instead of reboot (item 8) | `sudo systemctl restart user@1001.service` at 14:18:51: every unit and both containers back by 14:18:54, before the next `ideashub` login (14:19:06) |
+| Real reboot (not planned) | someone pressed the host's power key at 15:22:07 and 15:22:32 (`systemd-logind: Power key pressed short`); the host booted at 15:23:21 and every `ideashub-*` unit, the user's `docker.service` and both containers were up by 15:23:38 with no login; POD Studio's health was 200 at 15:26 |
+| Two more reboots (not planned) | at about 15:30 and 15:35 (boots 15:30:43 and 15:35:55; the owner thinks someone at the host restarted it); Ideas Hub came back by itself each time; from 15:37 to 15:44 the session kept Ideas Hub disabled (units, rootless Docker, containers stopped; data kept) to rule it out, then enabled it again. Ideas Hub was idle before each (no build; the last deploy pass at 15:33:52 only read the CI state) |
+| Build-failure drill | `IDEASHUB_BUILD_CMD=false ideashub-deploy` on `dc2cfe5` (PR #47): exit 1, `HEAD` stayed `57b43ef`, web, worker and watchdog timer `active`, `deploy_failed` Alert sent to Lark at 07:45:02Z; after `rm failed-sha` a manual run deployed `dc2cfe5` |
+| Red CI | `ideashub-deploy --ci-status a749cd8` → `failure, not deployed` |
+| Deploy time (D9) | **Over the 10 minutes on the first try.** PR #48: merged 07:50:35Z, its CI on `main` completed 08:00:43Z, `deployed a965288f` at 08:15:39Z: 14 min 56 s. The ticks of 07:56, 08:02 and 08:08 waited because POD Studio's deploy was running (`pgrep -f podflow-deploy`, a gate by design); once clear, build and restart took 1 min 29 s. Deploy unit peak 1,614,315,520 bytes of its 2 GB cap. Measured again on the next PR (Step 5 record) |
+| Read-only role | `ideashub_ro` (connection limit 2, `statement_timeout` 60s, read-only default) with column grants only; `insert` in a read-write transaction, `select caption from ads`, `select * from sessions` → permission denied; `create temp table` → denied (also inside a read-write transaction); `\c - ideashub` and `\! id` → syntax errors; `scripts/acceptance.sql`, every `scripts/sql/prod-measure/*.sql` and `scripts/sql/pilot-verdict/*.sql` ran |
+| Forced-command keys | `ideashub_ro` ran stdin as SQL whatever command was asked; `ideashub_stats` printed only its files for `id; rm …`; `ideashub_timer` ran only `systemctl --user enable --now ideashub-deploy.timer` for `id; echo PWNED` (nothing printed; the timer came up `enabled`, `active`) |
+
+`gh` was missing on the host, so the deploy's CI gate failed with "gh: command not found" until it was
+installed in `~/.local/bin`; the plan's root list did not name it.
+
 ## Pending owner
 
-- The go-ahead to run steps 1–9 on the Linux desktop, and a quiet window.
-- Whether Cloudflare Access fronts `ideas.vetgroup.net` (the hostname and account are decided, plan D5).
-- `sudo` installs: Xvfb, Google Chrome, fonts; confirm Node 24 and pnpm 12 for the service user.
-- Confirm 3300, 5433, 9300 and 9301 are free on that host (the script checks) and that a reboot test is
-  allowed.
+- Whether Cloudflare Access fronts `ideas.vetgroup.net` (the app has its own sign-in).
+- The host powers off on a short press of its power key (GNOME's default); `HandlePowerKey=ignore` in a
+  `logind.conf.d` drop-in would stop that, but it is host configuration shared with POD Studio.

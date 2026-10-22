@@ -5,7 +5,7 @@ Linux account and Docker access (D6) and the public hostname (D5, changed 2026-1
 `ideas.vetgroup.net`).
 Deciders: owner.
 Inputs: [phase 2 plan](../plans/ideas-hub-phase-2.md), ADR 0001 (ports, units), ADR 0003 (browser
-mode), `docs/ops/linux-trial.md`.
+mode), `docs/ops/production.md`.
 
 ## Context
 
