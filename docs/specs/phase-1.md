@@ -152,7 +152,8 @@ not enough, plus its own ADR. Residential proxies come before accounts.
 - Ads are deduplicated by `ad_archive_id`; a new sighting updates `end_date`, `is_active` and the stored
   JSON. Each run that sees an ad adds one sighting per (run, keyword, country) with position, crawl
   day and the ad's `collation_count` at that sighting (so a rising variant count shows over time).
-  Sightings are kept 180 days; the counts on the ad stay.
+  Sightings are kept 180 days; the counts on the ad stay. Each crawl day also keeps every seen page's
+  `page_like_count` (`page_days`, the last value read that day), so a page's growth shows over time.
 - The adapter keeps the parsed ad object as JSON so it can be re-parsed later. Raw HTML pages are not
   stored.
 - Thumbnails (`resized_image_url`, `video_preview_image_url`) are downloaded at capture time. This rests

@@ -78,6 +78,13 @@
       "when": 1792675941143,
       "tag": "0010_sightings_collation_count",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792680136450,
+      "tag": "0011_page_days",
+      "breakpoints": true
     }
   ]
 }

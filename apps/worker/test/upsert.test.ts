@@ -63,6 +63,21 @@ describe.skipIf(!testDatabaseAvailable())('upsert', () => {
     ]);
   });
 
+  it('keeps one like count per page and crawl day, the last read that day; an ad without a count writes none', async () => {
+    const r1 = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-23T06:00:00Z'), status: 'done' });
+    const r2 = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-23T18:00:00Z'), status: 'done' });
+    const ad = (id: string, page: string, likes?: number) =>
+      normalizeAd({ ...raw(id, 1792393200), page_id: page, snapshot: { link_url: 'https://www.shop.com/x', ...(likes === undefined ? {} : { page_like_count: likes }) } });
+    const at = (runId: string, crawlDay: string) => ({ runId, keywordId: 'kw_0', country: 'US', crawlDay });
+    await upsertAds(h.db, at(r1, '2026-10-22'), [ad('L1', 'pl', 100), ad('L2', 'pn')], DEFAULT_SETTINGS.nonShopDomains);
+    await upsertAds(h.db, at(r1, '2026-10-22'), [ad('L3', 'pl', 120)], DEFAULT_SETTINGS.nonShopDomains);
+    await upsertAds(h.db, at(r2, '2026-10-23'), [ad('L1', 'pl', 150)], DEFAULT_SETTINGS.nonShopDomains);
+    expect(await all(h, sql`select page_id, crawl_day::text, like_count from page_days where page_id in ('pl', 'pn') order by crawl_day`)).toEqual([
+      { page_id: 'pl', crawl_day: '2026-10-22', like_count: 120 },
+      { page_id: 'pl', crawl_day: '2026-10-23', like_count: 150 },
+    ]);
+  });
+
   it('keeps a non-shop landing domain on the ad but never makes it a shop', async () => {
     const r = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-21T06:00:00Z'), status: 'done' });
     const app = { ...raw('APP', 1792393200), snapshot: { body: { text: 'app' }, link_url: 'https://play.google.com/store/apps/details?id=x' } };

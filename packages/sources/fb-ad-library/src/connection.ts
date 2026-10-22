@@ -24,6 +24,7 @@ export interface RawCard {
 
 export interface RawSnapshot {
   page_name?: string | null;
+  page_like_count?: number | null;
   body?: { text?: string | null } | null;
   title?: string | null;
   link_url?: string | null;

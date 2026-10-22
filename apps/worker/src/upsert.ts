@@ -37,6 +37,11 @@ export async function upsertAds(db: Db, at: SearchSighting, ads: readonly Normal
       insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day, collation_count)
       values (${ad.adArchiveId}, ${at.runId}, ${at.keywordId}, ${at.country}, ${i + 1}, ${at.crawlDay}, ${ad.collationCount})
       on conflict do nothing`);
+    if (ad.pageId && ad.pageLikeCount !== null) {
+      await db.execute(sql`
+        insert into page_days (page_id, crawl_day, like_count) values (${ad.pageId}, ${at.crawlDay}, ${ad.pageLikeCount})
+        on conflict (page_id, crawl_day) do update set like_count = excluded.like_count`);
+    }
     if (ad.landingDomain && !isNonShopDomain(ad.landingDomain, nonShopDomains)) {
       await db.execute(sql`
         insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date)
