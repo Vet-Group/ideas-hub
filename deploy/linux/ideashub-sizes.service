@@ -7,7 +7,6 @@ Description=Ideas Hub sizes and disk check
 Type=oneshot
 WorkingDirectory=@REPO@
 Environment=PATH=%h/.local/bin:@PATH@
-Environment=DOCKER_HOST=unix://%t/docker.sock
 ExecStart=%h/.local/bin/ideashub-sizes
 TimeoutStartSec=45min
 MemoryMax=256M

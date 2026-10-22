@@ -1,8 +1,8 @@
 # ADR 0005: Production host
 
 Status: accepted (2026-10-21) for the host, isolation, caps and unattended access (phase 2 plan v5), the
-Linux account and Docker access (D6) and the public hostname (D5, changed 2026-10-22 to
-`ideas.vetgroup.net`).
+Linux account and Docker access (D6, **superseded 2026-10-22**, see "D6 superseded: root") and the public
+hostname (D5, changed 2026-10-22 to `ideas.vetgroup.net`).
 Deciders: owner.
 Inputs: [phase 2 plan](../plans/ideas-hub-phase-2.md), ADR 0001 (ports, units), ADR 0003 (browser
 mode), `docs/ops/production.md`.
@@ -50,6 +50,28 @@ every time `main` changes.
   gets only that tunnel's credentials file in the `ideashub` home: no origin certificate and no
   `cloudflared tunnel login` there. The 2026-10-21 choice, a personal domain on a personal account, was
   dropped to save its cost and the second account.
+
+## D6 superseded: root (owner, 2026-10-22)
+
+The host now has one account and one SSH profile for agents and the owner: `root` through `vet-linux`.
+Ideas Hub runs as `root`:
+
+- **Units:** the same `ideashub-*` user units, run by root's own user manager (`user@0.service`, lingering),
+  so `%h`, `~/.local/state/ideas-hub`, `~/.config/ideas-hub` and `~/.cloudflared` resolve under `/root`
+  and the scripts keep `systemctl --user`. The repo is at `/opt/ideas-hub`; Node and pnpm in
+  `/opt/ideas-hub-tools` (not `/usr/local/bin`, which would shadow POD Studio's Node), `gh` and
+  `cloudflared` in `/root/.local/bin`.
+- **Docker:** the rootful daemon POD Studio also uses, with Ideas Hub's own compose project, volumes and
+  ports; the units no longer set `DOCKER_HOST`. The containers sit under `docker.service`, outside the
+  5 GB cap, and keep their `mem_limit`/`cpus`.
+- **Caps:** `MemoryMax=5G` and `CPUQuota=200%` on `user@0.service` (every Ideas Hub unit, not root's SSH
+  sessions), with the per-unit caps inside it.
+- **Accepted risk:** every merge to `main` deploys and runs as root on the host that holds POD Studio's
+  production data, and the crawler's Chrome (`--no-sandbox`, Playwright's default) runs as root too: a
+  browser exploit on a crawled page becomes root. The owner accepted both.
+- **Unattended keys:** `ideashub_ro`, `_stats` and `_timer` stay forced-command keys, now in root's
+  `authorized_keys` (`restrict,command=...`); `scripts/windows/ops-report.ps1` resolves `vet-linux`.
+- The `ideashub` user and its rootless Docker data stay, locked, until the owner decides to delete them.
 
 ## Alternatives considered
 
