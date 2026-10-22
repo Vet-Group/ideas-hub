@@ -11,7 +11,7 @@ export const posix = (p: string) => p.replace(/\\/g, '/');
 const here = dirname(fileURLToPath(import.meta.url));
 export const scriptPath = (name: string) => posix(join(here, '../../../scripts/linux', name));
 const fakeSource = readFileSync(join(here, 'deploy-fake.sh'), 'utf8');
-const FAKES = ['gh', 'systemctl', 'pnpm', 'docker', 'curl', 'psql', 'pg_dump', 'pg_restore', 'dropdb', 'createdb', 'pgrep', 'sleep', 'df', 'date'];
+const FAKES = ['gh', 'systemctl', 'pnpm', 'docker', 'curl', 'psql', 'pg_dump', 'pg_restore', 'dropdb', 'createdb', 'pgrep', 'sleep', 'df', 'date', 'ss'];
 // Git Bash's bash on Windows (the bin/bash.exe above git.exe), not WSL's bash.exe from System32.
 function gitBash(): string {
   for (let d = dirname(execFileSync('where', ['git'], { encoding: 'utf8' }).split(/\r?\n/)[0]!); d !== dirname(d); d = dirname(d)) {

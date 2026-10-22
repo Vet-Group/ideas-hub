@@ -141,7 +141,7 @@ diffs=0
 while read -r kind name n bytes; do
   case "$kind" in
     rows)
-      got="$("${compose[@]}" exec -T postgres psql -U ideashub -d "$check_db" -AtX -v ON_ERROR_STOP=1 -c "select count(*) from $name" 2>&1)" || got="error"
+      got="$("${compose[@]}" exec -T postgres psql -U ideashub -d "$check_db" -AtX -v ON_ERROR_STOP=1 -c "select count(*) from $name" 2>&1 < /dev/null)" || got="error"
       want="$n" ;;
     objects)
       got="$(bucket_counts "$drill_name" 2>&1)" || got="error"

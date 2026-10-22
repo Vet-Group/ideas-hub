@@ -65,7 +65,8 @@ diffs=0
 # Process substitution, not a pipe: the loop runs in this shell, so `diffs` survives it.
 while read -r table expected; do
   if [ "$dry" = 1 ]; then echo "[dry-run] compare $table (manifest: $expected)"; continue; fi
-  got="$("${compose[@]}" exec -T postgres psql -U ideashub -d ideashub -At -c "select count(*) from $table")"
+  # < /dev/null: `exec -T` would otherwise read the rest of the manifest and end the loop after one table.
+  got="$("${compose[@]}" exec -T postgres psql -U ideashub -d ideashub -At -c "select count(*) from $table" < /dev/null)"
   if [ "$got" = "$expected" ]; then
     echo "ok   $table $got"
   else
