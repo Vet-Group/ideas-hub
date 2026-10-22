@@ -147,13 +147,15 @@ Cloudflare is reached from the development PC, never through a login on the host
    secret. Write them as `~ideashub/.cloudflared/<ideas-hub-tunnel-id>.json`
    (`{"AccountTag", "TunnelID", "TunnelSecret"}`, `chmod 600`) through `ssh ideashub-prod` stdin, never
    on a command line.
-3. `cf dns records create --zone vetgroup.net`: CNAME `ideas` → `<ideas-hub-tunnel-id>.cfargotunnel.com`,
-   proxied.
+3. The CNAME `ideas` → `<ideas-hub-tunnel-id>.cfargotunnel.com`, proxied (the command has no per-field
+   flags, only `--body`):
+   `cf dns records create --zone vetgroup.net --body '{"type":"CNAME","name":"ideas","content":"<ideas-hub-tunnel-id>.cfargotunnel.com","proxied":true}'`.
 4. On the host, copy `deploy/linux/cloudflared-ideas-hub.yml.example` to `~/.cloudflared/ideas-hub.yml`
    and fill in the id, home path and hostname; `systemctl --user enable --now ideashub-tunnel.service`.
    The `ideashub` user's `~/.cloudflared` then holds only these two files, no `cert.pem`.
-5. After Step 4: `cf auth logout --profile ideas-hub` and clear the MCP server's authentication. The
-   tunnel keeps running on its own credentials.
+5. After Step 4: `cf auth delete ideas-hub` (`cf auth logout` refuses `--profile` and only signs out the
+   default profile) and clear the MCP server's authentication. The tunnel keeps running on its own
+   credentials.
 6. Pending owner: whether to put Cloudflare Access in front. The app has its own sign-in; if Access is
    added, the LCP check and the future `/api/v1` need it too (`docs/contracts/ideas-hub-v1.md`).
 
@@ -210,9 +212,11 @@ under "Display") and bring the options to the owner (ADR 0003 decision point). T
 3. On Windows: `Enable-ScheduledTask IdeasHub-Worker; Enable-ScheduledTask IdeasHub-Watchdog;
    Start-ScheduledTask IdeasHub-Worker`. The watchdog backfills the slots missed in between as `missed`.
 4. The tunnel hostname can stay (it then answers 502) or be removed from the development PC: after
-   `systemctl --user disable --now ideashub-tunnel.service` on the host, `cf dns records delete` for the
-   `ideas` record and `cf tunnels delete` for `ideas-hub` only (a new `cf` login if it was ended); nothing
-   of POD Studio's needs undoing. The `ideas-hub` compose
+   `systemctl --user disable --now ideashub-tunnel.service` on the host (a tunnel with live connections
+   cannot be deleted), `cf dns records delete <ideas-record-id> -f --zone vetgroup.net` and
+   `cf tunnels delete <ideas-hub-tunnel-id> -f`, with the ids read from `cf dns records list` and
+   `cf tunnels list` (both take ids, not names; `-f` skips the prompt) and only those two (a new
+   `cf auth create ideas-hub` if the login was ended); nothing of POD Studio's needs undoing. The `ideas-hub` compose
    project and its volumes on Linux are kept until the owner decides to delete them
    (`docker compose -p ideas-hub down` keeps volumes; `-v` would delete them).
 

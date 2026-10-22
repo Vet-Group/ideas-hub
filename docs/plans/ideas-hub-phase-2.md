@@ -753,7 +753,7 @@ rest rotate to the next run). At about 1 minute per search, 160 searches take ~2
 | Token expires (≤ 1 year) | Gate fails closed with a `deploy_failed` Alert; renewal is a 5-minute owner task |
 | Actions minutes and storage now the org's | Checked in Step 1; CI prints to the log instead of uploading artifacts |
 | Mixed ownership: personal backup bucket (D3), company org, host and hostname | Recorded in ADR 0005/0007; moving the bucket is a follow-up if the project becomes the company's |
-| The owner's Cloudflare login (`cf` profile `ideas-hub`, MCP server) holds every scope of the company account, POD Studio's tunnel and the other zone included | Read first, print each write before running it, touch only the tunnel `ideas-hub` and the record `ideas`; `cf auth logout --profile ideas-hub` and the MCP authentication cleared after Step 4; the host holds only the tunnel's own credentials |
+| The owner's Cloudflare login (`cf` profile `ideas-hub`, MCP server) holds every scope of the company account, POD Studio's tunnel and the other zone included | Read first, print each write before running it, touch only the tunnel `ideas-hub` and the record `ideas`; `cf auth delete ideas-hub` and the MCP authentication cleared after Step 4; the host holds only the tunnel's own credentials |
 | Lark webhook has no dedupe | Accepted for an owner-only pilot (ADR 0004); bot app before staff join (D2) |
 | Facebook blocks the office IP | Step 7 decision point |
 | Two crawlers at once | Windows worker never registered; `T_first` after the probe |
