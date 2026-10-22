@@ -4,6 +4,7 @@
 #   ssh vet-linux "bash -s -- <page_id> ..." < export-ads.sh > out/ads.jsonl
 set -euo pipefail
 cd /opt/ideas-hub
+for id in "$@"; do [[ $id =~ ^[0-9]+$ ]] || { echo "not a page id: $id" >&2; exit 2; }; done
 ids=$(printf "'%s'," "$@"); ids=${ids%,}
 docker compose -p ideas-hub exec -T postgres psql -U ideashub -d ideashub -AtX -v ON_ERROR_STOP=1 -c "
   select json_build_object('page_id', a.page_id, 'ad_archive_id', a.ad_archive_id, 'caption', a.caption, 'thumbnail_key', a.thumbnail_key)

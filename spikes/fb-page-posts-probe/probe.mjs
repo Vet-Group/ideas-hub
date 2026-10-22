@@ -5,7 +5,7 @@
 // Runs on the home PC only (plan "Where and how"), with system Chrome.
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { extractPosts } from './extract.mjs';
+import { extractPosts, extractPostsV1 } from './extract.mjs';
 
 const [pass, pagesFile] = process.argv.slice(2);
 const pages = readFileSync(pagesFile, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -38,7 +38,10 @@ for (const [i, pageId] of pages.entries()) {
     }
     row.final_url = page.url();
     row.title = await page.title();
-    row.posts = extractPosts((await page.content()) + bodies.join('\n'));
+    const loaded = (await page.content()) + bodies.join('\n');
+    row.posts = extractPosts(loaded);
+    // The pass-1 extractor on the same load, so the report can say how far pass 1 is trusted.
+    row.posts_v1 = extractPostsV1(loaded);
   } catch (e) {
     row.error = String(e.message ?? e).slice(0, 300);
     row.posts = [];
