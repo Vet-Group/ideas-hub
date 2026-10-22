@@ -144,7 +144,7 @@ const AD_ORDER: Record<AdSort, ReturnType<typeof sql>> = {
 };
 
 export interface AdPage {
-  /** `duplicates`: ads grouped under the item, 1 without `dedupe`. */
+  /** `duplicates`: ads grouped under the item, 1 without `dedupe`; `momentum` is computed for the `trending` sort only, else 0. */
   items: (AdListItem & { duplicates: number; momentum: number })[];
   /** Items matching the filters on all pages. */
   total: number;
@@ -174,7 +174,8 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
   const { rows } = await db.execute<Omit<AdSqlRow, 'ad_archive_id'> & { ad_archive_id: string | null; duplicates: number; momentum: number; total: number }>(sql`
     with f as (
       select a.ad_archive_id, a.page_name, a.caption, a.title, a.link, a.landing_domain, a.media_type, a.thumbnail_key,
-        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, st.status, ${DAYS} as days_active, ${SCORE} as score, ${momentumSql(o.today)} as momentum
+        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, st.status, ${DAYS} as days_active, ${SCORE} as score,
+        ${f.sort === 'trending' ? momentumSql(o.today) : sql`0`} as momentum
       from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id
       where true ${where}
     ),

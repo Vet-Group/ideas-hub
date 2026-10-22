@@ -44,7 +44,8 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
       <div className={cn('grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]', selected && 'xl:grid-cols-[200px_minmax(0,1fr)_360px]')}>
         <FilterRail f={f} keywords={keywords.map((k) => ({ id: k.id, text: k.text }))} countries={settings.countries} />
         <div>
-          {f.sort === 'trending' && ads.length > 0 && ads.every((a) => a.momentum === 0) ? (
+          {/* Page 1 only: later pages of a descending sort end in zeros even when there is data. */}
+          {f.sort === 'trending' && (f.page ?? 1) === 1 && ads.length > 0 && ads.every((a) => a.momentum === 0) ? (
             <p className="border-line text-fg-2 rounded-card mb-3 border border-dashed p-3 text-sm">{t.ads.trendingNoData}</p>
           ) : null}
           <AdGrid ads={cards} selectedId={selectedId} saveStores={stores} />
