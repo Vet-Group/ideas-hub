@@ -110,10 +110,22 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
         ['a_new', 0],
       ]);
       expect(items.map((a) => a.momentum)).toEqual([107, 60, 0]);
+      // Other sorts skip the subqueries and carry 0.
+      expect((await listAds(db, O, { sort: 'score' })).items.map((a) => a.momentum)).toEqual([0, 0, 0]);
+      // Edge cases against momentumScore: a zero like baseline, no page_id, no dates.
+      await db.execute(sql`insert into page_days (page_id, crawl_day, like_count) values ('p_zero', '2026-10-18', 0), ('p_zero', '2026-10-20', 50)`);
+      await db.execute(sql`update ads set page_id = 'p_zero' where ad_archive_id = 'a_lo'`);
+      await db.execute(sql`update ads set start_date = null, end_date = null where ad_archive_id = 'a_hi'`);
+      await db.execute(sql`update ads set page_id = null where ad_archive_id = 'a_hi'`);
+      const edge = new Map((await listAds(db, O, { sort: 'trending' })).items.map((a) => [a.adArchiveId, a.momentum]));
+      expect(edge.get('a_lo')).toBe(momentumScore({ variantsNow: null, variantsBefore: null, pageLikesNow: 50, pageLikesBefore: 0, daysActive: 7 }));
+      expect(edge.get('a_hi')).toBe(momentumScore({ variantsNow: 5, variantsBefore: 2, pageLikesNow: null, pageLikesBefore: null, daysActive: null }));
+      expect([edge.get('a_lo'), edge.get('a_hi')]).toEqual([0, 30]);
     } finally {
       await db.execute(sql`delete from ad_sightings where country in ('CA', 'AU', 'DE')`);
       await db.execute(sql`delete from page_days`);
       await db.execute(sql`update ads set page_id = null`);
+      await db.execute(sql`update ads set start_date = '2026-10-01', end_date = '2026-10-20' where ad_archive_id = 'a_hi'`);
     }
   });
 
