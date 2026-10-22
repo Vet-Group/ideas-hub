@@ -34,8 +34,8 @@ export async function upsertAds(db: Db, at: SearchSighting, ads: readonly Normal
           select 1 from ad_sightings s where s.ad_archive_id = excluded.ad_archive_id and s.crawl_day = ${at.crawlDay}::date) then 0 else 1 end,
         last_seen_date = greatest(ads.last_seen_date, excluded.last_seen_date)`);
     await db.execute(sql`
-      insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day)
-      values (${ad.adArchiveId}, ${at.runId}, ${at.keywordId}, ${at.country}, ${i + 1}, ${at.crawlDay})
+      insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day, collation_count)
+      values (${ad.adArchiveId}, ${at.runId}, ${at.keywordId}, ${at.country}, ${i + 1}, ${at.crawlDay}, ${ad.collationCount})
       on conflict do nothing`);
     if (ad.landingDomain && !isNonShopDomain(ad.landingDomain, nonShopDomains)) {
       await db.execute(sql`

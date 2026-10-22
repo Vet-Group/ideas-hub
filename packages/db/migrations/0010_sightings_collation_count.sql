@@ -1,0 +1,1 @@
+ALTER TABLE "ad_sightings" ADD COLUMN "collation_count" integer;

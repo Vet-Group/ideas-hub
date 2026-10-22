@@ -150,8 +150,9 @@ not enough, plus its own ADR. Residential proxies come before accounts.
 - A keyword tracked by a store is crawled into the shared data. Keyword text is shared: it appears in
   keyword lists and ad filters for everyone. Only which store tracks a keyword is hidden.
 - Ads are deduplicated by `ad_archive_id`; a new sighting updates `end_date`, `is_active` and the stored
-  JSON. Each run that sees an ad adds one sighting per (run, keyword, country) with position and crawl
-  day. Sightings are kept 180 days; the counts on the ad stay.
+  JSON. Each run that sees an ad adds one sighting per (run, keyword, country) with position, crawl
+  day and the ad's `collation_count` at that sighting (so a rising variant count shows over time).
+  Sightings are kept 180 days; the counts on the ad stay.
 - The adapter keeps the parsed ad object as JSON so it can be re-parsed later. Raw HTML pages are not
   stored.
 - Thumbnails (`resized_image_url`, `video_preview_image_url`) are downloaded at capture time. This rests

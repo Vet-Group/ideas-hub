@@ -49,6 +49,20 @@ describe.skipIf(!testDatabaseAvailable())('upsert', () => {
     });
   });
 
+  it('keeps each sighting\'s collation_count, so a rising variant count shows over time', async () => {
+    const r1 = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-22T06:00:00Z'), status: 'done' });
+    const r2 = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-22T18:00:00Z'), status: 'done' });
+    const ad = (count?: number) => normalizeAd({ ...raw('V', 1792393200), ...(count === undefined ? {} : { collation_count: count }) });
+    await upsertAds(h.db, { runId: r1, keywordId: 'kw_0', country: 'US', crawlDay: '2026-10-21' }, [ad(3)], DEFAULT_SETTINGS.nonShopDomains);
+    await upsertAds(h.db, { runId: r2, keywordId: 'kw_0', country: 'US', crawlDay: '2026-10-22' }, [ad(7)], DEFAULT_SETTINGS.nonShopDomains);
+    await upsertAds(h.db, { runId: r2, keywordId: 'kw_1', country: 'US', crawlDay: '2026-10-22' }, [ad()], DEFAULT_SETTINGS.nonShopDomains);
+    expect(await all(h, sql`select crawl_day::text, keyword_id, collation_count from ad_sightings where ad_archive_id = 'V' order by crawl_day, keyword_id`)).toEqual([
+      { crawl_day: '2026-10-21', keyword_id: 'kw_0', collation_count: 3 },
+      { crawl_day: '2026-10-22', keyword_id: 'kw_0', collation_count: 7 },
+      { crawl_day: '2026-10-22', keyword_id: 'kw_1', collation_count: null },
+    ]);
+  });
+
   it('keeps a non-shop landing domain on the ad but never makes it a shop', async () => {
     const r = await insertRun(h, { deadline: h.clock.now(), scheduledFor: new Date('2026-10-21T06:00:00Z'), status: 'done' });
     const app = { ...raw('APP', 1792393200), snapshot: { body: { text: 'app' }, link_url: 'https://play.google.com/store/apps/details?id=x' } };
