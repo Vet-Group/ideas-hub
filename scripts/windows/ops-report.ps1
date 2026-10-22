@@ -337,7 +337,8 @@ function PilotVerdict {
   $pr, $noPr = Publish $wt $branch 'Record the 14-day pilot verdict' "Verdict: $verdict."
 
   $slug = 'Vet-Group/ideas-hub'
-  $comment = "$text`nReport PR: $(if ($pr) { $pr } else { "none ($noPr)" })"
+  # The first line is what IdeasHub-Conductor matches (Documents\ops\ideas-hub-plan.json).
+  $comment = "Pilot verdict ($($nowUtc.ToString('yyyy-MM-dd'))): $verdict`n`n$text`nReport PR: $(if ($pr) { $pr } else { "none ($noPr)" })"
   Save (Join-Path $data 'issue-comment.md') $comment
   if ($real) {
     $comment | & gh issue comment 55 -R $slug --body-file - | Out-Host

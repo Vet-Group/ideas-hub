@@ -59,6 +59,7 @@ const run = (hostDir: string, worktree?: string) => {
     out: r.stdout + r.stderr,
     verdict: () => read('verdict.txt').split('\n')[0],
     report: () => read('report.md'),
+    comment: () => read('issue-comment.md'),
     lark: () => readFileSync(join(dir, readdirSync(dir).find((f) => f.startsWith('lark-summary-'))!), 'utf8'),
   };
 };
@@ -80,6 +81,7 @@ describe.skipIf(!shellAvailable)('ops-report.ps1 -Report pilot-verdict on fake d
     );
     expect(r.out).toContain('would: commit, push');
     expect(r.out).toContain('would: comment on #55 and close it');
+    expect(r.comment().startsWith('Pilot verdict (2026-11-05): PASS\n')).toBe(true);
     expect(r.lark()).toContain('Ideas Hub 14-day pilot: PASS');
   }, 60_000);
 
