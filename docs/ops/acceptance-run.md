@@ -1,7 +1,7 @@
 # Runbook: the 14-day acceptance run
 
 Status: **ready, not started.** Pending owner: start the run after the Linux switch, its 2-day
-re-check and the LCP check (`docs/ops/linux-trial.md`), the legal review (Gate 0: it must finish first)
+re-check and the LCP check (`docs/ops/production.md`), the legal review (Gate 0: it must finish first)
 and staff onboarding (`docs/onboarding.md`). Plan "Acceptance criteria" (AC 1–7, measurable form) and
 "Verification steps"; spec "Acceptance criteria".
 
@@ -22,7 +22,7 @@ and staff onboarding (`docs/onboarding.md`). Plan "Acceptance criteria" (AC 1–
    briefing is ready. Record the 5 values and the median in the tracking issue and under "Linux trial"
    in `docs/research/2026-10-20-block-rate.md`. A median ≥ 2500 ms uses the reserved day to fix it, then
    re-run; the 14-day run waits for a pass. If Cloudflare Access is put in front of the hostname, the
-   script must first get through it (pending owner, `linux-trial.md` "Tunnel").
+   script must first get through it (pending owner, `production.md` "Tunnel").
 3. Staff onboarded in at least 2 stores, with `save` and no admin role (admin saves do not count).
 4. The owner creates the tracking issue, for example "Phase 1 acceptance run `<day 1>` – `<day 14>`", and
    writes day 1's date (Asia/Ho_Chi_Minh) and the start time in UTC, `<run-start>`, at its top.

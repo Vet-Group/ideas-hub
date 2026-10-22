@@ -1,4 +1,4 @@
-# Windows side of the Linux trial (docs/ops/linux-trial.md, steps 1–2). Run on the Windows dev PC from
+# Windows side of the Linux trial (docs/ops/production.md, steps 1–2). Run on the Windows dev PC from
 # the checkout, ONLY after the owner's go-ahead. In order:
 #   1. disables and stops the IdeasHub-Worker and IdeasHub-Watchdog tasks, so no run, briefing or Lark
 #      post (the worker's lark.send and the watchdog's Alerts) happens after the dump;

@@ -1,5 +1,5 @@
 # Ideas Hub's own Cloudflare tunnel, with its own config and credentials under ~/.cloudflared;
-# POD Studio's tunnel and its config are never touched (docs/ops/linux-trial.md, "Tunnel").
+# POD Studio's tunnel and its config are never touched (docs/ops/production.md, "Tunnel").
 [Unit]
 Description=Ideas Hub Cloudflare tunnel
 After=network-online.target ideashub-web.service

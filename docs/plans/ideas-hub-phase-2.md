@@ -1106,5 +1106,6 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   2026.10.3 and `gh` 2.103.0 (the deploy's CI gate needs it; neither was on the host) in
   `~ideashub/.local/bin`; the Windows `.env` had empty
   `BETTER_AUTH_SECRET` and `THUMB_URL_SECRET`, so new ones were generated on the host (sessions and
-  thumbnail signatures start fresh); item 8 used `systemctl restart user@1001.service`, a real reboot
-  is unverified.
+  thumbnail signatures start fresh); item 8 used `systemctl restart user@1001.service`; an unplanned
+  real reboot at 15:22 (the host's power key) brought every unit back with no login
+  (`docs/ops/production.md`).

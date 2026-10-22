@@ -1,4 +1,4 @@
-# Copy to ~/.cloudflared/ideas-hub.yml and fill the placeholders (docs/ops/linux-trial.md, "Tunnel").
+# Copy to ~/.cloudflared/ideas-hub.yml and fill the placeholders (docs/ops/production.md, "Tunnel").
 # A separate named tunnel: nothing here is shared with POD Studio's tunnel config.
 tunnel: <ideas-hub-tunnel-id>
 credentials-file: <home>/.cloudflared/<ideas-hub-tunnel-id>.json

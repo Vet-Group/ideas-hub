@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Linux side of the trial, part 1 (docs/ops/linux-trial.md, steps 4–6). Run on the Linux desktop from the
+# Linux side of the trial, part 1 (docs/ops/production.md, steps 4–6). Run on the Linux desktop from the
 # Ideas Hub checkout, ONLY after the owner's go-ahead and after dump-windows.ps1 has stopped Windows.
 #   scripts/linux/restore.sh [--dry-run] [--transfer DIR]
 # Checks that Ideas Hub's ports are free and that no ideas-hub compose volume exists yet, verifies the
@@ -34,7 +34,7 @@ for c in docker node pnpm sha256sum ss; do command -v "$c" >/dev/null || fail "$
 [ -f "$repo/.env" ] || fail ".env missing at $repo/.env (copy it from Windows, then set APP_URL and DATABASE_URL)"
 grep -q '^APP_URL=https://' "$repo/.env" || echo "warning: APP_URL in .env is not an https:// tunnel URL yet"
 for port in 3300 5433 9300 9301; do
-  if ss -ltnH "sport = :$port" | grep -q .; then fail "port $port is in use (POD Studio?); pick another, see docs/ops/linux-trial.md"; fi
+  if ss -ltnH "sport = :$port" | grep -q .; then fail "port $port is in use (POD Studio?); pick another, see docs/ops/production.md"; fi
 done
 if docker volume ls -q --filter label=com.docker.compose.project=ideas-hub | grep -q .; then
   fail "ideas-hub compose volumes already exist; this script restores into a fresh project only"
@@ -75,4 +75,4 @@ while read -r table expected; do
   fi
 done < <(tr -d '\r' < "$transfer/manifest.txt" | awk '$1 == "rows" { print $2, $3 }')
 [ "$diffs" = 0 ] || fail "$diffs table(s) differ from the manifest"
-echo "Next: scripts/linux/install-units.sh (docs/ops/linux-trial.md, step 7)."
+echo "Next: scripts/linux/install-units.sh (docs/ops/production.md, step 7)."
