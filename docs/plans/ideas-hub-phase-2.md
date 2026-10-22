@@ -1102,7 +1102,8 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   `rootlesskit`, `uidmap`, `slirp4netns` and `xvfb` instead of `docker-ce-rootless-extras` (no Docker
   repository; `docker.io` ships the setup tool), `fonts-noto-core` instead of `fonts-noto`, and `xvfb`
   upgrading the shared `xserver-common` to 1ubuntu1.3 (owner accepted 2026-10-21); `cloudflared`
-  2026.10.3 in `~ideashub/.local/bin` (none on the host for that user); the Windows `.env` had empty
+  2026.10.3 and `gh` 2.103.0 (the deploy's CI gate needs it; neither was on the host) in
+  `~ideashub/.local/bin`; the Windows `.env` had empty
   `BETTER_AUTH_SECRET` and `THUMB_URL_SECRET`, so new ones were generated on the host (sessions and
   thumbnail signatures start fresh); item 8 used `systemctl restart user@1001.service`, a real reboot
   is unverified.
