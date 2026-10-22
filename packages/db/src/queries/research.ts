@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, VIETNAM, daysActive, nonShopPattern, trendScore } from '@ideas-hub/core';
+import { type AdStatus, MOMENTUM_WINDOW_DAYS, VIETNAM, addDays, daysActive, nonShopPattern, trendScore } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { adStatusQuery } from './ad-status';
@@ -14,7 +14,7 @@ export interface StatusOptions {
   countries: readonly string[];
 }
 
-export const AD_SORTS = ['score', 'days', 'last_seen', 'first_seen'] as const;
+export const AD_SORTS = ['score', 'trending', 'days', 'last_seen', 'first_seen'] as const;
 export type AdSort = (typeof AD_SORTS)[number];
 export const AD_PAGE_SIZE = 120;
 
@@ -116,8 +116,28 @@ const DAYS = sql`(a.end_date - a.start_date + 1)`;
 /** trendScore (packages/core) in SQL, so the score filter and sort run in the database. */
 const SCORE = sql`case when ${DAYS} >= 5 and nullif(a.landing_domain, '') is not null then ${DAYS} * a.seen_days end`;
 
+/**
+ * momentumScore (packages/core) in SQL for ad `a` as of crawl day `today`: each series (the ad's
+ * collation_count per crawl day, its page's like count per crawl day) compares its latest day in the
+ * window with its earliest, so a series seen on one day only adds nothing.
+ */
+export function momentumSql(today: string) {
+  const from = addDays(today, -MOMENTUM_WINDOW_DAYS);
+  const series = (days: ReturnType<typeof sql>) =>
+    sql`(select (array_agg(x.v order by x.d desc))[1] as now, case when count(*) > 1 then (array_agg(x.v order by x.d))[1] end as before from (${days}) x)`;
+  return sql`(select case when v.before is null and coalesce(l.before, 0) = 0 then 0
+      else (10 * coalesce(greatest(v.now - v.before, 0), 0)
+        + coalesce(least(100, greatest(0, round((l.now - l.before) * 100.0 / nullif(l.before, 0)))), 0)
+        + least(30, coalesce(${DAYS}, 0)))::int end
+    from ${series(sql`select s.crawl_day as d, max(s.collation_count) as v from ad_sightings s
+        where s.ad_archive_id = a.ad_archive_id and s.collation_count is not null and s.crawl_day between ${from}::date and ${today}::date group by s.crawl_day`)} v,
+      ${series(sql`select pd.crawl_day as d, pd.like_count as v from page_days pd
+        where pd.page_id = a.page_id and pd.like_count is not null and pd.crawl_day between ${from}::date and ${today}::date`)} l)`;
+}
+
 const AD_ORDER: Record<AdSort, ReturnType<typeof sql>> = {
   score: sql`score desc nulls last, last_seen_date desc, ad_archive_id`,
+  trending: sql`momentum desc, score desc nulls last, last_seen_date desc, ad_archive_id`,
   days: sql`days_active desc nulls last, last_seen_date desc, ad_archive_id`,
   last_seen: sql`last_seen_date desc, ad_archive_id`,
   first_seen: sql`first_seen_date desc, last_seen_date desc, ad_archive_id`,
@@ -125,7 +145,7 @@ const AD_ORDER: Record<AdSort, ReturnType<typeof sql>> = {
 
 export interface AdPage {
   /** `duplicates`: ads grouped under the item, 1 without `dedupe`. */
-  items: (AdListItem & { duplicates: number })[];
+  items: (AdListItem & { duplicates: number; momentum: number })[];
   /** Items matching the filters on all pages. */
   total: number;
 }
@@ -151,10 +171,10 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
   const group = f.dedupe
     ? sql`count(*) over w as duplicates, row_number() over (w order by ${order}) as rn from f window w as (partition by coalesce(caption, ad_archive_id), landing_domain)`
     : sql`1 as duplicates, 1 as rn from f`;
-  const { rows } = await db.execute<Omit<AdSqlRow, 'ad_archive_id'> & { ad_archive_id: string | null; duplicates: number; total: number }>(sql`
+  const { rows } = await db.execute<Omit<AdSqlRow, 'ad_archive_id'> & { ad_archive_id: string | null; duplicates: number; momentum: number; total: number }>(sql`
     with f as (
       select a.ad_archive_id, a.page_name, a.caption, a.title, a.link, a.landing_domain, a.media_type, a.thumbnail_key,
-        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, st.status, ${DAYS} as days_active, ${SCORE} as score
+        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, st.status, ${DAYS} as days_active, ${SCORE} as score, ${momentumSql(o.today)} as momentum
       from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id
       where true ${where}
     ),
@@ -163,14 +183,14 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
     -- The left join keeps one row with the total when the page is empty.
     select p.ad_archive_id, p.page_name, p.caption, p.title, p.link, p.landing_domain, p.media_type, p.thumbnail_key,
       p.start_date::text, p.end_date::text, p.first_seen_date::text, p.last_seen_date::text, p.seen_days, p.status,
-      p.duplicates::int, t.total,
+      p.duplicates::int, p.momentum, t.total,
       (select json_agg(distinct jsonb_build_object('id', k.id, 'text', k.text)) from ad_sightings s join keywords k on k.id = s.keyword_id
         where s.ad_archive_id = p.ad_archive_id) as keywords,
       (select array_agg(distinct s.country order by s.country) from ad_sightings s where s.ad_archive_id = p.ad_archive_id) as countries
     from (select count(*)::int as total from g where rn = 1) t left join p on true
     order by ${order}`);
   return {
-    items: rows.filter((r) => r.ad_archive_id !== null).map((r) => ({ ...toItem(r as AdSqlRow), duplicates: r.duplicates })),
+    items: rows.filter((r) => r.ad_archive_id !== null).map((r) => ({ ...toItem(r as AdSqlRow), duplicates: r.duplicates, momentum: r.momentum })),
     total: rows[0]?.total ?? 0,
   };
 }

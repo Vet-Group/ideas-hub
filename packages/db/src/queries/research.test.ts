@@ -1,8 +1,9 @@
-import { DEFAULT_SETTINGS } from '@ideas-hub/core';
+import { DEFAULT_SETTINGS, momentumScore } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
+import { risingNewAds } from './briefing';
 import { daySeries, getAd, listAds, listKeywords, listShops } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
@@ -89,6 +90,48 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
       expect(await ids({ sort: 'first_seen' })).toEqual(['a_nodates', 'a_hi', 'a_new', 'a_lo']);
     } finally {
       await db.execute(sql`delete from ads where ad_archive_id = 'a_nodates'`);
+    }
+  });
+
+  it('sorts by momentum (momentumScore in SQL), from variant and page like growth within 3 crawl days', async () => {
+    expect((await listAds(db, O, { sort: 'trending' })).items.map((a) => a.momentum)).toEqual([0, 0, 0]);
+    await db.execute(sql`update ads set page_id = case ad_archive_id when 'a_hi' then 'p_hi' when 'a_lo' then 'p_lo' end`);
+    // a_hi's 0 on 16 Oct is outside the window (from 17 Oct) and must not count as its baseline.
+    await db.execute(sql`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day, collation_count) values
+      ('a_hi', 'run_1', 'kw_1', 'CA', 1, '2026-10-16', 0), ('a_hi', 'run_1', 'kw_1', 'AU', 1, '2026-10-17', 2),
+      ('a_hi', 'run_1', 'kw_1', 'DE', 1, '2026-10-20', 5)`);
+    await db.execute(sql`insert into page_days (page_id, crawl_day, like_count) values
+      ('p_hi', '2026-10-17', 1000), ('p_hi', '2026-10-20', 1100), ('p_lo', '2026-10-18', 500), ('p_lo', '2026-10-20', 1500)`);
+    try {
+      const items = (await listAds(db, O, { sort: 'trending' })).items;
+      expect(items.map((a) => [a.adArchiveId, a.momentum])).toEqual([
+        ['a_lo', momentumScore({ variantsNow: null, variantsBefore: null, pageLikesNow: 1500, pageLikesBefore: 500, daysActive: 7 })],
+        ['a_hi', momentumScore({ variantsNow: 5, variantsBefore: 2, pageLikesNow: 1100, pageLikesBefore: 1000, daysActive: 20 })],
+        ['a_new', 0],
+      ]);
+      expect(items.map((a) => a.momentum)).toEqual([107, 60, 0]);
+    } finally {
+      await db.execute(sql`delete from ad_sightings where country in ('CA', 'AU', 'DE')`);
+      await db.execute(sql`delete from page_days`);
+      await db.execute(sql`update ads set page_id = null`);
+    }
+  });
+
+  it('breaks a sightings tie in the rising new ads by momentum before position', async () => {
+    await db.execute(sql`insert into ads (ad_archive_id, page_id, caption, page_name, landing_domain, start_date, end_date, seen_days, first_seen_date, last_seen_date, parsed) values
+      ('a_r1', 'p_r1', 'r1', 'Page', 'r1.com', '2026-10-19', '2026-10-20', 1, '2026-10-19', '2026-10-20', '{}'::jsonb),
+      ('a_r2', 'p_r2', 'r2', 'Page', 'r2.com', '2026-10-19', '2026-10-20', 1, '2026-10-19', '2026-10-20', '{}'::jsonb)`);
+    await db.execute(sql`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) values
+      ('a_r1', 'run_1', 'kw_1', 'US', 1, '2026-10-19'), ('a_r2', 'run_1', 'kw_1', 'US', 5, '2026-10-19')`);
+    const run = { id: 'run_1', scheduledFor: new Date('2026-10-19T18:00:00Z'), startedAt: new Date('2026-10-19T18:00:00Z'), crawlDay: '2026-10-20' };
+    const rising = async () => (await risingNewAds(db, run, O)).map((a) => a.adArchiveId);
+    try {
+      expect(await rising()).toEqual(['a_r1', 'a_r2']);
+      await db.execute(sql`insert into page_days (page_id, crawl_day, like_count) values ('p_r2', '2026-10-19', 100), ('p_r2', '2026-10-20', 120)`);
+      expect(await rising()).toEqual(['a_r2', 'a_r1']);
+    } finally {
+      await db.execute(sql`delete from ads where ad_archive_id in ('a_r1', 'a_r2')`);
+      await db.execute(sql`delete from page_days`);
     }
   });
 
