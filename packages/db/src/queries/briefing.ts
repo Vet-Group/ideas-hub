@@ -19,6 +19,7 @@ import {
 import { sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { adStatusQuery } from './ad-status';
+import { momentumSql } from './research';
 
 export interface SourceRun {
   id: string;
@@ -84,6 +85,7 @@ async function runningAds(db: Db, run: SourceRun, o: BriefingOptions, extra = sq
     first_seen_date: string;
     sightings: number;
     best_position: number | null;
+    momentum: number;
     keyword: string | null;
     countries: string[];
   }>(sql`
@@ -91,6 +93,7 @@ async function runningAds(db: Db, run: SourceRun, o: BriefingOptions, extra = sq
       a.seen_days, a.first_seen_date::text,
       (select count(*)::int from ad_sightings s where s.ad_archive_id = a.ad_archive_id) as sightings,
       (select min(position)::int from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.run_id = ${run.id}) as best_position,
+      ${momentumSql(run.crawlDay)} as momentum,
       ${o.keywordId
         ? sql`(select text from keywords where id = ${o.keywordId})`
         : sql`(select k.text from ad_sightings s join keywords k on k.id = s.keyword_id
@@ -129,13 +132,13 @@ export async function topTrendingAds(db: Db, run: SourceRun, o: BriefingOptions)
     .slice(0, o.limit ?? 10);
 }
 
-/** Section 2: rising new ads, first seen and started within the last 3 crawl days, by how often and how high. */
+/** Section 2: rising new ads, first seen and started within the last 3 crawl days, by how often, then momentum, then how high. */
 export async function risingNewAds(db: Db, run: SourceRun, o: BriefingOptions): Promise<(AdRow & { sightings: number; bestPosition: number | null })[]> {
   const from = addDays(run.crawlDay, -2);
   const rows = await runningAds(db, run, o, sql`and a.first_seen_date >= ${from}::date and a.start_date >= ${from}::date`);
   return rows
+    .sort((a, b) => b.sightings - a.sightings || b.momentum - a.momentum || (a.best_position ?? 999) - (b.best_position ?? 999) || a.ad_archive_id.localeCompare(b.ad_archive_id))
     .map((r) => ({ ...toAdRow(r), sightings: r.sightings, bestPosition: r.best_position }))
-    .sort((a, b) => b.sightings - a.sightings || (a.bestPosition ?? 999) - (b.bestPosition ?? 999) || a.adArchiveId.localeCompare(b.adArchiveId))
     .slice(0, o.limit ?? 10);
 }
 

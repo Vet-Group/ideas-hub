@@ -69,6 +69,33 @@ export function trendScore(ad: TrendInput): number | null {
   return ad.daysActive * ad.seenDays;
 }
 
+/** Days back the momentum score compares against. */
+export const MOMENTUM_WINDOW_DAYS = 3;
+
+/** "Before" is the earliest value within the window on a crawl day earlier than "now"'s; null when there is none. */
+export interface MomentumInput {
+  variantsNow: number | null;
+  variantsBefore: number | null;
+  pageLikesNow: number | null;
+  pageLikesBefore: number | null;
+  daysActive: number | null;
+}
+
+/**
+ * The "Trending" sort: 10 × variants gained (collation_count) + page like growth in % (0–100) + days running
+ * (max 30). 0 while neither series has two crawl days in the window, so a fresh install ranks nothing.
+ * momentumSql (packages/db queries/research.ts) is the same formula in SQL.
+ */
+export function momentumScore(m: MomentumInput): number {
+  const variants = m.variantsNow !== null && m.variantsBefore !== null ? Math.max(0, m.variantsNow - m.variantsBefore) : null;
+  const likes =
+    m.pageLikesNow !== null && m.pageLikesBefore
+      ? Math.min(100, Math.max(0, Math.round(((m.pageLikesNow - m.pageLikesBefore) * 100) / m.pageLikesBefore)))
+      : null;
+  if (variants === null && likes === null) return 0;
+  return 10 * (variants ?? 0) + (likes ?? 0) + Math.min(30, m.daysActive ?? 0);
+}
+
 /**
  * A `nonShopDomains` entry as a regex over a landing domain: the domain itself or any subdomain, `*`
  * standing for the rest of the name (`amazon.*` is amazon.com and amazon.co.uk). Valid in JS and in

@@ -154,6 +154,10 @@ not enough, plus its own ADR. Residential proxies come before accounts.
   day and the ad's `collation_count` at that sighting (so a rising variant count shows over time).
   Sightings are kept 180 days; the counts on the ad stay. Each crawl day also keeps every seen page's
   `page_like_count` (`page_days`, the last value read that day), so a page's growth shows over time.
+- **Momentum** (`momentumScore`, the ads grid's "Trending" sort): 10 per variant gained (`collation_count`)
+  plus the page's like growth in % (capped at 100) plus days running (capped at 30), each series compared
+  between its first and last crawl day from 3 days before today to today. It is 0, and the grid says there is not enough
+  data yet, until either series has two crawl days in that window.
 - The adapter keeps the parsed ad object as JSON so it can be re-parsed later. Raw HTML pages are not
   stored.
 - Thumbnails (`resized_image_url`, `video_preview_image_url`) are downloaded at capture time. This rests
@@ -232,8 +236,8 @@ Sections 1–4 use only ads whose status is "running" (§1 "Measures").
 
 1. **Top trending ads** by trend score, with thumbnail, Ad Library link, page and shop.
 2. **Rising new ads**: `first_seen_date` and `start_date` both within the last 3 crawl days (Pacific),
-   so an old ad found through a newly tracked keyword does not count as new; ranked by how often and
-   how high they appear.
+   so an old ad found through a newly tracked keyword does not count as new; ranked by how often they
+   appear, then by momentum (below), then by how high.
 3. **Hot keywords**: running ads per keyword and the change against the same slot 7 crawl days
    earlier, from KeywordDay.
 4. **Rising shops and domains**: running ads per landing domain and the change against the same slot

@@ -9,6 +9,7 @@ import {
   deltaAt,
   isNonShopDomain,
   isRisingNew,
+  momentumScore,
   pacificDate,
   pacificDateFromUnix,
   trendScore,
@@ -71,6 +72,27 @@ describe('trendScore', () => {
     expect(trendScore({ daysActive: 4, seenDays: 3, landingDomain: 'shop.example' })).toBeNull();
     expect(trendScore({ daysActive: 30, seenDays: 3, landingDomain: null })).toBeNull();
     expect(trendScore({ daysActive: 30, seenDays: 3, landingDomain: '' })).toBeNull();
+  });
+});
+
+describe('momentumScore', () => {
+  const none = { variantsNow: null, variantsBefore: null, pageLikesNow: null, pageLikesBefore: null, daysActive: 40 };
+
+  it('is 0 without two crawl days of either series', () => {
+    expect(momentumScore(none)).toBe(0);
+    expect(momentumScore({ ...none, variantsNow: 5, pageLikesNow: 1000 })).toBe(0);
+  });
+
+  it('adds 10 per variant gained, page like growth in % and days running capped at 30', () => {
+    expect(momentumScore({ ...none, variantsNow: 7, variantsBefore: 4, daysActive: 12 })).toBe(42);
+    expect(momentumScore({ ...none, pageLikesNow: 1100, pageLikesBefore: 1000, daysActive: 50 })).toBe(40);
+    expect(momentumScore({ variantsNow: 2, variantsBefore: 1, pageLikesNow: 1050, pageLikesBefore: 1000, daysActive: 3 })).toBe(18);
+  });
+
+  it('ignores losses, caps like growth at 100% and skips a zero like baseline', () => {
+    expect(momentumScore({ ...none, variantsNow: 1, variantsBefore: 4, daysActive: 5 })).toBe(5);
+    expect(momentumScore({ ...none, pageLikesNow: 900, pageLikesBefore: 100, daysActive: 0 })).toBe(100);
+    expect(momentumScore({ ...none, pageLikesNow: 900, pageLikesBefore: 0 })).toBe(0);
   });
 });
 

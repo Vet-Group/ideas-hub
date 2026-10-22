@@ -7,6 +7,7 @@ describe('ads query params', () => {
     expect(f).toMatchObject({ keywordId: 'kw_1', country: 'GB', dedupe: true, sort: 'days', page: 3 });
     expect(adQuery(f)).toBe('?kw=kw_1&country=GB&dedupe=1&sort=days&page=3');
     expect(adQuery({ ...f, page: 4 })).toBe('?kw=kw_1&country=GB&dedupe=1&sort=days&page=4');
+    expect(parseAdFilters({ sort: 'trending' }).sort).toBe('trending');
     expect(adQuery(parseAdFilters({}))).toBe('');
   });
 
