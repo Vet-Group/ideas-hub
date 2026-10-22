@@ -7,7 +7,6 @@ Description=Ideas Hub backup restore drill
 Type=oneshot
 WorkingDirectory=@REPO@
 Environment=PATH=%h/.local/bin:@PATH@
-Environment=DOCKER_HOST=unix://%t/docker.sock
 EnvironmentFile=-%h/.config/ideas-hub/backup.env
 ExecStart=%h/.local/bin/ideashub-backup --drill
 TimeoutStartSec=3h

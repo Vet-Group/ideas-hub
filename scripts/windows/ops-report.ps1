@@ -8,7 +8,7 @@
 #                    are <dir>\stats.txt; -Worktree <git dir> gives item 6's checks a tree to look at; nothing
 #                    is pushed, posted or sent; .done is still written (into -OpsDir)
 # Inputs: <OpsDir>\<report>\t-start.txt holds T_start in UTC (Step 4.11), e.g. 2026-10-23T03:12:45Z; the host
-# is what `ssh -G ideashub-prod` resolves to; the keys are ~/.ssh/ideashub_ro, _stats and _timer.
+# is what `ssh -G vet-linux` resolves to (user root, ADR 0005); the keys are ~/.ssh/ideashub_ro, _stats and _timer.
 # Output: <OpsDir>\<report>\data\ (the collected files, window.txt, verdict.txt), a log per run next to it.
 # Exit 0 when the run finished (any verdict, extend included); 1 on an error or a failed canary.
 param(
@@ -52,14 +52,14 @@ function Rule([string] $p) { $f = [IO.Path]::GetFullPath($p).TrimEnd('\'); '//' 
 $script:target = $null
 function Ssh([string] $key, [string] $stdin) {
   if (-not $script:target) {
-    $g = & ssh -G ideashub-prod
-    if ($LASTEXITCODE -ne 0) { throw 'ssh -G ideashub-prod failed' }
+    $g = & ssh -G vet-linux
+    if ($LASTEXITCODE -ne 0) { throw 'ssh -G vet-linux failed' }
     $h = ($g | Where-Object { $_ -match '^hostname ' }) -replace '^hostname ', ''
     $p = ($g | Where-Object { $_ -match '^port ' }) -replace '^port ', ''
     $script:target = @($h, $p)
   }
   $a = @('-F', 'none', '-o', 'BatchMode=yes', '-o', 'IdentityAgent=none', '-o', 'IdentitiesOnly=yes', '-o', 'ConnectTimeout=30',
-    '-i', "$env:USERPROFILE/.ssh/$key", '-p', $script:target[1], "ideashub@$($script:target[0])")
+    '-i', "$env:USERPROFILE/.ssh/$key", '-p', $script:target[1], "root@$($script:target[0])")
   $out = if ($stdin) { $stdin | & ssh @a } else { & ssh -n @a }
   if ($LASTEXITCODE -ne 0) { throw "ssh with $key exited $LASTEXITCODE" }
   ($out -join "`n") + "`n"
