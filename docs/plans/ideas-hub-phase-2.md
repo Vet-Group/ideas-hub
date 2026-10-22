@@ -102,10 +102,10 @@ Step 8 intended; env-only restarts outside crawl windows stay allowed and are lo
 
 | # | Question | Options, monthly cost | Recommendation | Deadline | Decided |
 |---|---|---|---|---|---|
-| D1 | Production LLM and daily cap (0(c)) | (1) OpenAI key per `docs/ops/lark-and-llm.md` "Later: OpenAI" (a `MODEL_PRICES` row, one test build); (2) Anthropic API key through Anthropic's OpenAI-compatible endpoint with the already tested and priced `claude-sonnet-5-5`: no code change, but Anthropic documents that layer as meant mainly for testing and comparing models; (3) OmniRoute on the dev PC through a tunnel: rejected, the PC is not on 24/7. (1) or (2): measured builds cost about $0.09/day (global $0.045 + one keyword briefing $0.042), **about $3/month**; the $3/day cap bounds the worst case at **$90/month** | (1) OpenAI, cap $3/day | Before Step 6 (target 2026-10-25) | — |
-| D2 | Lark: keep the custom-bot webhook or switch to the bot app (0(d)) | Webhook: $0, works today; one group, no Lark message ids, no Lark-side dedupe (ADR 0004). Bot app: $0, real ids, `uuid` dedupe, Alerts in the admin chat and store briefings in store chats; an app in the company Lark tenant, which a tenant admin may have to approve | Webhook for an owner-only pilot; the bot app before staff stores join (store chats need it, ADR 0004) | Before Step 8 | — |
-| D3 | Off-host backup destination, copies kept, encryption | (1) Cloudflare R2 on a personal account with `restic` (client-side encryption): 10 GB free, then $0.015/GB-month, no egress fee: **$0–0.50/month** in year 1; (2) Backblaze B2 with `restic`: about $7/TB-month, **under $0.50/month**; (3) the dev PC by `rsync`: $0, but it is not on 24/7; (4) Google Drive via `rclone`: 15 GB free, then about $2/month | (1), **7 daily + 4 weekly**, encrypted; the restic password in the owner's password manager and in a `chmod 600` file on the host | Before Step 5 (target 2026-10-24) | — |
-| D4 | Pilot participants; does the legal review still gate the 14-day run (Gate 0 item 4: yes) | (1) The owner alone: AC 6 cannot be measured (needs non-admin members in ≥ 2 stores); (2) 1–2 stores with staff: AC 1–7; accounts and onboarding (`docs/onboarding.md`). The legal review is the owner's to arrange; no agent step can do it | (1), AC 6 recorded "not measured"; keep the Gate 0 rule unless the owner changes it in writing | Before Step 8 | — |
+| D1 | Production LLM and daily cap (0(c)) | (1) OpenAI key per `docs/ops/lark-and-llm.md` "Later: OpenAI" (a `MODEL_PRICES` row, one test build); (2) Anthropic API key through Anthropic's OpenAI-compatible endpoint with the already tested and priced `claude-sonnet-5-5`: no code change, but Anthropic documents that layer as meant mainly for testing and comparing models; (3) OmniRoute on the dev PC through a tunnel: rejected, the PC is not on 24/7. (1) or (2): measured builds cost about $0.09/day (global $0.045 + one keyword briefing $0.042), **about $3/month**; the $3/day cap bounds the worst case at **$90/month** | (1) OpenAI, cap $3/day | Before Step 6 (target 2026-10-25) | 2026-10-22: (1) OpenAI with `gpt-6-luna` ($0.10 / $0.50 per million tokens, OpenAI price list checked 2026-10-22; about $0.005/day at the measured call sizes), daily cap **$0.20** (worst case about $6/month); the owner reads the Step 6 test build before keeping it, the fallback is `gpt-6.1-sol` ($2 / $10) with a $0.30 cap |
+| D2 | Lark: keep the custom-bot webhook or switch to the bot app (0(d)) | Webhook: $0, works today; one group, no Lark message ids, no Lark-side dedupe (ADR 0004). Bot app: $0, real ids, `uuid` dedupe, Alerts in the admin chat and store briefings in store chats; an app in the company Lark tenant, which a tenant admin may have to approve | Webhook for an owner-only pilot; the bot app before staff stores join (store chats need it, ADR 0004) | Before Step 8 | 2026-10-22: the webhook stays. With D4 (2) every post (global briefing, store briefings, Alerts) goes to that one group (ADR 0004), so staff in it see every store's briefing and the ops Alerts; the bot app stays the follow-up if that is not acceptable |
+| D3 | Off-host backup destination, copies kept, encryption | (1) Cloudflare R2 on a personal account with `restic` (client-side encryption): 10 GB free, then $0.015/GB-month, no egress fee: **$0–0.50/month** in year 1; (2) Backblaze B2 with `restic`: about $7/TB-month, **under $0.50/month**; (3) the dev PC by `rsync`: $0, but it is not on 24/7; (4) Google Drive via `rclone`: 15 GB free, then about $2/month | (1), **7 daily + 4 weekly**, encrypted; the restic password in the owner's password manager and in a `chmod 600` file on the host | Before Step 5 (target 2026-10-24) | 2026-10-22: **no off-host backup** (no extra cost). Only the last 3 pre-deploy dumps stay, on the host; a disk or host loss loses the data. Step 5 keeps retention, sizes and disk Alerts and leaves the backup and drill timers disabled (ADR 0007) |
+| D4 | Pilot participants; does the legal review still gate the 14-day run (Gate 0 item 4: yes) | (1) The owner alone: AC 6 cannot be measured (needs non-admin members in ≥ 2 stores); (2) 1–2 stores with staff: AC 1–7; accounts and onboarding (`docs/onboarding.md`). The legal review is the owner's to arrange; no agent step can do it | (1), AC 6 recorded "not measured"; keep the Gate 0 rule unless the owner changes it in writing | Before Step 8 | 2026-10-22: (2) 1–2 stores with staff (accounts and onboarding per `docs/onboarding.md`, AC 1–7); the legal-review condition is still the owner's to answer before day 1 |
 | D5 | Public hostname | (1) A subdomain on the company's Cloudflare zone: $0, company-visible, needs that account; (2) a personal domain on a personal Cloudflare account: about $1/month ($10–15/year domain), tunnel free; (3) no public URL, Tailscale only: $0, only the owner's devices, Lark links open only there | (2), its origin certificate in the `ideashub` user's home (POD Studio's `~/.cloudflared` never read or written) | Before Step 4 | 2026-10-21: (2), a personal domain on a personal Cloudflare account; the domain name is given before Step 4. **Changed 2026-10-22 to (1): `ideas.vetgroup.net` on the company's zone**, the tunnel and its DNS record made from the development PC with the Cloudflare CLI `cf` (profile `ideas-hub`) and checked with the Cloudflare API MCP server; no API token, no Cloudflare login on the host (`docs/ops/linux-trial.md` "Tunnel") |
 | D6 | Linux account and Docker access | (1) A dedicated `ideashub` user with rootless Docker: $0, +10 owner minutes of `sudo`; (2) the `docker` group: root-equivalent (see Options); (3) the user that runs POD Studio: shares its units, `~/.cloudflared` and `~/.local/bin`; rejected | (1) | Before Step 3 | 2026-10-21: (1), a dedicated `ideashub` user with rootless Docker |
 | D7 | Go / no-go after the resource measurement | Go when every Step 3 threshold passes; otherwise the session stops and reports, and the owner picks: free resources on the host, lower Ideas Hub's caps, or a VPS (option B, about €7–15/month) | Follow the thresholds | Right after Step 3 | — |
@@ -532,13 +532,16 @@ before 2026-10-23.
       the texts `\c - ideashub` and `\! id` fail as SQL syntax errors, while `scripts/acceptance.sql`
       and every `scripts/sql/prod-measure/*.sql` run cleanly; through `ideashub_timer` and
       `ideashub_stats`, any requested command still runs only the forced one.
-11. `T_start`: after items 1–10, the session restarts the worker once outside crawl windows, records
+11. **Dropped with Step 7 (owner, 2026-10-22):** no `T_start`, no freeze; the deploy timer stays on.
+    Was: `T_start`: after items 1–10, the session restarts the worker once outside crawl windows, records
     `systemctl --user show ideashub-worker -p ActiveEnterTimestamp` in UTC under "Production host" in
     `docs/research/2026-10-20-block-rate.md`, and **disables** the deploy timer
     (`systemctl --user disable --now ideashub-deploy.timer`, so a reboot does not end the freeze) until
     the Step 7 report. Env-only restarts of Steps 5–6 outside crawl windows do not move `T_start`; each
     is logged in that report with its time.
-12. The unattended report runner, `scripts/windows/ops-report.ps1` (in this session's PR), where **every
+12. **Dropped with Step 7 (owner, 2026-10-22):** `IdeasHub-Ops-ProdMeasureReport` is not registered;
+    `ops-report.ps1` and its SQL stay in the repo for the pilot verdict. Was: the unattended report runner,
+    `scripts/windows/ops-report.ps1` (in this session's PR), where **every
     action is fixed code and the model only writes prose**:
     1. stop if `%LOCALAPPDATA%\ideas-hub-ops\<report>.done` exists;
     2. collect: each fixed SQL file of `scripts/sql/<report>/*.sql` through
@@ -594,6 +597,10 @@ before 2026-10-23.
 
 ### Step 5. Off-host backup, drill, retention and disk Alerts on
 
+**Changed by D3 (2026-10-22): no off-host backup.** The session only enables the sizes and retention
+timers and runs the sizes and disk-Alert checks below; no bucket, `restic init`, backup or drill, and the
+backup and drill timers stay disabled. The owner has no part.
+
 - Owner (D3): the bucket and its key; `RESTIC_REPOSITORY`, the key and `RESTIC_PASSWORD_FILE` into
   `~ideashub/.config/ideas-hub/backup.env` (`chmod 600`); the password also in the owner's password
   manager (without it the backups cannot be read).
@@ -614,7 +621,8 @@ before 2026-10-23.
   session sets `llmModel` at `/admin/settings` and restarts the worker outside crawl windows (env-only,
   logged). For OpenAI, the `MODEL_PRICES` row comes in a PR that merges now and deploys after the Step 7
   report (code freeze); until then the model is priced as unknown (about $0.35 a call), so the $3 cap
-  still holds and allows about 8 calls a day.
+  still holds and allows about 8 calls a day. With Step 7 dropped (2026-10-22) the row deploys as soon as
+  it merges; the cap is $0.20 (D1).
 - Lark (D2): webhook stays, or the bot app's variables (`docs/ops/lark-and-llm.md` "Back to the bot
   app"), switched outside 06:30–07:00.
 - Check: one `pnpm briefing:build` for a day without a ready global briefing: sections 5 and 6 `ok`,
@@ -625,6 +633,11 @@ before 2026-10-23.
 - Sessions: 1. Owner: 15 minutes.
 
 ### Step 7. Measurement on the host (phase 1 Step 4 + the 2-day re-check, merged)
+
+**Dropped by the owner (2026-10-22).** Production is installed and then developed further in place:
+every green `main` deploys, with no code freeze and no measurement report. Phase 1 Step 4's numbers and
+the re-check stay unmeasured; the pilot's daily acceptance check is the only measurement. The text
+below is kept as written.
 
 **Why merged.** The phase 1 "2-day re-check on Linux" compared the Linux host with a Windows
 measurement at the production schedule; with option B that Windows measurement never happens, so a
@@ -684,7 +697,7 @@ once. The Windows reference is the probe (142 searches, 98.6% by AC 1's definiti
 
 ### Step 8. 14-day pilot
 
-- Before day 1: Step 7 passed; the LCP check through the hostname (`docs/ops/acceptance-run.md` "Before
+- Before day 1: Step 4 passed (Step 7 dropped, 2026-10-22); the LCP check through the hostname (`docs/ops/acceptance-run.md` "Before
   day 1", median < 2.5 s); D2 and D4 decided; the legal review per D4; staff onboarding only for D4 (2).
 - Start session: `ideashub-acceptance` (a small script and timer, 07:30 daily, under the slice cap):
   runs `scripts/acceptance.sql` through the read-only role, appends the output to
@@ -752,7 +765,7 @@ rest rotate to the next run). At about 1 minute per search, 160 searches take ~2
 | Host fully down: no Alert can be sent | The missing 07:00 briefing in Lark is the signal; an external heartbeat monitor is listed after the pilot |
 | Token expires (≤ 1 year) | Gate fails closed with a `deploy_failed` Alert; renewal is a 5-minute owner task |
 | Actions minutes and storage now the org's | Checked in Step 1; CI prints to the log instead of uploading artifacts |
-| Mixed ownership: personal backup bucket (D3), company org, host and hostname | Recorded in ADR 0005/0007; moving the bucket is a follow-up if the project becomes the company's |
+| No off-host backup (D3, 2026-10-22): only the last 3 pre-deploy dumps, on the host | A disk or host loss loses the data, accepted by the owner; backups can be turned on later (Step 5 as first written, ADR 0007) |
 | The owner's Cloudflare login (`cf` profile `ideas-hub`, MCP server) holds every scope of the company account, POD Studio's tunnel and the other zone included | Read first, print each write before running it, touch only the tunnel `ideas-hub` and the record `ideas`; `cf auth delete ideas-hub` and the MCP authentication cleared after Step 4; the host holds only the tunnel's own credentials |
 | Lark webhook has no dedupe | Accepted for an owner-only pilot (ADR 0004); bot app before staff join (D2) |
 | Facebook blocks the office IP | Step 7 decision point |
@@ -1077,3 +1090,7 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   `cert.pem` and no `cloudflared tunnel login`. Checked read-only that day: `vetgroup.net` is active in
   the account, it has no `ideas` record, and the only tunnel is POD Studio's `pod-studio-ubuntu`. ADR 0005
   and `docs/ops/linux-trial.md` "Tunnel" updated.
+- Owner decisions (2026-10-22): Step 3 closed early by the owner so Step 4 runs the same day; Step 7
+  dropped (no code freeze, production is developed in place, items 4.11 and 4.12 dropped with it); D1
+  OpenAI `gpt-6-luna` with a $0.20 daily cap; D2 webhook kept; D3 no off-host backup (Step 5 shrinks to
+  sizes, retention and disk Alerts; ADR 0007 updated); D4 1–2 stores with staff, legal review still open.
