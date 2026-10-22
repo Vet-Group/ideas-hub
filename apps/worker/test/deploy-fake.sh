@@ -32,6 +32,8 @@ case "$name" in
     if [ -n "${FAKE_GH_ERR:-}" ]; then echo "$FAKE_GH_ERR" >&2; exit 1; fi
     echo "${FAKE_GH:-completed success}" ;;
   pgrep) exit "${FAKE_PGREP:-1}" ;;
+  ss) ;; # no port taken
+
   sleep) ;;
   flock) exit "${FAKE_FLOCK_RC:-0}" ;;
   date) if [ "$*" = +%u ] && [ -n "${FAKE_WEEKDAY:-}" ]; then echo "$FAKE_WEEKDAY"; else real date "$@"; fi ;;
@@ -111,7 +113,8 @@ case "$name" in
     case "$*" in
       *heartbeat_at*) echo "${FAKE_HEARTBEAT:-1}" ;;
       *pg_database_size*) [ -z "${FAKE_DB_DOWN:-}" ] || exit 2; echo "${FAKE_DB_BYTES:-123456}" ;;
-      *"select count(*) from "*) q="$*"; awk -v t="${q##* }" '$1 == t { print $2; f = 1 } END { if (!f) print 0 }' "$FAKE/rows" ;;
+      # `docker compose exec -T` forwards stdin even when psql does not read it, so this drains it too.
+      *"select count(*) from "*) cat > /dev/null; q="$*"; awk -v t="${q##* }" '$1 == t { print $2; f = 1 } END { if (!f) print 0 }' "$FAKE/rows" ;;
     esac ;;
   pg_dump) echo "dump of $(git rev-parse HEAD 2>/dev/null)"; exit "${FAKE_DUMP_RC:-0}" ;;
   pg_restore)
