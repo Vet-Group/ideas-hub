@@ -133,8 +133,8 @@ Asia/Ho_Chi_Minh.
 - On the POD Studio host: no POD Studio unit, tunnel, config or compose project is edited; Ideas Hub's
   own ports (web 3300 on 127.0.0.1, Postgres 5433, MinIO 9300/9301; `restore.sh` checks them with `ss`);
   POD Studio's `/api/health` normal during every host step (Step 3: sampled every 5 minutes as part of
-  the measurement; Steps 4–6: every 30 s from the development PC, logged; a non-200, or a time over 3×
-  Step 3's median, stops the step and runs its rollback).
+  the measurement; Steps 4–6: every 30 s from the development PC, logged; a non-200, or two consecutive
+  times over 0.05 s, stops the step and runs its rollback).
 - The repo stays standalone; nothing in `pod-studio` is edited.
 - No secret in the repo, chat, shell history or logs; everything on GitHub in English.
 - Windows tasks are turned off with `Disable-ScheduledTask`, never unregistered.
@@ -746,7 +746,7 @@ rest rotate to the next run). At about 1 minute per search, 160 searches take ~2
 | A backup restores into a temporary DB with equal per-table rows and object count | `ideashub-backup --drill` all `ok` | 5, monthly |
 | The disk Alert reaches Lark | `IDEASHUB_DISK_WARN_PCT=1 IDEASHUB_ALERT_KEY=test:<ts> ideashub-sizes` → Lark post | 5 |
 | Sightings and thumbnail jobs have tests | the 2b tests in CI | 2b |
-| POD Studio's `/api/health` normal during host steps | Step 3's 5-minute samples; Steps 4–6's 30 s log: all 200, times ≤ 3× Step 3's median | 3–6 |
+| POD Studio's `/api/health` normal during host steps | Step 3's 5-minute samples; Steps 4–6's 30 s log: all 200, no two consecutive times over 0.05 s | 3–6 |
 | CI green on `main` at the repo's new place | `gh run list -R Vet-Group/ideas-hub -b main -L 1 --json conclusion` = `success` | 1, every PR |
 
 ## Risks and mitigations
@@ -1094,3 +1094,7 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   dropped (no code freeze, production is developed in place, items 4.11 and 4.12 dropped with it); D1
   OpenAI `gpt-6-luna` with a $0.20 daily cap; D2 webhook kept; D3 no off-host backup (Step 5 shrinks to
   sizes, retention and disk Alerts; ADR 0007 updated); D4 1–2 stores with staff, legal review still open.
+- Owner decision (2026-10-22): POD Studio's health limit for Steps 4–6 is two consecutive 30 s samples over
+  0.05 s, replacing 3× Step 3's median (0.0030 s, so 0.009 s), which the quiet baseline's p95 (0.0116 s)
+  and max (0.0179 s) already exceeded (`docs/research/2026-10-22-host-resources.md`); any non-200 still
+  stops the step.
