@@ -57,6 +57,8 @@ export const adSightings = pgTable(
     country: text('country').notNull(),
     position: integer('position').notNull(),
     crawlDay: date('crawl_day').notNull(),
+    /** The payload's collation_count at this sighting, so a rising variant count shows over time; null before 0010 or when absent. */
+    collationCount: integer('collation_count'),
   },
   (t) => [
     primaryKey({ columns: [t.adArchiveId, t.runId, t.keywordId, t.country] }),
