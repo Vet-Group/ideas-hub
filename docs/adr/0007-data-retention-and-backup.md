@@ -1,6 +1,7 @@
 # ADR 0007: Data retention, backup and disk Alerts
 
-Status: accepted (2026-10-21), with the phase 2 plan (v5, consensus); the backup destination waits for the owner (D3).
+Status: accepted (2026-10-21), with the phase 2 plan (v5, consensus); D3 decided 2026-10-22: no off-host
+backup.
 Deciders: owner (through the phase 2 plan).
 Inputs: [phase 2 plan](../plans/ideas-hub-phase-2.md) Steps 2b, 2c and 5, ADR 0002 (sightings kept 180
 days), ADR 0005.
@@ -37,13 +38,14 @@ production, whose own backups sit on the same disk. Saved ideas and stored brief
 - **Ops Alerts:** kinds `retention_failed`, `backup_failed`, `disk_space` (and `deploy_failed`, ADR
   0006), deduplicated per key (date and stage, or filesystem and level), so a warning never hides a
   critical and a test never hides a real Alert; written to `alerts` and posted by the watchdog.
-- **Proposed, pending the owner (D3):** Cloudflare R2 on a personal account (10 GB free, then $0.015 per
-  GB-month, no egress fee); the restic password in the owner's password manager and a `chmod 600` file
-  on the host.
+- **No off-host backup (owner, D3, 2026-10-22)**, to avoid any extra cost. The backup and drill code
+  and units stay in the repo, disabled; only the last 3 pre-deploy dumps are kept, on the host. The
+  proposal it replaces was Cloudflare R2 with restic (10 GB free, then $0.015 per GB-month).
 
 ## Alternatives considered
 
-- **Backups on the same disk, as POD Studio does today:** lost with the disk; rejected.
+- **Backups on the same disk, as POD Studio does today:** lost with the disk; rejected in v5. The owner's
+  2026-10-22 choice (D3) goes further: no scheduled backup at all, only the pre-deploy dumps.
 - **Backblaze B2** (about $7/TB-month): as good; R2 is recommended for no egress fee on restores.
 - **The development PC as the backup target:** not on 24/7; rejected.
 - **`rclone` copies of dump files without restic:** no deduplication of thumbnails between days, and
@@ -55,7 +57,9 @@ production, whose own backups sit on the same disk. Saved ideas and stored brief
 
 ## Consequences
 
-- Deleted sightings and thumbnails come back only from a backup, so the retention timer is enabled only
-  after the first off-host backup and drill.
+- Without an off-host backup a disk or host loss loses every sighting, thumbnail, saved idea and
+  briefing; a bad deploy is still covered by the pre-deploy dumps.
+- Retention is enabled without a backup: deleted sightings and thumbnails are gone for good.
 - Losing the restic password makes every backup unreadable.
-- Off-host storage costs about $0–0.50 a month in the first year at the measured growth.
+- No storage cost. Turning backups on later is Step 5 as first written: a bucket, `backup.env`, `restic
+  init`, the drill and the two timers.
