@@ -1098,3 +1098,11 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   0.05 s, replacing 3× Step 3's median (0.0030 s, so 0.009 s), which the quiet baseline's p95 (0.0116 s)
   and max (0.0179 s) already exceeded (`docs/research/2026-10-22-host-resources.md`); any non-200 still
   stops the step.
+- Step 4 deviations (2026-10-22, run outside the 09:00–11:00 window by the owner's leave): Ubuntu's
+  `rootlesskit`, `uidmap`, `slirp4netns` and `xvfb` instead of `docker-ce-rootless-extras` (no Docker
+  repository; `docker.io` ships the setup tool), `fonts-noto-core` instead of `fonts-noto`, and `xvfb`
+  upgrading the shared `xserver-common` to 1ubuntu1.3 (owner accepted 2026-10-21); `cloudflared`
+  2026.10.3 in `~ideashub/.local/bin` (none on the host for that user); the Windows `.env` had empty
+  `BETTER_AUTH_SECRET` and `THUMB_URL_SECRET`, so new ones were generated on the host (sessions and
+  thumbnail signatures start fresh); item 8 used `systemctl restart user@1001.service`, a real reboot
+  is unverified.
