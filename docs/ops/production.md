@@ -343,7 +343,9 @@ clone first (its git objects are broken). Remove the three forced-command lines 
 ## Pilot run (phase 2 Step 8)
 
 Day 1 is 2026-10-23, `<run-start>` 2026-10-22T17:00:00Z, day 14 is 2026-11-05; tracking issue #55. The app
-version under test is `8849d3f` (deployed 2026-10-22 23:54, before day 1).
+version under test is `8849d3f`. The Trending sort went in just before day 1 (#60 merged 23:12, deployed
+23:28; #61 merged 23:42, deployed 23:54, 2026-10-22 ICT); on 2026-10-23 the owner kept it, and the code
+freeze counts from `8849d3f`.
 
 Decided by the owner on 2026-10-22:
 
