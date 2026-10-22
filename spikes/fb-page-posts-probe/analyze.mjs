@@ -39,6 +39,8 @@ const hashOrNull = async (buf) => {
 /** A load could not be read at all: an error, a non-200, or a login or checkpoint redirect. */
 const isWall = (r) => !!r.error || r.status !== 200 || /\/login|checkpoint/.test(r.final_url ?? '');
 const hasCounts = (p) => p.reactions !== null && p.comments !== null && p.shares !== null;
+/** HTTP 200 on the page URL but titled just "Facebook", no page name and no posts: the logged-out soft wall. */
+const isSoftWall = (r) => !isWall(r) && r.title === 'Facebook' && r.posts.length === 0;
 
 async function main() {
   const all = [...pass1, ...pass2];
@@ -111,6 +113,7 @@ async function main() {
     readable_loads: readable,
     walls: all.filter(isWall).length,
     empty_loads: all.filter((r) => !isWall(r) && r.posts.length === 0).length,
+    soft_walls: all.filter(isSoftWall).length,
     posts: sum('posts'),
     posts_with_counts: sum('with_counts'),
     ads: sum('ads'),
@@ -130,7 +133,7 @@ async function main() {
   const pct = (a, b) => (b ? `${Math.round((a * 100) / b)}%` : '-');
   console.log(`Loads ${summary.loads} (pass 1 ${summary.loads_pass1}, pass 2 ${summary.loads_pass2}); stopped early: ${summary.stopped.length}`);
   console.log(`Q1 readable: ${readable}/${summary.loads} loads (${pct(readable, summary.loads)}) had a post with all three counts; ${summary.posts_with_counts}/${summary.posts} posts in pass 1 had all three`);
-  console.log(`Q2 blocked: ${summary.walls} walls or errors, ${summary.empty_loads} loads with no post read`);
+  console.log(`Q2 blocked: ${summary.walls} walls or errors, ${summary.empty_loads} loads with no post read (${summary.soft_walls} of them titled just "Facebook")`);
   console.log(`Q3 matched (pass 1, plan): ${summary.ads_matched}/${summary.ads} active ads (${pct(summary.ads_matched, summary.ads)}); by text ${summary.ads_matched_text}, by image ${summary.ads_matched_image}`);
   console.log(`Q3 detail: on pages whose pass-1 load read posts ${summary.ads_matched_on_read_pages}/${summary.ads_on_read_pages}; with pass 2 posts added ${summary.ads_matched_either_pass}/${summary.ads}`);
   console.log(`Q5 moves: ${summary.posts_moved}/${summary.posts_in_both} posts read in both passes changed`);
@@ -138,7 +141,7 @@ async function main() {
   console.log('\n| Page | Posts | With counts | Walls | Empty loads | Active ads | Matched (text / image) | In both passes | Changed | Reactions gained |');
   console.log('|---|---|---|---|---|---|---|---|---|---|');
   for (const p of pages) {
-    console.log(`| ${p.title || p.page_id} | ${p.posts} | ${p.with_counts} | ${p.walls} | ${p.empty_loads} | ${p.ads} | ${p.matched} (${p.by_text} / ${p.by_image}) | ${p.in_both} | ${p.moved} | ${p.reaction_gain} |`);
+    console.log(`| ${(p.title || p.page_id).replaceAll('|', '/')} | ${p.posts} | ${p.with_counts} | ${p.walls} | ${p.empty_loads} | ${p.ads} | ${p.matched} (${p.by_text} / ${p.by_image}) | ${p.in_both} | ${p.moved} | ${p.reaction_gain} |`);
   }
 }
 
