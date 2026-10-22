@@ -586,7 +586,8 @@ before 2026-10-23.
 13. `docs/ops/linux-trial.md` → `docs/ops/production.md` (rename; what ran, real values, new units, the
     drills' output, `T_start`), PR merged with CI green (it does not deploy: the timer is stopped).
 
-- Done when: items 7–12 pass; POD Studio's health log all 200 within 3× the baseline; the PR merged.
+- Done when: items 7–10 pass (11 and 12 were dropped with Step 7); POD Studio's health log all 200, with no two
+  consecutive samples over 0.05 s; the PR merged.
 - Rollback: `linux-trial.md` "Rollback" (disable `ideashub-*` units and the user's `docker.service`,
   keep volumes; the Windows database is the source of truth while no scheduled run happened on the
   host); the slice cap stays harmless; `userdel -r ideashub` only on the owner's word; disable the
