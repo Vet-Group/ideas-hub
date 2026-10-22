@@ -44,4 +44,12 @@ describe('restore.sh row counts', () => {
     expect(r.out).toContain('1 table(s) differ from the manifest');
     expect(r.status).toBe(1);
   });
+
+  it('creates the read-only role before pg_restore, which the dump GRANTs to', () => {
+    expect(restore('users 1\nads 3\nalerts 0\n').status).toBe(0);
+    const calls = hosts.at(-1)?.calls() ?? [];
+    const role = calls.findIndex((l) => l.startsWith('psql ') && l.includes('create role ideashub_ro nologin'));
+    expect(role).toBeGreaterThanOrEqual(0);
+    expect(role).toBeLessThan(calls.findIndex((l) => l.startsWith('pg_restore ')));
+  });
 });

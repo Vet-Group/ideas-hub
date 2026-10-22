@@ -45,6 +45,10 @@ for f in ideashub.dump minio-data.tgz manifest.txt; do [ -f "$transfer/$f" ] || 
 
 echo "== Postgres: own project and database"
 run "${compose[@]}" up -d --wait postgres
+# A production dump GRANTs to the read-only role, and pg_restore --exit-on-error stops on a missing role, so a
+# fresh database gets it first, NOLOGIN; its password and limits come back after the restore (the Next lines).
+run "${compose[@]}" exec -T postgres psql -U ideashub -d ideashub -v ON_ERROR_STOP=1 -c \
+  "do \$\$ begin if not exists (select from pg_roles where rolname = 'ideashub_ro') then create role ideashub_ro nologin; end if; end \$\$"
 run "${compose[@]}" cp "$transfer/ideashub.dump" postgres:/tmp/ideashub.dump
 run "${compose[@]}" exec -T postgres pg_restore -U ideashub -d ideashub --no-owner --exit-on-error /tmp/ideashub.dump
 run "${compose[@]}" exec -T postgres rm -f /tmp/ideashub.dump
@@ -75,4 +79,7 @@ while read -r table expected; do
   fi
 done < <(tr -d '\r' < "$transfer/manifest.txt" | awk '$1 == "rows" { print $2, $3 }')
 [ "$diffs" = 0 ] || fail "$diffs table(s) differ from the manifest"
-echo "Next: scripts/linux/install-units.sh (docs/ops/production.md, step 7)."
+echo "Next: give ideashub_ro back its login (the password in ~/.config/ideas-hub/ro.env's RO_DATABASE_URL):"
+echo "  alter role ideashub_ro login password '<password>' connection limit 2;"
+echo "  alter role ideashub_ro set statement_timeout = '60s'; alter role ideashub_ro set default_transaction_read_only = on;"
+echo "Then: scripts/linux/install-units.sh (docs/ops/production.md, step 7)."
