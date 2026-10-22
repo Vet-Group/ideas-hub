@@ -615,6 +615,9 @@ backup and drill timers stay disabled. The owner has no part.
 - Rollback: disable the four timers; the owner may delete the restic repository; the drill touched only
   temporary data.
 - Sessions: 1. Owner: 20 minutes.
+- **Done 2026-10-22 (as root):** sizes and retention timers enabled under root's user manager; one
+  `ideashub-sizes` wrote its line; the disk-Alert test posted to Lark (`docs/ops/production.md`, "Moved to
+  root").
 
 ### Step 6. Production LLM and Lark
 
@@ -632,6 +635,10 @@ backup and drill timers stay disabled. The owner has no part.
   merged with CI green.
 - Rollback: the previous `.env` lines and `llmModel`; restart the worker.
 - Sessions: 1. Owner: 15 minutes.
+- **2026-10-22:** `LLM_BASE_URL` (OpenAI) and `LLM_API_KEY` are in the host's `.env`, `llmModel` is
+  `gpt-6-luna` with the $0.20 cap, its price row merged (PR #51); Lark stays on the webhook (D2). The check
+  waits for the first briefing built from a finished host run (2026-10-23 07:00): no run has finished on
+  the host yet, so there is nothing to build from.
 
 ### Step 7. Measurement on the host (phase 1 Step 4 + the 2-day re-check, merged)
 
@@ -1111,3 +1118,7 @@ Acceptance: Step 8 "Done when" (the day-14 verdict itself is the runner's).
   thumbnail signatures start fresh); item 8 used `systemctl restart user@1001.service`; an unplanned
   real reboot at 15:22 (the host's power key) brought every unit back with no login
   (`docs/ops/production.md`).
+- Moved to root (2026-10-22, owner; ADR 0005 "D6 superseded"): Ideas Hub runs from `/opt/ideas-hub` under
+  root's user manager; Step 5 done there, Step 6 waits for the first briefing, Step 8's LCP check passed
+  (median 176 ms, re-run on day 1), the acceptance timer is on and issue #55 tracks the pilot from
+  2026-10-23 (`docs/ops/production.md`).
