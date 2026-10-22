@@ -289,8 +289,57 @@ probe spike and write only files, not the Windows database.
 `gh` was missing on the host, so the deploy's CI gate failed with "gh: command not found" until it was
 installed in `~/.local/bin`; the plan's root list did not name it.
 
+## Moved to root (2026-10-22)
+
+The owner decided on one `root` user and one SSH profile, `vet-linux`, for the whole host (ADR 0005, "D6
+superseded"). The record above describes the first install as `ideashub`; from 16:35 Ideas Hub runs as
+root, with the same units under root's user manager. POD Studio's `/api/health` was logged every 30 s
+from 16:35 to 17:36 (122 samples): every one 200; one sample over 0.05 s (0.132 s at 10:12:26Z, during
+the restart of `user@0.service` below), never two in a row, so under the limit.
+
+| | Value |
+|---|---|
+| Access | `ssh vet-linux` (root, POD Studio's admin key). The aliases `ideashub-prod` and `podstudio-prod` were removed from the development PC; `~/.ssh/ideashub_admin` is no longer loaded in its agent |
+| Units | root's user manager: lingering on for root; units in `/root/.config/systemd/user`, `systemctl --user` with `XDG_RUNTIME_DIR=/run/user/0` |
+| Caps | `systemctl set-property user@0.service MemoryMax=5G CPUQuota=200%` (controllers cpu, memory, pids); worker `memory.max` 2621440000 |
+| Docker | the rootful daemon, shared with POD Studio; Ideas Hub stays in its own compose project `ideas-hub` (127.0.0.1:3300, 5433, 9300, 9301) |
+| Checkout | `/opt/ideas-hub`, a fresh clone of `main` (`git fsck` clean), credential store in `/root/.git-credentials` (600) |
+| Tools | Node v24.21.0 and pnpm 12.9.1 in `/opt/ideas-hub-tools/node-v24.21.0-linux-x64`, linked as `/opt/ideas-hub-tools/node` (not in `/usr/local/bin`, where Node 24 would shadow POD Studio's `/usr/bin/node` 22); `gh` 2.103.0 and `cloudflared` 2026.10.3 in `/root/.local/bin`. The first copy took only the `node` symlink, so until 17:40 the units ran Node from `/home/ideashub`; the tree was copied, the link repointed and web and worker restarted (`restarts.log`); no root process or config refers to `/home/ideashub` now |
+| Secrets | `/opt/ideas-hub/.env`, `/root/.config/ideas-hub/deploy.env` and `ro.env`, `/root/.cloudflared/ideas-hub.yml` and `<tunnel id>.json`, all 600; the tunnel config's `credentials-file` points at `/root/.cloudflared` |
+| State | `/root/.local/state/ideas-hub` (history of `sizes.csv`, `peaks.csv`, `deploy.log`, `restarts.log` copied over; `deployed-sha` `428db8f`) |
+| Forced-command keys | `ideashub_ro`, `ideashub_stats` and `ideashub_timer` in `/root/.ssh/authorized_keys` (backup of the file before: `/root/ideas-hub-migration/authorized_keys.root.bak-20261022165607`), with the commands of ADR 0005 pointed at the root paths |
+| Timers | watchdog, deploy, sizes (08:45), retention (09:00), acceptance (07:30); backup and drill stay disabled (ADR 0007) |
+| Power key | `/etc/systemd/logind.conf.d/10-ignore-power-key.conf`: `HandlePowerKey=ignore`, from the next boot (logind was not restarted). A long press still forces power off |
+| `ideashub` user | locked (`usermod -L -e 1`), lingering off, no process left; its home, checkout and rootless Docker volumes are kept for rollback |
+
+**Data.** At 16:35 the rootless Postgres was dumped (`pg_dump -Fc`) and the MinIO volume archived, with
+the worker stopped, into `/root/ideas-hub-backup-20261022/transfer` (manifest created 09:35:55Z, git
+`a965288`; a copy is on the development PC), next to `ideashub-config.tgz` and the pre-deploy dumps.
+`restore.sh` stopped at `pg_restore: role "ideashub_ro" does not exist` (the dump grants to it); the
+project was reset and the role made first by hand, then the same steps: every table's row count matched
+the manifest; MinIO 1653 objects against 1655 (2 MinIO trash files). `restore.sh` makes the role itself
+since PR #54.
+
+| Check | Result |
+|---|---|
+| Kill test | `kill -9` of the worker: back in 5.1 s, no Chrome left |
+| Restart of `user@0.service` | every unit back and started after the restart; both containers healthy; `/login` 200 through the hostname, `/api/health` 200 locally; heartbeat fresh |
+| Deploy | `ideashub-deploy --check` as root: `no new commit (428db8fb)` (`git fetch` works; the old checkout's objects were broken by the 15:29 power-off) |
+| Forced-command keys | `ideashub_ro` ran only SQL (`select caption from ads` and an insert into `settings` denied); `ideashub_stats` printed only its files; `ideashub_timer` only enabled the deploy timer, the extra command asked did not run |
+| Disk Alert (Step 5) | one `ideashub-sizes` by the unit (`Result=success`); `IDEASHUB_DISK_WARN_PCT=1 IDEASHUB_ALERT_KEY=test:20261022T102937Z` → `disk_space` Alert at 10:29:38Z, posted to Lark at 10:30:07Z (message id recorded), then resolved |
+| LCP (Step 8, before day 1) | `lcp:briefing` as a staff account through `https://ideas.vetgroup.net`: 192, 164, 176, 176, 176 ms, median 176 ms; no briefing was ready yet, so it is run again on day 1 (issue #55) |
+
+**Rollback to `ideashub`.** Rootless data is as of 16:35; anything written later is only in the root
+project, so dump it first (`docker compose -p ideas-hub exec -T postgres pg_dump -U ideashub -d ideashub
+-Fc`). Then as root: `XDG_RUNTIME_DIR=/run/user/0 systemctl --user disable --now ideashub-worker
+ideashub-watchdog.timer ideashub-deploy.timer ideashub-acceptance.timer ideashub-sizes.timer
+ideashub-retention.timer ideashub-tunnel ideashub-web ideashub-xvfb`; `docker compose -p ideas-hub stop`
+(keeps volumes); `usermod -U -e '' ideashub`; `loginctl enable-linger ideashub`; as `ideashub`
+`systemctl --user enable --now docker.service`, then its units. The `ideashub` checkout needs a fresh
+clone first (its git objects are broken). Remove the three forced-command lines from root's
+`authorized_keys` (or restore the backup above) and add the `ideashub-prod` alias back.
+
 ## Pending owner
 
 - Whether Cloudflare Access fronts `ideas.vetgroup.net` (the app has its own sign-in).
-- The host powers off on a short press of its power key (GNOME's default); `HandlePowerKey=ignore` in a
-  `logind.conf.d` drop-in would stop that, but it is host configuration shared with POD Studio.
+- When to delete the `ideashub` user's home and rootless volumes (kept for rollback).
