@@ -339,7 +339,24 @@ ideashub-retention.timer ideashub-tunnel ideashub-web ideashub-xvfb`; `docker co
 clone first (its git objects are broken). Remove the three forced-command lines from root's
 `authorized_keys` (or restore the backup above) and add the `ideashub-prod` alias back.
 
+## Pilot checks from the development PC (2026-10-22)
+
+The first scheduled crawl on Linux is 2026-10-23 01:00: every slot from 2026-10-20 13:00 to 2026-10-22 13:00
+is `missed`, because the Linux worker first ran at 14:05 on 2026-10-22, when the watchdog backfilled them.
+One-shot Windows tasks check the start of the pilot and comment on the acceptance-run issue #55. They
+are read-only on the host. A failed check raises one `acceptance_failed` ops Alert through
+`pnpm ops:alert`, which the watchdog posts to Lark. The scripts are outside the repo, in the owner's
+`Documents\ops`.
+
+| Task | When (Asia/Ho_Chi_Minh) | What |
+|---|---|---|
+| `IdeasHub-Check-Crawl-20261023` | 2026-10-23 03:05 | `Report-IdeasHub-Day.ps1 crawl`: the 01:00 run's status, searches, worker and root Chrome |
+| `IdeasHub-Report-Day1-20261023` | 2026-10-23 07:40 | `Report-IdeasHub-Day.ps1 day1`: the day comment in the `acceptance-run.md` format, the model rule (keep `gpt-6-luna` only if the briefing is ready before 07:00 with news and suggestions ok, `llm_calls` ≤ 2 and cost under $0.20; otherwise recommend trying `gpt-6-sol`, never switched automatically), and the LCP check as a staff member |
+| `IdeasHub-Cleanup-OldUser-20261029` | 2026-10-29 10:00 | `Cleanup-IdeasHub-OldUser.ps1`: deletes `/home/ideashub` (checkout and rootless Docker data, 2.7 GB) only if no comment on #55 mentions a rollback, and only when the account is locked, has no process and nothing is mounted under it, the root units are active and `/root/ideas-hub-backup-20261022` exists. The locked account and that backup stay |
+
+The owner approved the 2026-10-29 cleanup on 2026-10-22. Writing "rollback" in a comment on #55 before
+then keeps the data.
+
 ## Pending owner
 
 - Whether Cloudflare Access fronts `ideas.vetgroup.net` (the app has its own sign-in).
-- When to delete the `ideashub` user's home and rootless volumes (kept for rollback).
