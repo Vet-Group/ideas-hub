@@ -1,0 +1,16 @@
+{
+  "name": "@ideas-hub/fb-page-posts-probe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "probe": "node probe.mjs",
+    "images": "node images.mjs",
+    "analyze": "node analyze.mjs",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "playwright": "1.63.0",
+    "sharp": "0.35.5"
+  }
+}
