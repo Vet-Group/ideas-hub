@@ -1,8 +1,9 @@
 # Runbook: Linux desktop trial
 
 Status: **ready to run, not run.** Pending owner: the go-ahead to touch the Linux desktop (it hosts POD
-Studio production), the tunnel hostname, and the installs that need `sudo` (Xvfb, Google Chrome). Plan
-Step 8; spec "Hosting"; ADR 0001 (ports, units) and ADR 0003 (browser mode).
+Studio production) and the installs that need `sudo` (Xvfb, Google Chrome). The tunnel hostname is
+`ideas.vetgroup.net` (phase 2 plan D5). Plan Step 8; spec "Hosting"; ADR 0001 (ports, units) and ADR 0003
+(browser mode).
 
 Files: `scripts/linux/dump-windows.ps1` (Windows side), `scripts/linux/restore.sh` and
 `scripts/linux/install-units.sh` (Linux side), units under `deploy/linux/`. Every script has a dry run
@@ -58,7 +59,7 @@ The worker drives real headed Chrome (ADR 0003: off-screen mode). Chosen: a virt
    Plus fonts with Vietnamese glyphs for screenshots (`fonts-noto`).
 3. A checkout: `git clone <ideas-hub-repo> <repo-dir>` at the commit Windows runs (`git rev-parse HEAD`
    on Windows; `manifest.txt` records it).
-4. `cloudflared` installed and logged in to the Cloudflare account (see "Tunnel").
+4. `cloudflared` installed; no Cloudflare login on the host (see "Tunnel").
 
 ## Steps
 
@@ -124,17 +125,38 @@ The worker unit name is fixed: the watchdog restarts it with `systemctl --user r
 
 ### Tunnel: a new hostname, POD Studio's tunnel untouched
 
-A separate named tunnel with its own config file; POD Studio's tunnel, its config (wherever it lives,
-for example `/etc/cloudflared/config.yml` or `~/.cloudflared/config.yml`) and its DNS records are not
+The hostname is `ideas.vetgroup.net` on the company's Cloudflare zone `vetgroup.net` (phase 2 plan D5).
+A separate named tunnel `ideas-hub` with its own config file; POD Studio's tunnel (`pod-studio-ubuntu`,
+locally configured), its config (wherever it lives, for example `/etc/cloudflared/config.yml` or
+`~/.cloudflared/config.yml`), its DNS records and every other zone or record of the account are not
 edited.
 
-1. `cloudflared tunnel login` only if `~/.cloudflared/cert.pem` does not exist yet; if POD Studio's
-   setup already created it for the same Cloudflare account, reuse it (do not overwrite it).
-2. `cloudflared tunnel create ideas-hub` (writes `~/.cloudflared/<ideas-hub-tunnel-id>.json`).
-3. `cloudflared tunnel route dns ideas-hub <tunnel-hostname>`.
-4. Copy `deploy/linux/cloudflared-ideas-hub.yml.example` to `~/.cloudflared/ideas-hub.yml` and fill in
-   the id, home path and hostname; `systemctl --user enable --now ideashub-tunnel.service`.
-5. Pending owner: whether to put Cloudflare Access in front. The app has its own sign-in; if Access is
+Cloudflare is reached from the development PC, never through a login on the host:
+
+- The Cloudflare CLI `cf` (`npm install --global cf`, in beta; 1.0.0-beta.20 on 2026-10-22) with the auth
+  profile `ideas-hub`: the owner's OAuth login (`cf auth create ideas-hub`), bound to the checkout with
+  `cf auth activate ideas-hub <checkout>`. Outside the checkout, pass `--profile ideas-hub`.
+- The Cloudflare API MCP server (`https://mcp.cloudflare.com/mcp`, OAuth) for read-only cross-checks.
+- No API token is stored. The login holds every scope the owner has, not only this zone, so read first,
+  print each write before running it, and touch only the tunnel `ideas-hub` and the record `ideas`.
+
+1. Read only: `cf auth whoami`, `cf zones list` (`vetgroup.net` active), `cf dns records list --zone
+   vetgroup.net` (no `ideas` record), `cf tunnels list` (no `ideas-hub` tunnel).
+2. `cf tunnels create --name ideas-hub --config-source local`. Read its token with `cf tunnels token get`
+   into a variable, never printed: it is base64 JSON `{a, t, s}`, i.e. the account tag, tunnel id and
+   secret. Write them as `~ideashub/.cloudflared/<ideas-hub-tunnel-id>.json`
+   (`{"AccountTag", "TunnelID", "TunnelSecret"}`, `chmod 600`) through `ssh ideashub-prod` stdin, never
+   on a command line.
+3. The CNAME `ideas` → `<ideas-hub-tunnel-id>.cfargotunnel.com`, proxied (the command has no per-field
+   flags, only `--body`):
+   `cf dns records create --zone vetgroup.net --body '{"type":"CNAME","name":"ideas","content":"<ideas-hub-tunnel-id>.cfargotunnel.com","proxied":true}'`.
+4. On the host, copy `deploy/linux/cloudflared-ideas-hub.yml.example` to `~/.cloudflared/ideas-hub.yml`
+   and fill in the id, home path and hostname; `systemctl --user enable --now ideashub-tunnel.service`.
+   The `ideashub` user's `~/.cloudflared` then holds only these two files, no `cert.pem`.
+5. After Step 4: `cf auth delete ideas-hub` (`cf auth logout` refuses `--profile` and only signs out the
+   default profile) and clear the MCP server's authentication. The tunnel keeps running on its own
+   credentials.
+6. Pending owner: whether to put Cloudflare Access in front. The app has its own sign-in; if Access is
    added, the LCP check and the future `/api/v1` need it too (`docs/contracts/ideas-hub-v1.md`).
 
 ### 8. Smoke check (same day)
@@ -189,15 +211,19 @@ under "Display") and bring the options to the owner (ADR 0003 decision point). T
    Windows one, and the same for MinIO if thumbnails were added.
 3. On Windows: `Enable-ScheduledTask IdeasHub-Worker; Enable-ScheduledTask IdeasHub-Watchdog;
    Start-ScheduledTask IdeasHub-Worker`. The watchdog backfills the slots missed in between as `missed`.
-4. The tunnel hostname can stay (it then answers 502) or be removed with `cloudflared tunnel route` /
-   `cloudflared tunnel delete ideas-hub`; nothing of POD Studio's needs undoing. The `ideas-hub` compose
+4. The tunnel hostname can stay (it then answers 502) or be removed from the development PC: after
+   `systemctl --user disable --now ideashub-tunnel.service` on the host (a tunnel with live connections
+   cannot be deleted), `cf dns records delete <ideas-record-id> -f --zone vetgroup.net` and
+   `cf tunnels delete <ideas-hub-tunnel-id> -f`, with the ids read from `cf dns records list` and
+   `cf tunnels list` (both take ids, not names; `-f` skips the prompt) and only those two (a new
+   `cf auth create ideas-hub` if the login was ended); nothing of POD Studio's needs undoing. The `ideas-hub` compose
    project and its volumes on Linux are kept until the owner decides to delete them
    (`docker compose -p ideas-hub down` keeps volumes; `-v` would delete them).
 
 ## Pending owner
 
 - The go-ahead to run steps 1–9 on the Linux desktop, and a quiet window.
-- `<tunnel-hostname>`, the Cloudflare account and whether Cloudflare Access fronts it.
+- Whether Cloudflare Access fronts `ideas.vetgroup.net` (the hostname and account are decided, plan D5).
 - `sudo` installs: Xvfb, Google Chrome, fonts; confirm Node 24 and pnpm 12 for the service user.
 - Confirm 3300, 5433, 9300 and 9301 are free on that host (the script checks) and that a reboot test is
   allowed.

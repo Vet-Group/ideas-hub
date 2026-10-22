@@ -1,7 +1,8 @@
 # ADR 0005: Production host
 
 Status: accepted (2026-10-21) for the host, isolation, caps and unattended access (phase 2 plan v5), the
-Linux account and Docker access (D6) and the public hostname (D5); the domain name is given before Step 4.
+Linux account and Docker access (D6) and the public hostname (D5, changed 2026-10-22 to
+`ideas.vetgroup.net`).
 Deciders: owner.
 Inputs: [phase 2 plan](../plans/ideas-hub-phase-2.md), ADR 0001 (ports, units), ADR 0003 (browser
 mode), `docs/ops/linux-trial.md`.
@@ -42,8 +43,13 @@ every time `main` changes.
   the Lark summary. The model only writes prose in `docs/`, in a session cut off from the user's
   settings and MCP servers, with no shell, proven by a canary. The admin key for interactive sessions
   is passphrase-locked.
-- **Public hostname** (decided 2026-10-21, D5): a personal domain on a personal Cloudflare account, with its own
-  origin certificate in the `ideashub` home.
+- **Public hostname** (D5, changed 2026-10-22): `ideas.vetgroup.net`, a subdomain on the company's
+  Cloudflare zone, served by Ideas Hub's own locally configured tunnel `ideas-hub`. The tunnel and its
+  DNS record are made from the development PC with the Cloudflare CLI `cf` (auth profile `ideas-hub`, the
+  owner's OAuth login) and checked with the Cloudflare API MCP server; no API token is stored. The host
+  gets only that tunnel's credentials file in the `ideashub` home: no origin certificate and no
+  `cloudflared tunnel login` there. The 2026-10-21 choice, a personal domain on a personal account, was
+  dropped to save its cost and the second account.
 
 ## Alternatives considered
 
@@ -63,6 +69,9 @@ every time `main` changes.
 - The owner runs two short `sudo` sittings (user, then packages, slice cap and delegation).
 - POD Studio's health is watched during every host step; a resource or health problem stops the step.
 - Postgres and MinIO keep the compose file's local-only credentials and listen on 127.0.0.1 only.
-- The domain and the backup bucket are personal while the repo and host are the company's; moving them
-  is a follow-up if the project becomes the company's.
+- The backup bucket is personal while the repo, host and hostname are the company's; moving it is a
+  follow-up if the project becomes the company's.
+- The owner's Cloudflare login is not limited to `vetgroup.net`: it can change every zone and tunnel of
+  the company account, POD Studio's included. Sessions read first, print each write, touch only the
+  tunnel `ideas-hub` and the record `ideas`, and the login is ended after Step 4.
 - A full host outage cannot send an Alert; the missing 07:00 briefing is the signal.
