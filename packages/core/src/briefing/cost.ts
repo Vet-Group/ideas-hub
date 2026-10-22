@@ -9,13 +9,15 @@ export interface ModelPrice {
 }
 
 /**
- * Anthropic first-party list prices, checked 2026-10-21 against
- * https://platform.claude.com/docs/en/about-claude/pricing (base input and output, no batch or cache
- * discount). Add a row per model used.
+ * List prices, base input and output, no batch, cache or priority discount. Add a row per model used.
+ * Anthropic: checked 2026-10-21 against https://platform.claude.com/docs/en/about-claude/pricing.
+ * OpenAI (Standard tier): checked 2026-10-22 against https://developers.openai.com/api/docs/pricing.
  */
 export const MODEL_PRICES: Record<string, ModelPrice> = {
   'claude-sonnet-5-5': { input: 2, output: 10 },
   'claude-haiku-4-5': { input: 1, output: 5 },
+  'gpt-6-luna': { input: 0.1, output: 0.5 },
+  'gpt-6.1-sol': { input: 2, output: 10 },
 };
 
 /** A model missing from the table is priced high, so the cap still holds. */

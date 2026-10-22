@@ -64,6 +64,9 @@ describe('cost estimate', () => {
     expect(estimateCallUsd('claude-sonnet-5-5', prompt)).toBe(0.06);
     // 10k × $1 + 4000 × $5 (Haiku 4.5).
     expect(estimateCallUsd('claude-haiku-4-5', prompt)).toBe(0.03);
+    // 10k × $0.10 + 4000 × $0.50 (gpt-6-luna, OpenAI Standard tier, checked 2026-10-22), and gpt-6.1-sol.
+    expect(estimateCallUsd('gpt-6-luna', prompt)).toBe(0.003);
+    expect(estimateCallUsd('gpt-6.1-sol', prompt)).toBe(0.06);
     expect(estimateCallUsd('claude-sonnet-5-5', { system: 'a', user: '' }, 1)).toBe(0.0001);
     expect(estimateCallUsd('some-new-model', prompt)).toBe((10_000 * UNKNOWN_MODEL_PRICE.input + BRIEFING_MAX_TOKENS * UNKNOWN_MODEL_PRICE.output) / 1e6);
   });
