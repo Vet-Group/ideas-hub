@@ -67,6 +67,17 @@ export const adSightings = pgTable(
   ],
 );
 
+/** A page's like count per crawl day (the last value read that day), so its growth shows over time. */
+export const pageDays = pgTable(
+  'page_days',
+  {
+    pageId: text('page_id').notNull(),
+    crawlDay: date('crawl_day').notNull(),
+    likeCount: integer('like_count').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.pageId, t.crawlDay] })],
+);
+
 export const shops = pgTable('shops', {
   landingDomain: text('landing_domain').primaryKey(),
   pageIds: text('page_ids').array().notNull().default(sql`'{}'::text[]`),

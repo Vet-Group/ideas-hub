@@ -8,6 +8,8 @@ export interface NormalizedAd {
   collationCount: number | null;
   pageId: string | null;
   pageName: string | null;
+  /** The page's like count when the ad was read. */
+  pageLikeCount: number | null;
   caption: string | null;
   title: string | null;
   link: string | null;
@@ -57,6 +59,7 @@ export function normalizeAd(ad: RawAd): NormalizedAd {
     collationCount: ad.collation_count ?? null,
     pageId: ad.page_id ?? null,
     pageName: ad.page_name ?? s.page_name ?? null,
+    pageLikeCount: Number.isInteger(s.page_like_count) ? s.page_like_count! : null,
     caption: firstText(s.body?.text, ...cards.map((c) => c.body)),
     title: firstText(s.title, ...cards.map((c) => c.title)),
     link,

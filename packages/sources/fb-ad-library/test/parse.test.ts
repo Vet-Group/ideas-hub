@@ -71,6 +71,7 @@ describe('normalizeAd', () => {
       collationCount: 1,
       pageId: '100000000000001',
       pageName: 'Page 1',
+      pageLikeCount: 2702101,
       landingDomain: 'shop-1.example',
       mediaType: 'DCO',
       isActive: true,
