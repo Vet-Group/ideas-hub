@@ -724,6 +724,11 @@ once. The Windows reference is the probe (142 searches, 98.6% by AC 1's definiti
   owner-only pilot); the model writes the verdict text in `docs/` (this plan and a pilot report); the
   runner posts the verdict and the daily log to the tracking issue with `gh issue comment` (fixed code),
   merges the PR and sends the Lark summary.
+- **2026-10-23:** built as `ops-report.ps1 -Report pilot-verdict` with task `IdeasHub-Pilot-Verdict`
+  (2026-11-06 02:00). The report is a fixed template filled from the figures, with no model text: per-AC
+  figures and results, the commits on `main` during the run outside `docs/`, and on a fail the fix options.
+  A pass closes #55; a fail leaves it open and no phase 3 code starts. Daily comments: task
+  `IdeasHub-Pilot-Daily` (`docs/ops/production.md`, "Pilot run").
 - Auto-deploy stays on during the pilot (it is part of the target state); its quiet gate keeps deploys
   out of runs and the briefing.
 - Done when: the verdict PR merged.
