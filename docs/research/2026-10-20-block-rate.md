@@ -88,6 +88,27 @@ own process, and pnpm runs scripts through Git Bash, whose processes lose their 
 therefore joins a job object with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, so every process started under
 it ends with it.
 
+## Linux trial
+
+Interim figures, 2026-10-23, after the first two scheduled runs on the Linux host (root user manager,
+version `8849d3f`). The owner asked for the figures now rather than after four runs; the
+`IdeasHub-Check-BlockRate-20261024` task still adds the four-run figures.
+
+| Slot (Asia/Ho_Chi_Minh) | Status | Searches | Blocked | Browser restarts | Duration |
+|---|---|---|---|---|---|
+| 2026-10-23 01:00 | done | 160 ok of 160 | 0 | 16 | 2 h 46 min |
+| 2026-10-23 13:00 | done | 160 ok of 160 | 0 | 11 | 2 h 42 min |
+
+- Block rate so far: 0 of 320 searches, no `block_reason` on either run.
+- D9 (merge to deployed, target ≤ 10 min), measured on the merges of 2026-10-23:
+  - #63: merged 01:15:38Z, CI done 01:25:35Z, deployed 01:31:25Z: 15 min 47 s. (The #55 comment of that
+    morning gave 5 min 50 s, which is CI done to deployed, not merge to deployed.)
+  - #66: merged 12:49:00Z, CI on `main` done 12:59:04Z, deployed 13:02:48Z: 13 min 48 s.
+  - #69 (with #67 and #68 queued behind the same tick): merged 15:19:27Z, CI done 15:37:26Z, deployed
+    15:42:29Z: 23 min 2 s. CI took 18 min here because three `main` runs overlapped.
+  - Build and restart alone took 2–5 min each time; the rest is CI. The 10-minute target holds only when
+    `main` has one CI run at a time.
+
 ## Measurement schedule
 
 - `IdeasHub-Probe-Runs`: the probe, off-screen, 01:00 and 13:00 Asia/Ho_Chi_Minh to 2026-10-22, 41
