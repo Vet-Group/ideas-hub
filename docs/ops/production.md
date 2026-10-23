@@ -377,3 +377,54 @@ the owner's `Documents\ops`, outside the repo.
 | `IdeasHub-Pilot-Verdict` | 2026-11-06 02:00 | `scripts/windows/ops-report.ps1 -Report pilot-verdict`: the verdict SQL, AC 4/5/7 tests at the deployed commit on this PC, the grade in code, `docs/ops/pilot-verdict.md` in a PR merged on green CI, the verdict on #55 (closed on a pass), Lark |
 | `IdeasHub-Cleanup-OldUser-20261106` | 2026-11-06 10:00 | `Cleanup-IdeasHub-OldUser.ps1`: deletes `/home/ideashub` only if #55 is closed, no comment on it mentions a rollback, the account is locked with no process and nothing mounted, the root units are active and `/root/ideas-hub-backup-20261022` exists |
 | `IdeasHub-Phase3-Start` | disabled 2026-10-23 | Was: after a PASS, build item 1 of `docs/plans/ideas-hub-phase-3.md`. Items 1 and 2 are built before the verdict instead, so the task would only repeat them |
+
+## External heartbeat (phase 3 item 3)
+
+The watchdog runs on the host, so a host that is fully down (power, network, the tunnel) sends nothing. A
+Cloudflare Worker with a cron trigger probes the app from outside and posts to the same Lark group. Code:
+`deploy/cloudflare/heartbeat/` (not part of the app, the crawler, the schedules or the briefing).
+
+What it checks: every 5 minutes, `GET https://ideas.vetgroup.net/api/health` (the app's public health
+route: 200 after a `select 1`, so it covers the tunnel, the web process and the database) with a 10 s
+timeout; healthy is exactly HTTP 200 (a redirect or 5xx counts as a failure).
+
+What it posts (Vietnamese, one message per state change, never per tick):
+
+- **down**: after 2 failed probes in a row (about 5 to 10 minutes), so a deploy restart does not alert.
+- **recovered**: on the first healthy probe after a down, with the outage length.
+- If Lark rejects a post, the state change is not recorded and the next tick posts it again.
+
+State is one KV key (`state`) in the `HEARTBEAT` namespace, written only when it changes. The Lark
+webhook URL and signing secret are Worker secrets; the same values as `LARK_WEBHOOK_URL` and
+`LARK_WEBHOOK_SECRET` in the host's `.env` (leave the secret out if the bot does not sign).
+
+### Deploy (owner's Cloudflare account; run from `deploy/cloudflare/heartbeat/`)
+
+```sh
+npx wrangler login
+npx wrangler kv namespace create HEARTBEAT      # prints an id: put it in wrangler.toml (kv_namespaces.id)
+npx wrangler secret put LARK_WEBHOOK_URL        # paste the webhook URL at the prompt
+npx wrangler secret put LARK_WEBHOOK_SECRET     # only when the bot has a signing secret
+npx wrangler deploy
+```
+
+The first `secret put` before the first `deploy` offers to create the Worker; answer yes. The KV id is an
+identifier, not a secret, so committing it in `wrangler.toml` is fine; do that in a PR.
+
+### Test
+
+- Locally, no Cloudflare calls for the state: `npx wrangler dev --test-scheduled`, then
+  `curl "http://localhost:8787/__scheduled?cron=*%2F5+*+*+*+*"`. Secrets for `wrangler dev` go in an
+  untracked `.dev.vars` (`LARK_WEBHOOK_URL=...`).
+- Deployed, force a "down": `npx wrangler deploy --var HEALTH_URL:https://ideas.vetgroup.net/does-not-exist`
+  (404 is a failure), wait 10 minutes for the down message, then `npx wrangler deploy` again (the default
+  URL) and wait 5 minutes for the recovered message. Live logs: `npx wrangler tail`.
+- Code: `pnpm --filter @ideas-hub/heartbeat test` (the state machine, the Lark signature and the payload,
+  without a network).
+
+### Pause or remove
+
+- Pause (no probes, no posts): remove the cron with `crons = []` in `wrangler.toml` and `npx wrangler deploy`;
+  restore `*/5 * * * *` and deploy to resume. Planned host maintenance longer than 10 minutes pages Lark
+  otherwise, so pause first.
+- Remove: `npx wrangler delete ideas-hub-heartbeat`, then delete the KV namespace in the dashboard.
