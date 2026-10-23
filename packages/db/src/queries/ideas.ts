@@ -282,3 +282,27 @@ export async function trackedKeywords(db: Db, viewer: Viewer, storeId: string): 
     .where(eq(storeKeywords.storeId, storeId))
     .orderBy(asc(keywords.text));
 }
+
+/** True when the store has any saved idea, whatever the filters; null without `view`. */
+export async function storeHasIdeas(db: Db, viewer: Viewer, storeId: string): Promise<boolean | null> {
+  if (!can(viewer, storeId, 'view')) return null;
+  const [r] = await db.select({ id: savedIdeas.id }).from(savedIdeas).where(eq(savedIdeas.storeId, storeId)).limit(1);
+  return !!r;
+}
+
+/**
+ * Options of the Ideas keyword filter: the keywords the store tracks plus those on its saved ideas
+ * (`snapshot.keyword`, which a store with no tracked keywords still carries), one per spelling ignoring
+ * case since the filter matches ignoring case. Null without `view`.
+ */
+export async function ideaKeywordOptions(db: Db, viewer: Viewer, storeId: string): Promise<string[] | null> {
+  const tracked = await trackedKeywords(db, viewer, storeId);
+  if (!tracked) return null;
+  const onIdeas = await db
+    .selectDistinct({ text: sql<string>`btrim(${savedIdeas.snapshot}->>'keyword')` })
+    .from(savedIdeas)
+    .where(and(eq(savedIdeas.storeId, storeId), sql`btrim(${savedIdeas.snapshot}->>'keyword') <> ''`));
+  const byLower = new Map<string, string>();
+  for (const text of [...tracked.map((k) => k.text), ...onIdeas.map((k) => k.text).sort()]) if (!byLower.has(text.toLowerCase())) byLower.set(text.toLowerCase(), text);
+  return [...byLower.values()].sort((a, b) => a.localeCompare(b));
+}

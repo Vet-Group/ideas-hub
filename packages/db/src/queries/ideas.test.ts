@@ -9,12 +9,14 @@ import {
   type IdeaSourceInput,
   IdeaAccessError,
   getIdea,
+  ideaKeywordOptions,
   ideasCsv,
   lastSaveStoreIds,
   savedRefs,
   listIdeas,
   saveIdea,
   setIdeaStatus,
+  storeHasIdeas,
   trackedKeywords,
   undoSave,
   updateIdea,
@@ -238,6 +240,47 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
       expect(await setIdeaStatus(db, saveB, ids.one!, 'archived' as never, sec(700))).toBe(false);
       const [r] = await db.select({ status: savedIdeas.status }).from(savedIdeas).where(eq(savedIdeas.id, ids.one!));
       expect(r?.status).toBe('new');
+    });
+  });
+
+  describe('keyword filter options and store_has_ideas', () => {
+    beforeAll(async () => {
+      await db.execute(sql`insert into stores (id, name) values ('store_C', 'C'), ('store_D', 'D')`);
+      const idea = (ref: string, snapshot: Record<string, unknown>) => saveIdea(db, admin, ['store_C'], ad(ref, { snapshot }), sec(900));
+      // No tracked keyword in store C: its options come from the ideas alone.
+      await idea('k1', { keyword: 'Fall Mug' });
+      await idea('k2', { keyword: 'fall mug' });
+      await idea('k3', { keyword: ' zebra tee ' });
+      await idea('k4', { keyword: '  ' });
+      await idea('k5', {});
+      await idea('k6', { keyword: null });
+    });
+
+    it('lists the distinct keywords on the store’s ideas when it tracks none, ignoring case and blanks', async () => {
+      expect(await ideaKeywordOptions(db, admin, 'store_C')).toEqual(['Fall Mug', 'zebra tee']);
+    });
+
+    it('is the union of tracked keywords and idea keywords, one per spelling ignoring case', async () => {
+      // Store A tracks "teacher shirt" and its ideas carry "teacher shirt"; store B tracks "nurse mug" and has "Teacher Shirt" and "nurse mug" ideas.
+      expect(await ideaKeywordOptions(db, viewA, 'store_A')).toContain('teacher shirt');
+      expect(await ideaKeywordOptions(db, admin, 'store_B')).toEqual(['nurse mug', 'Teacher Shirt']);
+      await db.execute(sql`insert into keywords (id, text, origin) values ('kw_3', 'only tracked', 'store')`);
+      await db.execute(sql`insert into store_keywords (store_id, keyword_id) values ('store_C', 'kw_3')`);
+      expect(await ideaKeywordOptions(db, admin, 'store_C')).toEqual(['Fall Mug', 'only tracked', 'zebra tee']);
+    });
+
+    it('is scoped like listIdeas: other stores’ keywords never leak, and without view it is null', async () => {
+      expect(await ideaKeywordOptions(db, viewA, 'store_A')).not.toContain('Fall Mug');
+      expect(await ideaKeywordOptions(db, admin, 'store_B')).not.toContain('Fall Mug');
+      expect(await ideaKeywordOptions(db, none, 'store_C')).toBeNull();
+      expect(await ideaKeywordOptions(db, viewA, 'store_C')).toBeNull();
+      expect(await ideaKeywordOptions(db, admin, 'store_D')).toEqual([]);
+    });
+
+    it('storeHasIdeas is per store and needs view', async () => {
+      expect(await storeHasIdeas(db, admin, 'store_C')).toBe(true);
+      expect(await storeHasIdeas(db, admin, 'store_D')).toBe(false);
+      expect(await storeHasIdeas(db, none, 'store_C')).toBeNull();
     });
   });
 });
