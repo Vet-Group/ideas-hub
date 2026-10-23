@@ -3,7 +3,7 @@
 import { Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type Ref, useImperativeHandle, useRef, useState, useTransition } from 'react';
+import { type Ref, useEffect, useImperativeHandle, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { type SaveOutcome, type SaveSource, lastStoresAction, saveAction, undoAction } from '@/app/(app)/ideas/actions';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,26 @@ const ideaHref = (r: { storeId: string; ideaId: string }) => `/ideas/${r.ideaId}
  * popover pre-checked with the stores of the user's last save and Enter (2 actions), a result per store,
  * then the toast with "Hoàn tác" and "Thêm store khác". Nothing renders without `save` on any store.
  */
-export function SaveButton({ source, stores, ref, compact }: { source: SaveSource; stores: SaveTarget[]; ref?: Ref<SaveHandle>; compact?: boolean }) {
+export function SaveButton({
+  source,
+  stores,
+  ref,
+  compact,
+  title,
+  saved: savedProp = false,
+}: {
+  source: SaveSource;
+  stores: SaveTarget[];
+  ref?: Ref<SaveHandle>;
+  /** Hides the label below `md`; the accessible name still carries it. */
+  compact?: boolean;
+  /** The ad or suggestion this button saves, for the accessible name. */
+  title: string;
+  /** Already saved in a store the user may view; flips on save and back on undo, then follows the server. */
+  saved?: boolean;
+}) {
+  const [saved, setSaved] = useState(savedProp);
+  useEffect(() => setSaved(savedProp), [savedProp]);
   const [open, setOpen] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
   const [results, setResults] = useState<Results | null>(null);
@@ -55,6 +74,9 @@ export function SaveButton({ source, stores, ref, compact }: { source: SaveSourc
         return;
       }
       if (stores.length > 1) setResults(r.results);
+      const wasSaved = saved;
+      setSaved(true);
+      router.refresh();
       const created = r.results.filter((x) => x.created);
       const names = r.results.map((x) => x.storeName).join(', ');
       toast.success(created.length ? t.save.savedTo(names) : t.save.existing, {
@@ -64,8 +86,11 @@ export function SaveButton({ source, stores, ref, compact }: { source: SaveSourc
               label: t.save.undo,
               onClick: async () => {
                 const u = await undoAction(created.map((x) => x.ideaId));
-                if (u.ok) toast(t.save.undone);
-                else toast.error(u.error ?? t.save.expired);
+                if (u.ok) {
+                  setSaved(wasSaved);
+                  router.refresh();
+                  toast(t.save.undone);
+                } else toast.error(u.error ?? t.save.expired);
               },
             }
           : { label: t.save.open, onClick: () => router.push(ideaHref(r.results[0]!)) },
@@ -76,15 +101,17 @@ export function SaveButton({ source, stores, ref, compact }: { source: SaveSourc
   useImperativeHandle(ref, () => ({ trigger: () => (stores.length === 1 ? save([stores[0]!.id]) : openPicker()) }));
 
   if (stores.length === 0) return null;
+  const name = (saved ? t.save.savedNamed : t.save.named)(title.replace(/\s+/g, ' ').trim().slice(0, 80));
   const label = (
     <>
-      <Bookmark aria-hidden />
-      {compact ? <span className="sr-only">{t.save.button}</span> : t.save.button}
+      <Bookmark aria-hidden className={saved ? 'fill-current' : undefined} />
+      <span className={compact ? 'max-md:sr-only' : undefined}>{saved ? t.common.saved : t.save.button}</span>
     </>
   );
+  const tone = saved ? 'text-success' : undefined;
   if (stores.length === 1) {
     return (
-      <Button ref={button} type="button" size="sm" variant="outline" disabled={pending} onClick={() => save([stores[0]!.id])}>
+      <Button ref={button} type="button" size="sm" variant="outline" className={tone} aria-label={name} disabled={pending} onClick={() => save([stores[0]!.id])}>
         {label}
       </Button>
     );
@@ -92,7 +119,7 @@ export function SaveButton({ source, stores, ref, compact }: { source: SaveSourc
   return (
     <Popover open={open} onOpenChange={(o) => (o ? openPicker() : setOpen(false))}>
       <PopoverTrigger asChild>
-        <Button ref={button} type="button" size="sm" variant="outline" disabled={pending}>
+        <Button ref={button} type="button" size="sm" variant="outline" className={tone} aria-label={name} disabled={pending}>
           {label}
         </Button>
       </PopoverTrigger>

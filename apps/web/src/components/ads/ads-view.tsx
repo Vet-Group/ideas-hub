@@ -1,4 +1,5 @@
-import { AD_PAGE_SIZE, getAd, listAds, listKeywords } from '@ideas-hub/db/queries';
+import { storeScope } from '@ideas-hub/core';
+import { AD_PAGE_SIZE, getAd, listAds, listKeywords, savedRefs } from '@ideas-hub/db/queries';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Pager } from '@/components/pager';
@@ -31,7 +32,8 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
   if (selectedId && !selected) notFound();
   const filterKeyword = f.keywordId ? keywords.find((k) => k.id === f.keywordId)?.text : undefined;
   const cards = ads.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}${qs}`, filterKeyword));
-  const pane = selected ? <DetailPane ad={selected} saveStores={stores} /> : null;
+  const saved = await savedRefs(db, storeScope(user), 'ad', [...cards.map((c) => c.adArchiveId), ...(selected ? [selected.adArchiveId] : [])]);
+  const pane = selected ? <DetailPane ad={selected} saveStores={stores} saved={saved.includes(selected.adArchiveId)} /> : null;
   return (
     <>
       <PageHeader title={t.ads.title}>
@@ -48,7 +50,7 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
           {f.sort === 'trending' && (f.page ?? 1) === 1 && ads.length > 0 && ads.every((a) => a.momentum === 0) ? (
             <p className="border-line text-fg-2 rounded-card mb-3 border border-dashed p-3 text-sm">{t.ads.trendingNoData}</p>
           ) : null}
-          <AdGrid ads={cards} selectedId={selectedId} saveStores={stores} />
+          <AdGrid ads={cards} selectedId={selectedId} saveStores={stores} saved={saved} />
           <Pager page={f.page ?? 1} pageCount={Math.ceil(total / AD_PAGE_SIZE)} href={(page) => `/ads${adQuery({ ...f, page })}`} />
         </div>
         {selected ? (

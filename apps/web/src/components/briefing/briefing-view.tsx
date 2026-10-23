@@ -1,4 +1,5 @@
-import { type BriefingRow, briefingSuggestions, getAd } from '@ideas-hub/db/queries';
+import { storeScope } from '@ideas-hub/core';
+import { type BriefingRow, briefingSuggestions, getAd, savedRefs } from '@ideas-hub/db/queries';
 import { DetailPane } from '@/components/ads/detail-pane';
 import { PaneSheet } from '@/components/ads/pane-sheet';
 import { vnDay } from '@/lib/briefing';
@@ -32,11 +33,15 @@ function Panel({ id, title, children }: { id: string; title: string; children: R
 export async function BriefingView({ briefing, basePath, adId }: { briefing: BriefingRow; basePath: string; adId: string | null }) {
   const user = await requireUser();
   const s = briefing.sections;
-  const [stores, rows, ad] = await Promise.all([
+  const scope = storeScope(user);
+  const adIds = [...new Set([...(s.topAds ?? []), ...(s.risingAds ?? [])].map((a) => a.adArchiveId).concat(adId ?? []))];
+  const [stores, rows, ad, savedAds] = await Promise.all([
     saveTargets(user),
     briefingSuggestions(db, briefing.id),
     adId ? getAd(db, await statusOptions(), adId) : Promise.resolve(null),
+    savedRefs(db, scope, 'ad', adIds),
   ]);
+  const savedSuggestions = await savedRefs(db, scope, 'suggestion', rows.map((r) => r.id));
   const adHref = (id: string) => `${basePath}?ad=${encodeURIComponent(id)}`;
   const run = s.sourceRun ? new Date(s.sourceRun.scheduledFor) : null;
   return (
@@ -46,13 +51,13 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid content-start gap-4">
           <Panel id="b-top" title={t.briefing.top}>
-            <AdRows ads={s.topAds ?? []} adHref={adHref} stores={stores} />
+            <AdRows ads={s.topAds ?? []} adHref={adHref} stores={stores} saved={savedAds} />
           </Panel>
           <Panel id="b-rising" title={t.briefing.rising}>
-            <AdRows ads={s.risingAds ?? []} adHref={adHref} stores={stores} />
+            <AdRows ads={s.risingAds ?? []} adHref={adHref} stores={stores} saved={savedAds} />
           </Panel>
           <Panel id="b-ai" title={t.briefing.suggestions}>
-            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} adHref={adHref} stores={stores} />
+            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} adHref={adHref} stores={stores} saved={savedSuggestions} />
           </Panel>
         </div>
         <div className="grid content-start gap-4">
@@ -69,7 +74,7 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
       </div>
       {ad ? (
         <PaneSheet closeHref={basePath} always>
-          <DetailPane ad={ad} saveStores={stores} via="briefing" />
+          <DetailPane ad={ad} saveStores={stores} saved={savedAds.includes(ad.adArchiveId)} via="briefing" />
         </PaneSheet>
       ) : null}
     </div>

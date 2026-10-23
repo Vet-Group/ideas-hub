@@ -10,7 +10,18 @@ import { thumbUrl } from '@/lib/thumb-url';
  * and "Lưu". Each row is one stretched link that opens the ad sheet, with "Lưu" a separate button above
  * it; a save from the row or the sheet records `via = briefing`.
  */
-export function AdRows({ ads, adHref, stores }: { ads: (BriefingAd | BriefingRisingAd)[]; adHref: (id: string) => string; stores: SaveTarget[] }) {
+export function AdRows({
+  ads,
+  adHref,
+  stores,
+  saved,
+}: {
+  ads: (BriefingAd | BriefingRisingAd)[];
+  adHref: (id: string) => string;
+  stores: SaveTarget[];
+  /** ad_archive_ids already saved. */
+  saved: string[];
+}) {
   if (ads.length === 0) return <p className="text-fg-2 text-sm">{t.briefing.empty}</p>;
   return (
     <ul className="divide-line grid divide-y">
@@ -32,7 +43,13 @@ export function AdRows({ ads, adHref, stores }: { ads: (BriefingAd | BriefingRis
             {a.trendScore ?? t.common.none}
           </span>
           <div className="relative z-10">
-            <SaveButton source={{ kind: 'ad', adArchiveId: a.adArchiveId, via: 'briefing', keyword: a.keyword ?? undefined }} stores={stores} compact />
+            <SaveButton
+              source={{ kind: 'ad', adArchiveId: a.adArchiveId, via: 'briefing', keyword: a.keyword ?? undefined }}
+              stores={stores}
+              title={a.caption || a.pageName || a.adArchiveId}
+              saved={saved.includes(a.adArchiveId)}
+              compact
+            />
           </div>
         </li>
       ))}

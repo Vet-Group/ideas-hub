@@ -58,12 +58,15 @@ export function SuggestionsPanel({
   news,
   adHref,
   stores,
+  saved,
 }: {
   section: SuggestionsSection | undefined;
   rows: SuggestionRow[];
   news: NewsSection | undefined;
   adHref: (id: string) => string;
   stores: SaveTarget[];
+  /** Suggestion ids already saved. */
+  saved: string[];
 }) {
   if (!section || section.state !== 'ok') return <AiMissingNote section={section} />;
   if (rows.length === 0) return <p className="text-fg-2 text-sm">{t.briefing.empty}</p>;
@@ -77,7 +80,7 @@ export function SuggestionsPanel({
               <span className="bg-neutral-bg text-fg-2 rounded-pill mr-2 px-2 py-0.5 text-xs">{t.briefing.suggestionKind[s.kind]}</span>
               <span className="font-medium">{s.text}</span>
             </p>
-            <SaveButton source={{ kind: 'suggestion', suggestionId: s.id }} stores={stores} compact />
+            <SaveButton source={{ kind: 'suggestion', suggestionId: s.id }} stores={stores} title={s.text} saved={saved.includes(s.id)} compact />
           </div>
           <p className="text-fg-2">{s.reason}</p>
           {s.evidence.ads.length || s.evidence.news.length ? (
