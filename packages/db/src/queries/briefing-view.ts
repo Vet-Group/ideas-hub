@@ -130,3 +130,14 @@ export async function suggestionForViewer(db: Db, viewer: Viewer, suggestionId: 
   if (keywordId && !(await keywordAiVisible(db, viewer, keywordId))) return null;
   return row;
 }
+
+/** The news items of the briefing a suggestion came from, by id; empty once the suggestion or its briefing is gone. */
+export async function suggestionNewsItems(db: Db, suggestionId: string): Promise<{ id: string; title: string; link: string }[]> {
+  const [r] = await db
+    .select({ sections: briefings.sections })
+    .from(suggestions)
+    .innerJoin(briefings, eq(briefings.id, suggestions.briefingId))
+    .where(eq(suggestions.id, suggestionId))
+    .limit(1);
+  return (r?.sections as BriefingSections | undefined)?.news?.items ?? [];
+}
