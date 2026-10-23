@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
 import { boardCoordinateGetter } from './board-keyboard';
+import { IdeasEmpty } from './ideas-empty';
 import { STATUSES, StatusMenu, type Status } from './status-menu';
 import { type IdeaItem } from './types';
 
@@ -34,6 +35,8 @@ export function IdeaBoard({ ideas, canSave, onStatus }: { ideas: IdeaItem[]; can
     const idea = ideas.find((i) => i.id === e.active.id);
     if (to && idea && idea.status !== to) onStatus(idea.id, to);
   };
+
+  if (ideas.length === 0) return <IdeasEmpty />;
 
   const board = (
     <div className={cn('grid gap-3', phone ? 'grid-cols-1' : 'grid-cols-4')} aria-describedby={drag ? 'board-help' : undefined}>
