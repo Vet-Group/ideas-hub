@@ -62,7 +62,7 @@ export function IdeaDetailsForm(p: {
           const f = new FormData(e.currentTarget);
           const assignee = String(f.get('assignee') ?? '');
           start(async () => {
-            const ok = await updateIdeaAction(p.id, {
+            const r = await updateIdeaAction(p.id, {
               notes: String(f.get('notes') ?? '') || null,
               tags: String(f.get('tags') ?? '')
                 .split(',')
@@ -70,8 +70,8 @@ export function IdeaDetailsForm(p: {
                 .filter(Boolean),
               assigneeId: assignee || null,
             });
-            if (ok) toast.success(t.ideaViews.detailsSaved);
-            else toast.error(t.save.failed);
+            if (r.ok) toast.success(t.ideaViews.detailsSaved);
+            else toast.error(r.error);
           });
         }}
       >
@@ -91,13 +91,14 @@ export function IdeaDetailsForm(p: {
             ))}
           </select>
         </div>
+        {/* maxLength mirrors lib/idea-patch.ts (not imported: it would bring zod into the client bundle). */}
         <div className="grid gap-1">
           <Label htmlFor="d-notes">{t.ideaViews.notes}</Label>
-          <Textarea id="d-notes" name="notes" defaultValue={p.notes} rows={4} />
+          <Textarea id="d-notes" name="notes" defaultValue={p.notes} rows={4} maxLength={5000} />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="d-tags">{t.ideaViews.tags}</Label>
-          <Input id="d-tags" name="tags" defaultValue={p.tags.join(', ')} />
+          <Input id="d-tags" name="tags" defaultValue={p.tags.join(', ')} maxLength={1040} />
         </div>
         <Button type="submit" size="sm" disabled={pending} className="justify-self-start">
           {t.ideaViews.saveDetails}
