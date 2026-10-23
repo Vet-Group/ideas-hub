@@ -36,7 +36,8 @@ export function llmFromEnv(env: NodeJS.ProcessEnv = process.env): LlmClient {
       const res = await client.chat.completions.create(
         {
           model: r.model,
-          max_tokens: r.maxTokens,
+          // OpenAI reasoning models (gpt-6-luna) reject max_tokens with a 400; this one covers every chat model.
+          max_completion_tokens: r.maxTokens,
           messages: [
             { role: 'system', content: r.system },
             { role: 'user', content: r.user },
