@@ -354,6 +354,11 @@ Decided by the owner on 2026-10-22:
 - No Cloudflare Access in front of `ideas.vetgroup.net`: the app has its own sign-in.
 - Code freeze from day 1 to the verdict: no app-code, crawl-setting, schedule or model change reaches `main`.
   Docs and ops PRs still merge; each new green commit is deployed by the timer, inside its quiet gate.
+  **Narrowed by the owner on 2026-10-23:** app code merges again (phase 3 items 1 and 2 and UI fixes), on
+  green CI and through the same quiet gate. What the pilot measures stays frozen until the verdict: the
+  crawler and its settings, schedules, the briefing pipeline and the LLM model. The one exception so far is
+  #66 (2026-10-23), which made the briefing's LLM call valid for `gpt-6-luna`; the version under test is
+  therefore `8849d3f` plus #66 for the measured paths.
 - A failed check is recorded and reported only. Nothing on the host changes mid-pilot; the fix options go
   to the verdict.
 - The `ideashub` user's home and rootless volumes (2.7 GB) are deleted after a passing verdict (#55 closed),
@@ -371,4 +376,4 @@ the owner's `Documents\ops`, outside the repo.
 | `IdeasHub-Check-BlockRate-20261024` | 2026-10-24 20:00 | `Report-IdeasHub-Day.ps1 blockrate`: step 9 over the first four scheduled Linux runs, on #55 and under "Linux trial" in `docs/research/2026-10-20-block-rate.md` (a docs PR merged on green CI) |
 | `IdeasHub-Pilot-Verdict` | 2026-11-06 02:00 | `scripts/windows/ops-report.ps1 -Report pilot-verdict`: the verdict SQL, AC 4/5/7 tests at the deployed commit on this PC, the grade in code, `docs/ops/pilot-verdict.md` in a PR merged on green CI, the verdict on #55 (closed on a pass), Lark |
 | `IdeasHub-Cleanup-OldUser-20261106` | 2026-11-06 10:00 | `Cleanup-IdeasHub-OldUser.ps1`: deletes `/home/ideashub` only if #55 is closed, no comment on it mentions a rollback, the account is locked with no process and nothing mounted, the root units are active and `/root/ideas-hub-backup-20261022` exists |
-| `IdeasHub-Phase3-Start` | 2026-11-06 06:00 | `Start-IdeasHub-Phase3.ps1`: only if #55 is closed and `docs/ops/pilot-verdict.md` says PASS, a `claude -p` run builds item 1 of `docs/plans/ideas-hub-phase-3.md` in a worktree, PR "Phase 3: ...", merged on green CI |
+| `IdeasHub-Phase3-Start` | disabled 2026-10-23 | Was: after a PASS, build item 1 of `docs/plans/ideas-hub-phase-3.md`. Items 1 and 2 are built before the verdict instead, so the task would only repeat them |
