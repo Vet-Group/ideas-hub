@@ -6,7 +6,8 @@
 # 0.90, any AC 1 Alert or AC 2 violation count above 0, or today's global briefing late (ready at 07:00
 # or later, or missing) or without its 6 generated sections. A check that cannot run Alerts under the
 # same key, so the owner only reads Lark.
-# Environment: IDEASHUB_REPO (default: the checkout holding this script).
+# Environment: IDEASHUB_REPO (default: the checkout holding this script), RO_DATABASE_URL (default: from
+# ~/.config/ideas-hub/ro.env).
 # Exit: 0 checked (passed, or the Alert written); 1 not checked, or the Alert could not be written.
 set -uo pipefail
 
@@ -26,6 +27,19 @@ alert() {
 }
 
 say "check for $day"
+# The unit loads no environment; ro-query needs RO_DATABASE_URL, kept in ro.env like the ideashub_ro key's.
+if [ -z "${RO_DATABASE_URL:-}" ]; then
+  ro_env="$HOME/.config/ideas-hub/ro.env"
+  if [ ! -f "$ro_env" ]; then
+    say "RO_DATABASE_URL is not set and $ro_env does not exist"
+    alert "RO_DATABASE_URL is not set and $ro_env does not exist"
+    exit 1
+  fi
+  set -a
+  # shellcheck source=/dev/null
+  . "$ro_env"
+  set +a
+fi
 err="$(mktemp)"
 trap 'rm -f "$err"' EXIT
 # stderr apart, so a runtime warning never lands in the CSV.
