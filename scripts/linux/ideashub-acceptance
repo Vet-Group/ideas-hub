@@ -36,6 +36,7 @@ if [ -z "${RO_DATABASE_URL:-}" ]; then
     exit 1
   fi
   set -a
+  # shellcheck source=/dev/null
   . "$ro_env"
   set +a
 fi
