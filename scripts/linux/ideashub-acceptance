@@ -7,7 +7,7 @@
 # or later, or missing) or without its 6 generated sections. A check that cannot run Alerts under the
 # same key, so the owner only reads Lark.
 # Environment: IDEASHUB_REPO (default: the checkout holding this script), RO_DATABASE_URL (default: from
-# ~/.config/ideas-hub/ro.env).
+# ~/.config/ideas-hub/ro.env), PILOT_RUN_START (default: the pilot's 2026-10-22T17:00:00Z).
 # Exit: 0 checked (passed, or the Alert written); 1 not checked, or the Alert could not be written.
 set -uo pipefail
 
@@ -43,7 +43,9 @@ fi
 err="$(mktemp)"
 trap 'rm -f "$err"' EXIT
 # stderr apart, so a runtime warning never lands in the CSV.
-if ! out="$(pnpm --silent ro-query < scripts/acceptance.sql 2>"$err")"; then
+# Rows before the pilot's start are not read (AC 1, AC 6); the verdict uses the same start.
+run_start="${PILOT_RUN_START:-2026-10-22T17:00:00Z}"
+if ! out="$({ printf "set pilot.run_start = '%s';\n" "$run_start"; cat scripts/acceptance.sql; } | pnpm --silent ro-query 2>"$err")"; then
   tail -n 5 "$err" >> "$log"
   say "the acceptance queries failed"
   alert "acceptance queries failed: $(tail -n 1 "$err" | cut -c1-300)"
