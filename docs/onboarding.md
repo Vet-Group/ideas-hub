@@ -15,9 +15,9 @@ There is no public sign-up and no SSO in phase 1 (spec §4). An admin creates ea
   The password comes from the environment so it stays out of the shell history; set it with a leading
   space or `read -s` so it is not saved either.
 
-Hand each person their password privately (not in the shared Lark group). Gap: phase 1 has no screen to
-change one's own password, so the admin's temporary password stays; a lost password means the admin
-creates a new account or resets it in the database. A leaver is disabled with "Khóa" on `/admin/users`
+Hand each person their password privately (not in the shared Lark group) and ask them to change it on
+first sign-in: "Tài khoản" next to "Đăng xuất" opens `/account` (since #69; it signs out their other
+sessions). A lost password still means the admin creates a new account or resets it in the database. A leaver is disabled with "Khóa" on `/admin/users`
 (users are never deleted: their saved ideas keep `created_by`).
 
 Use each person's work email: it is the cross-app key with POD Studio and the ERP's Keycloak in phase 2
@@ -40,10 +40,9 @@ A person can be in several stores; with `save` on 2 or more, "Lưu" opens a stor
 of 1). Admins see every store without ticks; admin saves do not count for AC 6 (only non-admin members),
 so staff must not be admins.
 
-Gap: phase 1 has no screen that adds a store-tracked keyword (`store_keywords`); seed keywords are added on
-`/admin/keywords`. Until there is one, the admin adds a store keyword in SQL, for example
-`insert into keywords (id, text, origin) values ('kw_<nanoid>', '<keyword>', 'store')` and
-`insert into store_keywords (store_id, keyword_id) values ('<store id>', '<keyword id>')`.
+Store-tracked keywords: anyone with the `keywords` tick (and admins) adds or stops them on "Keyword của
+store" (`/store-keywords`, since #70), for the store picked in the switcher. Seed keywords stay on
+`/admin/keywords`. New store keywords count toward the 80-keyword cap.
 
 Checklist per store (fill outside the repo; pending owner):
 
@@ -80,12 +79,13 @@ lines; the English in brackets is the facilitator's cue and is not read out.
 | 7–9 | Opens one ad row, shows the pane, the Ad Library link, the shop | "Bấm vào một dòng để xem chi tiết: ảnh, caption, số ngày chạy, quốc gia, shop. Từ đây bạn mở được trang shop hoặc trang Ad Library gốc." |
 | 9–11 | Has the staff member save one ad and one AI suggestion; shows the toast and "Hoàn tác" | "Thấy ý tưởng hay thì bấm 'Lưu'. Ý tưởng vào ngay danh sách của store. Lỡ bấm nhầm thì bấm 'Hoàn tác' trong 10 giây. Gợi ý AI cũng lưu được giống như vậy." |
 | 11–13 | Opens `/ideas`, switches to Kanban, moves the saved idea to Picked, adds a note | "Đây là danh sách ý tưởng của store. Bạn ghi chú, gắn tag, giao người phụ trách, rồi chuyển trạng thái New, Picked, Done hoặc Dropped. Không cần kéo thả, dùng menu trạng thái cũng được." |
-| 13–14 | Shows "Ý tưởng mới" (link and/or image) and Ctrl+K search | "Ý tưởng tự tìm được ở ngoài thì bấm 'Ý tưởng mới', dán link hoặc tải ảnh. Nhấn Ctrl+K để tìm nhanh ads, shop, keyword." |
+| 13–14 | Shows "Ý tưởng mới" (link and/or image) and Ctrl+K search | "Ý tưởng tự tìm được ở ngoài thì bấm 'Ý tưởng mới', dán link hoặc tải ảnh. Nhấn Ctrl+K để tìm nhanh ads, shop, keyword và ý tưởng đã lưu." |
 | 14–15 | States the goal and where to ask | "Mục tiêu trong 14 ngày tới: mỗi sáng xem Briefing và lưu những ý tưởng đáng làm từ Briefing. Có lỗi hoặc thắc mắc thì nhắn admin." |
 
 After the walkthrough, tick "Walkthrough done" in the checklist and confirm in `/ideas` that the
-staff member's two practice saves are there (delete them with "Hoàn tác" during the session, or leave
-them: they were created before the acceptance window starts and do not count).
+staff member's two practice saves are there. The 14-day run started on 2026-10-23, so a practice save
+from the briefing now counts toward AC 6: either save an idea that is really worth doing, or remove a
+practice save with "Hoàn tác" within its 10 seconds.
 
 ## Pending owner
 
@@ -93,4 +93,4 @@ them: they were created before the acceptance window starts and do not count).
 - Store assignments and ticks (at least 2 stores with active savers: AC 6 needs ≥ 10 briefing saves in
   each of ≥ 2 stores).
 - Running the walkthrough with every store, after the Linux switch and before the 14-day run starts.
-- Store-tracked keywords for each store (SQL until a screen exists).
+- Store-tracked keywords for each store, on `/store-keywords` (production had none on 2026-10-24).
