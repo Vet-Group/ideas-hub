@@ -384,6 +384,13 @@ export const t = {
       active: 'Đang dùng',
       roles: { admin: 'admin', member: 'member' } as Record<string, string>,
       cannotDisableSelf: 'Không thể tự khóa tài khoản của mình',
+      lastActive: 'Hoạt động gần nhất (ước tính)',
+      neverActive: 'Chưa đăng nhập',
+      savedFromBriefing: 'Ý tưởng lưu từ briefing',
+      adoptionTitle: 'Mức dùng briefing theo store',
+      adoptionNote: (since: string) =>
+        `Ý tưởng lưu từ briefing của thành viên (không tính admin) từ ${since}, mỗi store một hàng; mục tiêu 10 mỗi store, 30 tổng.`,
+      adoptionTotal: 'Tổng',
     },
     stores: {
       title: 'Store',
