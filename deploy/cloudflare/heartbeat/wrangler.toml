@@ -11,10 +11,10 @@ crons = ["*/5 * * * *"]
 [vars]
 HEALTH_URL = "https://ideas.vetgroup.net/api/health"
 
-# Replace the id with the one printed by `npx wrangler kv namespace create HEARTBEAT` before deploying.
+# KV namespace "ideas-hub-heartbeat-HEARTBEAT", created 2026-10-23.
 [[kv_namespaces]]
 binding = "HEARTBEAT"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "db1110bf96ba4770a0466135db0832f1"
 
 # Secrets (never in this file): `npx wrangler secret put LARK_WEBHOOK_URL` and, when the bot signs,
 # `npx wrangler secret put LARK_WEBHOOK_SECRET`.
