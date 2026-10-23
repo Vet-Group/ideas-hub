@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, MoreHorizontal } from 'lucide-react';
+import { LogOut, MoreHorizontal, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { signOut } from './actions';
 import { ADMIN_NAV, MAIN_NAV } from './nav';
 
-/** Phones (≤ 820 px): five tabs and "Khác", which holds the Run log and, for admins, "Quản trị". */
+/** Phones (≤ 820 px): five tabs and "Khác", which holds the Run log, "Tài khoản" and, for admins, "Quản trị". */
 export function BottomTabs({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const tabs = MAIN_NAV.filter((n) => n.href !== '/runs');
@@ -49,6 +49,12 @@ export function BottomTabs({ isAdmin }: { isAdmin: boolean }) {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href="/account" className="hover:bg-selected rounded-control flex h-11 items-center gap-2.5 px-3 text-[14px]">
+                <UserRound className="size-4" aria-hidden />
+                {t.nav.account}
+              </Link>
+            </li>
             <li>
               <form action={signOut}>
                 <button type="submit" className="hover:bg-selected rounded-control flex h-11 w-full items-center gap-2.5 px-3 text-[14px]">

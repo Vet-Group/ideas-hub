@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LogOut, PanelLeftClose, PanelLeftOpen, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ const KEY = 'ih.sidebar.collapsed';
 /** The dark sidebar (spec §6): 248 px, 60 px collapsed, the state kept in local storage. */
 /** `badges` by href: the shown briefing's date on Briefing, the store's New ideas on "Ý tưởng". */
 export function Sidebar({ isAdmin, stores, storeId, badges = {} }: { isAdmin: boolean; stores: StoreOption[]; storeId: string | null; badges?: Record<string, string> }) {
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     try {
@@ -59,6 +60,18 @@ export function Sidebar({ isAdmin, stores, storeId, badges = {} }: { isAdmin: bo
       </nav>
       <div className="grid gap-1 p-2">
         <StoreSwitcher stores={stores} storeId={storeId} collapsed={collapsed} />
+        <Link
+          href="/account"
+          aria-current={pathname === '/account' ? 'page' : undefined}
+          aria-label={collapsed ? t.nav.account : undefined}
+          className={cn(
+            'rounded-control flex h-[var(--vet-nav-item-h)] items-center gap-2.5 px-2.5 text-[13px]',
+            pathname === '/account' ? 'bg-sidebar-active text-sidebar-active-fg font-medium' : 'hover:bg-sidebar-hover',
+          )}
+        >
+          <UserRound className="size-4 shrink-0" aria-hidden />
+          {collapsed ? null : t.nav.account}
+        </Link>
         <form action={signOut}>
           <button
             type="submit"
