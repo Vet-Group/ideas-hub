@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { t } from '@/lib/strings.vi';
+import { IdeasEmpty } from './ideas-empty';
 import { StatusMenu, type Status } from './status-menu';
 import { type IdeaItem } from './types';
 
@@ -10,7 +11,7 @@ const sourceLabel = (i: IdeaItem) => (i.via === i.source ? t.ideaViews.sources[i
 
 /** The table view, as cards on a phone (spec §6 "Phones"); the status menu only for users with `save` on the store. */
 export function IdeaTable({ ideas, canSave, onStatus }: { ideas: IdeaItem[]; canSave: boolean; onStatus: (id: string, s: Status) => void }) {
-  if (ideas.length === 0) return <p className="text-fg-2">{t.ideaViews.empty}</p>;
+  if (ideas.length === 0) return <IdeasEmpty />;
   const c = t.ideaViews.columns;
   const status = (i: IdeaItem) => (canSave ? <StatusMenu title={i.title} status={i.status} onChange={(s) => onStatus(i.id, s)} /> : t.ideaViews.statuses[i.status]);
   return (
