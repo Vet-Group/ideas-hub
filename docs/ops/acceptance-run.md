@@ -45,9 +45,11 @@ session) runs this file at 07:30 through the read-only role, appends the output 
 under 0.90, an AC 1 or AC 2 count is above 0, or today's briefing (`ac3_today`) is late or lacks its 6
 sections.
 
-The queries look back 14 days from now. Until day 14 the window still holds rows from before
-`<run-start>` (the Linux re-check, Windows): read days 1–13 as a trend, and take the **verdict from the
-run made at or after `<run-start>` + 14 days**, when the window is exactly the run.
+The queries look back 14 days from now. When `pilot.run_start` is set, AC 1 and AC 6 also skip rows from
+before it; the daily script sets it from `PILOT_RUN_START` (default `2026-10-22T17:00:00Z`, changed
+2026-10-24), so days 1–13 are no longer read against slots missed before the pilot. Run by hand without
+it, the window still holds those rows: read days 1–13 as a trend, and take the **verdict from the run made
+at or after `<run-start>` + 14 days**, when the window is exactly the run.
 
 | AC | Query in `scripts/acceptance.sql` | Pass |
 |---|---|---|

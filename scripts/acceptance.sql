@@ -3,6 +3,9 @@
 --   psql "$DATABASE_URL" -f scripts/acceptance.sql
 -- Each query is one check; apps/worker/test/acceptance.test.ts runs them on seeded data.
 
+-- When `pilot.run_start` is set (the daily script sets it), AC 1 and AC 6 also ignore rows before it, so days
+-- 1-13 are not read against slots missed before the pilot; unset, the windows are the plain last 14 days.
+
 -- name: ac1_success_ratio
 -- AC 1: Σ ok + no_results ÷ Σ planned_searches over the scheduled rows of the last 14 days. A row
 -- still scheduled after its slot or missed counts all its planned searches as failed, and so do the
@@ -16,7 +19,8 @@ from crawl_runs r
 left join lateral (
   select count(*) filter (where status in ('ok', 'no_results'))::int as ok from crawl_searches where run_id = r.id
 ) s on true
-where r.trigger = 'schedule' and r.scheduled_for <= now() and r.scheduled_for > now() - interval '14 days';
+where r.trigger = 'schedule' and r.scheduled_for <= now() and r.scheduled_for > now() - interval '14 days'
+  and r.scheduled_for >= coalesce(nullif(current_setting('pilot.run_start', true), '')::timestamptz, '-infinity');
 
 -- name: ac2_violations
 -- AC 2: every ok search has embedded_count > 0; pages_read >= 1 when embedded_has_next; fewer than the cap (100)
@@ -46,6 +50,7 @@ from (
     (select count(*) from alerts a where a.run_id = cr.id and a.kind = 'network_error' and a.lark_message_id is null)::int as network_unsent
   from crawl_runs cr
   where coalesce(cr.scheduled_for, cr.created_at) <= now() and coalesce(cr.scheduled_for, cr.created_at) > now() - interval '14 days'
+    and coalesce(cr.scheduled_for, cr.created_at) >= coalesce(nullif(current_setting('pilot.run_start', true), '')::timestamptz, '-infinity')
 ) r;
 
 -- name: ac3_briefings
@@ -94,6 +99,7 @@ select
 from (
   select st.name, count(i.id)::int as n from stores st
   left join saved_ideas i on i.store_id = st.id and i.via = 'briefing' and i.created_at > now() - interval '14 days'
+    and i.created_at >= coalesce(nullif(current_setting('pilot.run_start', true), '')::timestamptz, '-infinity')
     and exists (select 1 from users u where u.id = i.created_by and u.role <> 'admin')
   group by st.name
 ) x;

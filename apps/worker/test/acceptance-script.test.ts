@@ -55,7 +55,8 @@ describe('ideashub-acceptance', () => {
     const h = host(roOutput());
     const r = h.run();
     expect(r.status, r.out).toBe(0);
-    expect(readFileSync(`${h.fake}/ro.sql`, 'utf8')).toBe(acceptanceSql);
+    // The pilot's start goes first, so AC 1 and AC 6 skip rows from before it.
+    expect(readFileSync(`${h.fake}/ro.sql`, 'utf8')).toBe(`set pilot.run_start = '2026-10-22T17:00:00Z';\n${acceptanceSql}`);
     expect(h.callsOf('pnpm')).toEqual(['--silent ro-query']);
     const log = h.file('acceptance.log')!;
     expect(log).toContain(`check for ${vnToday()}`);

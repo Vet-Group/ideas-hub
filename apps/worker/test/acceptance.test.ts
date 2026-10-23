@@ -142,6 +142,12 @@ describe.skipIf(!testDatabaseAvailable())('scripts/acceptance.sql', () => {
       await expect(roQuery(roUrl, verdict('ac1_success_ratio'))).rejects.toThrow('unrecognized configuration parameter');
     });
 
+    it('the daily AC 1 and AC 6 ignore rows before run-start when it is set', async () => {
+      const ac1 = await roQuery(roUrl, withStart(new Date(), checks.ac1_success_ratio!));
+      expect(ac1).toBe('ok_searches,planned_searches,success_ratio\n0,0,\n');
+      expect(await roQuery(roUrl, withStart(new Date(), checks.ac6_ideas!))).toBe('ideas,stores_with_10,per_store\n0,0,{}\n');
+    });
+
     it('the verdict window ends 14 days after run-start', async () => {
       // A run starting tomorrow sees none of the rows; one that ended 2 days ago neither (the seeded ideas
       // are 1 and 20 days old).
