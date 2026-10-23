@@ -7,13 +7,13 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
 import { signOut } from './actions';
-import { ADMIN_NAV, MAIN_NAV } from './nav';
+import { ADMIN_NAV, MAIN_NAV, STORE_KEYWORDS_NAV } from './nav';
 
 /** Phones (≤ 820 px): five tabs and "Khác", which holds the Run log, "Tài khoản" and, for admins, "Quản trị". */
-export function BottomTabs({ isAdmin }: { isAdmin: boolean }) {
+export function BottomTabs({ isAdmin, canKeywords }: { isAdmin: boolean; canKeywords: boolean }) {
   const pathname = usePathname();
   const tabs = MAIN_NAV.filter((n) => n.href !== '/runs');
-  const more = [MAIN_NAV.find((n) => n.href === '/runs')!, ...(isAdmin ? ADMIN_NAV : [])];
+  const more = [MAIN_NAV.find((n) => n.href === '/runs')!, ...(canKeywords ? [STORE_KEYWORDS_NAV] : []), ...(isAdmin ? ADMIN_NAV : [])];
   return (
     <nav
       aria-label={t.nav.main}

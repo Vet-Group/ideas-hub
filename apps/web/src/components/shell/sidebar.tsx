@@ -8,14 +8,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
 import { signOut } from './actions';
-import { ADMIN_NAV, MAIN_NAV, type NavItem } from './nav';
+import { ADMIN_NAV, MAIN_NAV, type NavItem, STORE_KEYWORDS_NAV } from './nav';
 import { type StoreOption, StoreSwitcher } from './store-switcher';
 
 const KEY = 'ih.sidebar.collapsed';
 
 /** The dark sidebar (spec §6): 248 px, 60 px collapsed, the state kept in local storage. */
 /** `badges` by href: the shown briefing's date on Briefing, the store's New ideas on "Ý tưởng". */
-export function Sidebar({ isAdmin, stores, storeId, badges = {} }: { isAdmin: boolean; stores: StoreOption[]; storeId: string | null; badges?: Record<string, string> }) {
+export function Sidebar({ isAdmin, canKeywords, stores, storeId, badges = {} }: { isAdmin: boolean; canKeywords: boolean; stores: StoreOption[]; storeId: string | null; badges?: Record<string, string> }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
@@ -55,7 +55,7 @@ export function Sidebar({ isAdmin, stores, storeId, badges = {} }: { isAdmin: bo
         </button>
       </div>
       <nav className="flex-1 overflow-y-auto px-2" aria-label={t.nav.main}>
-        <NavGroup items={MAIN_NAV} collapsed={collapsed} badges={badges} />
+        <NavGroup items={canKeywords ? [...MAIN_NAV, STORE_KEYWORDS_NAV] : MAIN_NAV} collapsed={collapsed} badges={badges} />
         {isAdmin ? <NavGroup label={t.nav.admin} items={ADMIN_NAV} collapsed={collapsed} /> : null}
       </nav>
       <div className="grid gap-1 p-2">
