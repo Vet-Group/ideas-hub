@@ -5,6 +5,7 @@ import { stores } from '@ideas-hub/db';
 import { inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { ideaPatch } from '@/lib/idea-patch';
 import { undoIdeas } from '@/lib/ideas-server';
 import { now } from '@/lib/now';
 import { type SaveSource, saveInput, snapshotKeyword } from '@/lib/save-source';
@@ -94,9 +95,11 @@ export async function setStatusAction(ideaId: string, status: IdeaStatus): Promi
   return ok;
 }
 
-export async function updateIdeaAction(ideaId: string, patch: { notes?: string | null; tags?: string[]; assigneeId?: string | null }): Promise<boolean> {
+export async function updateIdeaAction(ideaId: string, rawPatch: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await requireUser();
-  const ok = await updateIdea(db, user, ideaId, patch, now());
-  if (ok) revalidatePath('/ideas');
-  return ok;
+  const patch = ideaPatch.safeParse(rawPatch);
+  if (!patch.success) return { ok: false, error: patch.error.issues[0]?.message ?? t.ideaPatch.invalid };
+  if (!(await updateIdea(db, user, ideaId, patch.data, now()))) return { ok: false, error: t.save.failed };
+  revalidatePath('/ideas');
+  return { ok: true };
 }

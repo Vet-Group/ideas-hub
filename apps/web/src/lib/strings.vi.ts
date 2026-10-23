@@ -566,4 +566,10 @@ export const t = {
     failed: 'Không lưu được. Hãy thử lại.',
     imageTitle: 'Ý tưởng từ ảnh',
   },
+  // updateIdeaAction's form errors (notes, tags and assignee of a saved idea).
+  ideaPatch: {
+    notes: 'Ghi chú dài quá 5000 ký tự.',
+    tags: 'Tối đa 20 tag, mỗi tag dài tối đa 50 ký tự.',
+    invalid: 'Dữ liệu không hợp lệ.',
+  },
 } as const;
