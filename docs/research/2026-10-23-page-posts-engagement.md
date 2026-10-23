@@ -6,8 +6,8 @@ Code: `spikes/fb-page-posts-probe/` (merged in #63). Nothing was written to prod
 **Scope note.** The plan calls for two passes about 6 hours apart. Only pass 1 is reported here. Pass 2
 was scheduled on the home PC for 2026-10-23 05:30, but the PC went offline at about 05:00, so it is not
 known whether pass 2 ran. On 2026-10-23 the owner chose to close the spike on pass 1 alone. Pass 1
-already decides the outcome (see "Decision"). Question 5 is therefore left open, and the home PC's
-probe tasks and folder are to be removed.
+already decides the outcome (see "Decision"). Pass 2 later turned out to have run; its figures,
+including question 5, are in "Pass 2 addendum".
 
 ## Method
 
@@ -35,7 +35,7 @@ probe tasks and folder are to be removed.
 | 2. Blocked | No login wall, checkpoint or error. 8 of 19 loads read no post; 6 of those were titled just "Facebook", with no page name: a logged-out soft wall. | ≤ 1 block in 20 loads |
 | 3. Matched | 0 of 372 active ads matched (0%). On the 11 pages whose load read posts: 0 of 215. No text match and no image match. | ≥ 30% of active ads |
 | 4. Agrees | Not measured: there is no matched post to compare (see below). | |
-| 5. Moves | Not measured: pass 2 is not available. | |
+| 5. Moves | 4 of 11 posts read in both passes changed a count; together they gained 4 reactions in about 13 hours. See "Pass 2 addendum". | |
 
 - **Near misses (image).** The closest pair between an ad thumbnail and a post image was at aHash
   distance 10. Viewed side by side, it is a different image. Loosening the threshold would add false
@@ -85,6 +85,23 @@ by hand from Toidispy in their own browser. Toidispy is never scraped.
 | | | | |
 | | | | |
 | | | | |
+
+## Pass 2 addendum (2026-10-23 evening)
+
+The home PC came back online in the evening. Pass 2 had run on its own when the PC woke: the task
+(`StartWhenAvailable`) started at 11:41, about 13 hours after pass 1, and its time limit stopped it after
+10 of 20 page loads. The data was copied off the PC, the PC's probe tasks and folder were removed, and
+`analyze.mjs` was re-run on both passes with a fresh read-only ads export (966 active ads on the 19 pages).
+
+- Q1 over both passes: 19 of 29 loads (66%) read a post with all three counts, still under the 80% bar.
+- Q2: still no hard wall; 10 loads read no post, 8 of them the "Facebook" soft wall.
+- Q3: 0 of 966 active ads matched a post from either pass, by text or by image.
+- Q5: 11 posts were read in both passes. 4 of them changed at least one count; the reactions gained
+  across all 11 were 4 in total. Logged-out counts do move, but by single digits over half a day on these
+  pages, which is too small to rank ads by.
+- The pass-1 extractor read 11 of 16 pass-2 posts identically to the bounded extractor.
+
+The decision below does not change.
 
 ## Decision
 
