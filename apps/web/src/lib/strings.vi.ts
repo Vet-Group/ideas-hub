@@ -310,6 +310,9 @@ export const t = {
   },
   save: {
     button: 'Lưu',
+    /** The accessible name of a Save button, so a screen reader hears which item it saves. */
+    named: (title: string) => `Lưu: ${title}`,
+    savedNamed: (title: string) => `Đã lưu: ${title}`,
     pickStores: 'Lưu vào store',
     confirm: 'Lưu',
     savedTo: (stores: string) => `Đã lưu vào ${stores}`,

@@ -56,6 +56,33 @@ test('a save from a briefing row takes 1 action with one store and records via b
   expect(await savedBy('e2e_mug_2')).toEqual([{ store_id: STORES.a.id, source: 'ad', via: 'briefing' }]);
 });
 
+test('Save buttons name their item, show "Đã lưu" once saved (also after a reload) and go back on undo', async ({ page }) => {
+  await signIn(page, USERS.saver.email);
+  const rising = panel(page, 'Ads mới đang lên');
+  const item = rising.getByRole('listitem').filter({ hasText: 'Best dog mom mug gift 5' });
+  await expect(item.getByRole('button', { name: 'Lưu: Best dog mom mug gift 5', exact: true })).toBeVisible();
+  // The label is visible on a wide screen, and no two Save buttons of a panel share a name.
+  await expect(item.getByRole('button').getByText('Lưu', { exact: true })).toBeVisible();
+  const names = await panel(page, 'Ads trend nhất').getByRole('button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
+  expect(names.length).toBeGreaterThan(1);
+  expect(new Set(names).size).toBe(names.length);
+
+  const unsaved = item.getByRole('button', { name: 'Lưu: Best dog mom mug gift 5', exact: true });
+  const saved = item.getByRole('button', { name: 'Đã lưu: Best dog mom mug gift 5', exact: true });
+  await unsaved.click();
+  await expect(saved).toContainText('Đã lưu');
+  await toast(page, 'Đã lưu vào Store A').getByRole('button', { name: 'Hoàn tác' }).click();
+  await expect(unsaved).toBeVisible();
+  expect(await savedBy('e2e_mug_5')).toEqual([]);
+
+  await unsaved.click();
+  await expect(saved).toBeVisible();
+  await page.reload();
+  await expect(saved).toBeVisible();
+  // The 2-store tests below save this ad again.
+  await sql(`delete from saved_ideas where source_ref = 'e2e_mug_5' and via = 'briefing'`);
+});
+
 test('a save from the ad sheet of a briefing row records via briefing', async ({ page }) => {
   await signIn(page, USERS.saver.email);
   await row(page, 'Ads mới đang lên', 'Best dog mom mug gift 4').getByRole('link').click();
@@ -72,7 +99,8 @@ test('a save from the ad sheet of a briefing row records via briefing', async ({
 test('with several stores a save from a briefing row or its ad sheet takes 2 actions (Lưu, Enter) and writes one row per store', async ({ page }) => {
   await signIn(page, USERS.admin.email);
   const both = [STORES.a.id, STORES.b.id].sort().map((store_id) => ({ store_id, source: 'ad', via: 'briefing' }));
-  const created = page.getByRole('dialog').getByText('Đã lưu', { exact: true });
+  // The picker's per-store results; a saved button elsewhere (a row, the ad sheet) also reads "Đã lưu".
+  const created = page.getByRole('group', { name: 'Lưu vào store' }).getByText('Đã lưu', { exact: true });
   try {
     // One save to A and B (B is pre-checked from the seed), so the next saves pre-check both stores.
     await row(page, 'Ads trend nhất', 'Best dog mom mug gift 1').getByRole('button', { name: 'Lưu' }).click();

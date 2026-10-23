@@ -1,5 +1,5 @@
-import { isNonShopDomain } from '@ideas-hub/core';
-import { daySeries, getShop, listAds } from '@ideas-hub/db/queries';
+import { isNonShopDomain, storeScope } from '@ideas-hub/core';
+import { daySeries, getShop, listAds, savedRefs } from '@ideas-hub/db/queries';
 import { notFound } from 'next/navigation';
 import { AdGrid } from '@/components/ads/ad-grid';
 import { toCard } from '@/components/ads/cards';
@@ -19,6 +19,7 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
   if (!shop || isNonShopDomain(domain, settings.nonShopDomains)) notFound();
   const [series, ads, stores] = await Promise.all([daySeries(db, 'shop', domain), listAds(db, await statusOptions(settings), { domain }), saveTargets(user)]);
   const own = ads.items.filter((a) => a.landingDomain === domain);
+  const saved = await savedRefs(db, storeScope(user), 'ad', own.map((a) => a.adArchiveId));
   return (
     <>
       <PageHeader title={domain}>
@@ -33,6 +34,7 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
           ads={own.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))}
           selectedId={null}
           saveStores={stores}
+          saved={saved}
         />
       </div>
     </>

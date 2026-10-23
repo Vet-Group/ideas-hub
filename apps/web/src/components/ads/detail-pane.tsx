@@ -11,7 +11,17 @@ import { Thumb } from './thumb';
 const ddmm = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : t.common.none);
 
 /** The ad detail: shown in the sticky 360 px pane, or in a sheet below 1280 px. */
-export function DetailPane({ ad, saveStores, via = 'ads' }: { ad: AdListItem & { cta: string | null; sightings: AdSighting[] }; saveStores: SaveTarget[]; via?: 'ads' | 'briefing' }) {
+export function DetailPane({
+  ad,
+  saveStores,
+  saved,
+  via = 'ads',
+}: {
+  ad: AdListItem & { cta: string | null; sightings: AdSighting[] };
+  saveStores: SaveTarget[];
+  saved: boolean;
+  via?: 'ads' | 'briefing';
+}) {
   const rows: [string, string][] = [
     [t.ads.started, ddmm(ad.startDate)],
     [t.ads.daysActive, t.ads.days(ad.daysActive)],
@@ -20,7 +30,14 @@ export function DetailPane({ ad, saveStores, via = 'ads' }: { ad: AdListItem & {
     [t.ads.firstSeen, ddmm(ad.firstSeenDate)],
     [t.ads.lastSeen, ddmm(ad.lastSeenDate)],
   ];
-  const save = <SaveButton source={{ kind: 'ad', adArchiveId: ad.adArchiveId, via, keyword: ad.keywords[0]?.text }} stores={saveStores} />;
+  const save = (
+    <SaveButton
+      source={{ kind: 'ad', adArchiveId: ad.adArchiveId, via, keyword: ad.keywords[0]?.text }}
+      stores={saveStores}
+      title={ad.caption || ad.pageName || ad.adArchiveId}
+      saved={saved}
+    />
+  );
   return (
     <article className="grid gap-3" aria-label={t.ads.detail}>
       <Thumb src={ad.thumbnailKey ? thumbUrl(ad.thumbnailKey) : null} mediaType={ad.mediaType} alt={ad.caption ?? ''} className="rounded-card" />

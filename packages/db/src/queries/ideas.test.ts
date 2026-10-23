@@ -1,4 +1,4 @@
-import { type Viewer } from '@ideas-hub/core';
+import { type Viewer, storeScope } from '@ideas-hub/core';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
@@ -11,6 +11,7 @@ import {
   getIdea,
   ideasCsv,
   lastSaveStoreIds,
+  savedRefs,
   listIdeas,
   saveIdea,
   setIdeaStatus,
@@ -145,6 +146,24 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
       await saveIdea(db, u, ['store_B'], ad('last-3'), sec(42));
       expect(await lastSaveStoreIds(db, 'user_saveB')).toEqual(['store_B']);
       expect(await lastSaveStoreIds(db, 'user_none')).toEqual([]);
+    });
+  });
+
+  describe('savedRefs', () => {
+    it('marks refs saved in the viewer scope only: a member never sees another store saves', async () => {
+      await saveIdea(db, saveB, ['store_B'], ad('only-B'), sec(50));
+      const refs = ['matrix', 'only-B', 'never-saved'];
+      expect(await savedRefs(db, storeScope(saveA), 'ad', refs)).toEqual(['matrix']);
+      expect(await savedRefs(db, storeScope(saveB), 'ad', refs)).toEqual(['only-B']);
+      expect((await savedRefs(db, storeScope(admin), 'ad', refs)).sort()).toEqual(['matrix', 'only-B']);
+      expect(await savedRefs(db, storeScope(none), 'ad', refs)).toEqual([]);
+      expect(await savedRefs(db, storeScope(saveA), 'ad', [])).toEqual([]);
+    });
+
+    it('keeps sources apart and lists a ref saved in two stores once', async () => {
+      await saveIdea(db, both, ['store_A', 'store_B'], ad('twice'), sec(52));
+      expect(await savedRefs(db, storeScope(both), 'ad', ['twice'])).toEqual(['twice']);
+      expect(await savedRefs(db, storeScope(both), 'suggestion', ['twice'])).toEqual([]);
     });
   });
 

@@ -1,5 +1,5 @@
-import { VIETNAM, canSeeKeywordAi, nextSlotAfter } from '@ideas-hub/core';
-import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, risingNewAds, risingShops, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
+import { VIETNAM, canSeeKeywordAi, nextSlotAfter, storeScope } from '@ideas-hub/core';
+import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, risingNewAds, risingShops, savedRefs, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
@@ -64,6 +64,11 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
   const aiVisible = canSeeKeywordAi(user, { origin: keyword.origin, trackedBy: keyword.trackedBy });
   const kw = await keywordBriefingFor(db, user, id, date ?? vnDay(at));
   const kwBriefing = kw?.aiVisible && kw.briefing.readyAt ? kw : null;
+  const scope = storeScope(user);
+  const [savedAds, savedSuggestions] = await Promise.all([
+    savedRefs(db, scope, 'ad', [...top, ...rising].map((a) => a.adArchiveId)),
+    savedRefs(db, scope, 'suggestion', kwBriefing?.suggestions.map((r) => r.id) ?? []),
+  ]);
   const runLabel = run ? t.keywords.sourceRun(formatTime(run.scheduledFor), ddmm(vnDate.format(run.scheduledFor))) : null;
   const field = 'border-input bg-surface h-9 rounded-md border px-2 text-sm outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50';
 
@@ -102,13 +107,13 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
               <h2 id="kw-s1" className="font-semibold">
                 {t.keywords.section1}
               </h2>
-              {top.length ? <AdGrid ads={top.map(card)} selectedId={null} saveStores={stores} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
+              {top.length ? <AdGrid ads={top.map(card)} selectedId={null} saveStores={stores} saved={savedAds} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
             </section>
             <section className="grid gap-2" aria-labelledby="kw-s2">
               <h2 id="kw-s2" className="font-semibold">
                 {t.keywords.section2}
               </h2>
-              {rising.length ? <AdGrid ads={rising.map(card)} selectedId={null} saveStores={stores} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
+              {rising.length ? <AdGrid ads={rising.map(card)} selectedId={null} saveStores={stores} saved={savedAds} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
             </section>
             <section className="grid gap-2" aria-labelledby="kw-s4">
               <h2 id="kw-s4" className="font-semibold">
@@ -153,7 +158,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
             <p className="text-fg-2 text-sm">{t.keywords.aiHidden}</p>
           ) : kwBriefing ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} />
+              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} saved={savedSuggestions} />
               <NewsPanel news={kwBriefing.sections.news} />
             </div>
           ) : (

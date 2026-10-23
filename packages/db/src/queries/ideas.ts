@@ -1,6 +1,6 @@
 // Saved ideas (spec §4 "Save-idea flow", plan Step 6): save with dedupe, undo within 15 s, list, status,
 // notes/tags/assignee and CSV. Every read and write checks the viewer's ticks on the idea's store.
-import { type Viewer, can } from '@ideas-hub/core';
+import { type StoreScope, type Viewer, can } from '@ideas-hub/core';
 import { type SQL, and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { type Db } from '../client';
@@ -93,6 +93,22 @@ export async function undoSave(
     if (mine.length > 0) await tx.delete(savedIdeas).where(inArray(savedIdeas.id, mine.map((r) => r.id)));
     return { ok: true, imageKeys: mine.flatMap((r) => (r.imageKey ? [r.imageKey] : [])) } as const;
   });
+}
+
+/** Which of `refs` are saved (any store in `scope`), for the "Đã lưu" state on Save buttons; uses `saved_ideas_source_key`. */
+export async function savedRefs(db: Db, scope: StoreScope, source: IdeaSource, refs: string[]): Promise<string[]> {
+  if (refs.length === 0 || (scope.storeIds !== 'all' && scope.storeIds.length === 0)) return [];
+  const rows = await db
+    .selectDistinct({ ref: savedIdeas.sourceRef })
+    .from(savedIdeas)
+    .where(
+      and(
+        eq(savedIdeas.source, source),
+        inArray(savedIdeas.sourceRef, refs),
+        scope.storeIds === 'all' ? undefined : inArray(savedIdeas.storeId, [...scope.storeIds]),
+      ),
+    );
+  return rows.flatMap((r) => (r.ref ? [r.ref] : []));
 }
 
 /** The stores of the user's last save: their rows with the latest `created_at` (one save, one transaction). */

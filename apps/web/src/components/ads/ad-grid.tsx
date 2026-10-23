@@ -35,7 +35,20 @@ export interface AdCardData {
  * saves and `O` opens the Ad Library link. Typing in the filter rail never reaches these keys: they are
  * handled on the card links only.
  */
-export function AdGrid({ ads, selectedId, saveStores, via = 'ads' }: { ads: AdCardData[]; selectedId: string | null; saveStores: SaveTarget[]; via?: 'ads' | 'briefing' }) {
+export function AdGrid({
+  ads,
+  selectedId,
+  saveStores,
+  saved,
+  via = 'ads',
+}: {
+  ads: AdCardData[];
+  selectedId: string | null;
+  saveStores: SaveTarget[];
+  /** ad_archive_ids already saved. */
+  saved: string[];
+  via?: 'ads' | 'briefing';
+}) {
   const links = useRef<(HTMLAnchorElement | null)[]>([]);
   const saves = useRef<(SaveHandle | null)[]>([]);
 
@@ -128,6 +141,8 @@ export function AdGrid({ ads, selectedId, saveStores, via = 'ads' }: { ads: AdCa
               compact
               source={{ kind: 'ad', adArchiveId: a.adArchiveId, via, keyword: a.keyword ?? undefined }}
               stores={saveStores}
+              title={a.caption || a.pageName || a.adArchiveId}
+              saved={saved.includes(a.adArchiveId)}
             />
           </div>
         </li>
