@@ -125,6 +125,30 @@ test('Ctrl+K treats % and _ as plain characters, ranks the closer match first, a
   await ctx.close();
 });
 
+test('Ctrl+K finds saved ideas only in the stores the user may view, and opens the idea', async ({ page, browser }) => {
+  const ideaGroup = async (p: typeof page, q: string) => {
+    await p.keyboard.press('Control+k');
+    await p.getByPlaceholder('Tìm ads, shop, keyword, màn hình…').fill(q);
+    await expect(p.locator('[cmdk-list]')).not.toContainText('Gõ ít nhất 3 ký tự');
+    await p.waitForTimeout(400);
+    return p.locator('[cmdk-group]').filter({ has: p.locator('[cmdk-group-heading]', { hasText: 'Ý tưởng' }) });
+  };
+  await signIn(page, USERS.admin.email);
+  const group = await ideaGroup(page, 'tumbler');
+  await expect(group.locator('[cmdk-item]')).toHaveText([/Dog mom tumbler/]);
+  await group.locator('[cmdk-item]').click();
+  await expect(page).toHaveURL(/\/ideas\/idea_e2e_picked$/);
+
+  // "other" may view store B only: it finds B's idea, and nothing of store A.
+  const ctx = await browser.newContext();
+  const other = await ctx.newPage();
+  await signIn(other, USERS.other.email);
+  await expect(await ideaGroup(other, 'tumbler')).toHaveCount(0);
+  await other.keyboard.press('Escape');
+  await expect((await ideaGroup(other, 'Store B only')).locator('[cmdk-item]')).toHaveText([/Store B only idea/]);
+  await ctx.close();
+});
+
 test('the attention bar is hidden on the Alerts page, and "Đã xử lý" on the last open Alert hides it elsewhere', async ({ page }) => {
   await signIn(page, USERS.admin.email);
   const bar = page.getByRole('status').filter({ hasText: 'alert chưa xử lý' });

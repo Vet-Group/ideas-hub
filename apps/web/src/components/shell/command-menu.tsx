@@ -7,9 +7,9 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { t } from '@/lib/strings.vi';
 import { type MenuResults, searchMenu } from './search-action';
 
-const EMPTY: MenuResults = { ads: [], shops: [], keywords: [], screens: [] };
+const EMPTY: MenuResults = { ads: [], shops: [], keywords: [], ideas: [], screens: [] };
 
-/** Ctrl+K (⌘K on a Mac) over ads, shops, keywords and the screens the user may open (spec §6). */
+/** Ctrl+K (⌘K on a Mac) over ads, shops, keywords, saved ideas and the screens the user may open (spec §6). */
 export function CommandMenu({ isAdmin }: { isAdmin: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -82,6 +82,16 @@ export function CommandMenu({ isAdmin }: { isAdmin: boolean }) {
               {results.keywords.map((k) => (
                 <CommandItem key={k.id} value={`kw:${k.id}`} onSelect={() => go(`/keywords/${k.id}`)}>
                   {k.text}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : null}
+          {results.ideas.length ? (
+            <CommandGroup heading={t.search.groupIdeas}>
+              {results.ideas.map((i) => (
+                <CommandItem key={i.id} value={`idea:${i.id}`} onSelect={() => go(`/ideas/${i.id}`)}>
+                  <span className="truncate">{i.title}</span>
+                  <span className="text-fg-2 ml-auto shrink-0 text-[12px]">{i.storeName}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
