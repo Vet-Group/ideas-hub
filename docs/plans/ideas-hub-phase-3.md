@@ -1,14 +1,14 @@
 # Ideas Hub phase 3 plan (after the pilot)
 
-Status: **draft, 2026-10-23.** Nothing here starts before the day-14 verdict of the pilot (#55, phase 2
-Step 8). Owner decisions of 2026-10-22: phase 3 code starts only after a passing verdict; the first item
-built is one that needs nobody outside this repo; items that need another owner get a draft only, which the
-owner takes to that owner.
+Status: **started 2026-10-23.** The owner lifted the wait for the day-14 verdict on 2026-10-23 (see
+"Pilot run" in `docs/ops/production.md`): items that need nobody outside this repo (1, 2) are built now,
+while the pilot keeps measuring. Owner decisions of 2026-10-22 still hold otherwise: items that need another
+owner get a draft only, which the owner takes to that owner.
 
 ## Order
 
-The verdict's figures change the order only through the rules below; they are applied by whoever starts
-phase 3 (the task `IdeasHub-Phase3-Start` for item 1).
+The verdict's figures change the order only through the rules below; they apply to the items not built
+before the verdict (3 onwards).
 
 | # | Item | Needs | Why here |
 |---|---|---|---|
@@ -25,7 +25,7 @@ phase 3 (the task `IdeasHub-Phase3-Start` for item 1).
 
 Rules from the verdict:
 
-- A failed verdict: no phase 3 code; the verdict's fix options come first.
+- A failed verdict: no further phase 3 items; the verdict's fix options come first.
 - AC 1's `success_ratio` under 0.95 on a pass: item 10 moves to 3 (crawl headroom before new features).
 - AC 3 with a late day on a pass: the briefing timing fix (verdict's AC 3 options) goes before item 2.
 - The Trending sort on `/ads` was built before day 1 (#60, #61), so it is not on this list.
