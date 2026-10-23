@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type Membership, type StoreScope, type Viewer, can, canSeeKeywordAi, inScope, storeScope } from './access';
+import { type Membership, type StoreScope, type Viewer, can, canSeeKeywordAi, inScope, narrowViewer, storeScope } from './access';
 
 const ticks = {
   none: { view: false, save: false, keywords: false },
@@ -63,5 +63,26 @@ describe('access', () => {
     // @ts-expect-error a plain object is not a StoreScope
     const forged: StoreScope = { permission: 'view', storeIds: 'all' };
     expect(forged).toBeDefined();
+  });
+
+  it('narrowViewer keeps a member inside the list and turns an admin into a viewer of the listed stores', () => {
+    const multi: Viewer = {
+      userId: 'user_m',
+      role: 'member',
+      memberships: [
+        { storeId: 'store_a', ...ticks.save },
+        { storeId: 'store_b', ...ticks.view },
+      ],
+    };
+    // A listed store the member has no tick on stays out: the list never widens access.
+    expect(storeScope(narrowViewer(multi, ['store_b', 'store_z'])).storeIds).toEqual(['store_b']);
+    expect(storeScope(narrowViewer(multi, [])).storeIds).toEqual([]);
+    const narrowedAdmin = narrowViewer(admin, ['store_a']);
+    expect(narrowedAdmin.role).toBe('member');
+    expect(storeScope(narrowedAdmin).storeIds).toEqual(['store_a']);
+    expect(can(narrowedAdmin, 'store_b', 'view')).toBe(false);
+    // Out-of-list stores hide a keyword's AI sections even from an admin's narrowed token.
+    expect(canSeeKeywordAi(narrowedAdmin, keywords.trackedByB)).toBe(false);
+    expect(canSeeKeywordAi(narrowedAdmin, keywords.trackedByAB)).toBe(true);
   });
 });

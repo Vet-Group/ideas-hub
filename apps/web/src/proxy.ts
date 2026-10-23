@@ -9,8 +9,17 @@ import { auth } from './lib/auth';
  */
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-  // /api/health is the deploy's and the tunnel's probe; it returns no data.
-  if (pathname === '/login' || pathname === '/api/health' || pathname.startsWith('/api/auth/') || pathname.startsWith('/thumbs/')) return NextResponse.next();
+  // /api/health is the deploy's and the tunnel's probe; it returns no data. /api/v1 checks its bearer token
+  // itself and never accepts the session cookie (contract `ideas-hub-v1.md` §3).
+  if (
+    pathname === '/login' ||
+    pathname === '/api/health' ||
+    pathname === '/api/v1' ||
+    pathname.startsWith('/api/v1/') ||
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/thumbs/')
+  )
+    return NextResponse.next();
 
   const soft = req.headers.get('rsc') === '1' && !req.headers.get('next-action');
   const { response: session, headers } = await auth.api.getSession({

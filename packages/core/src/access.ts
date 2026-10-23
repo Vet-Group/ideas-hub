@@ -64,3 +64,15 @@ export function storeScope(viewer: Viewer, permission: Permission = 'view'): Sto
 export function inScope(scope: StoreScope, storeId: string): boolean {
   return scope.storeIds === 'all' || scope.storeIds.includes(storeId);
 }
+
+/**
+ * The viewer a token acts as when it has a store list (contract `ideas-hub-v1.md` §3): the owner's ticks
+ * on the listed stores only. An admin becomes a member with `view` on the listed stores, so `storeScope`,
+ * `can` and `canSeeKeywordAi` all stay inside the list; the list never widens what the owner may see.
+ */
+export function narrowViewer(viewer: Viewer, storeIds: readonly string[]): Viewer {
+  if (viewer.role === 'admin') {
+    return { userId: viewer.userId, role: 'member', memberships: storeIds.map((storeId) => ({ storeId, view: true, save: false, keywords: false })) };
+  }
+  return { ...viewer, memberships: viewer.memberships.filter((m) => storeIds.includes(m.storeId)) };
+}
