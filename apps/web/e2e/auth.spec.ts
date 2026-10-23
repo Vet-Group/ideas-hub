@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { hashPassword } from 'better-auth/crypto';
 import { E2E_PORT } from './fixtures/env';
-import { STORES, USERS, e2ePool } from './fixtures/seed';
+import { PASSWORD, STORES, USERS, e2ePool } from './fixtures/seed';
 import { signIn } from './support/session';
 
 test.describe.configure({ mode: 'serial' });
@@ -60,6 +61,54 @@ test('signing out ends the session and shows the sign-in page', async ({ page })
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/runs');
   await expect(page).toHaveURL(/\/login\?callbackURL=%2Fruns/);
+});
+
+test('changing the password ends other sessions; the new password signs in and the old one does not', async ({ page, browser }) => {
+  const user = USERS.kw;
+  const next = 'e2e-new-password-456';
+  const other = await browser.newContext();
+  const elsewhere = await other.newPage();
+  await signIn(elsewhere, user.email);
+  const db = e2ePool();
+  try {
+    await signIn(page, user.email);
+    await page.getByRole('link', { name: 'Tài khoản' }).first().click();
+    await expect(page).toHaveURL(/\/account$/);
+    await page.getByLabel('Mật khẩu hiện tại').fill('not-my-password');
+    await page.getByLabel('Mật khẩu mới', { exact: true }).fill(next);
+    await page.getByLabel('Nhập lại mật khẩu mới').fill(next);
+    await page.getByRole('button', { name: 'Đổi mật khẩu' }).click();
+    await expect(page.getByText('Mật khẩu hiện tại không đúng.')).toBeVisible();
+
+    await page.getByLabel('Mật khẩu hiện tại').fill(PASSWORD);
+    await page.getByLabel('Mật khẩu mới', { exact: true }).fill(next);
+    await page.getByLabel('Nhập lại mật khẩu mới').fill(next);
+    await page.getByRole('button', { name: 'Đổi mật khẩu' }).click();
+    await expect(page.getByRole('status')).toHaveText('Đã đổi mật khẩu');
+    // This session stays; the other one is gone.
+    expect((await page.goto('/runs'))?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/runs$/);
+    await elsewhere.goto('/runs');
+    await expect(elsewhere).toHaveURL(/\/login\?callbackURL=%2Fruns/);
+
+    await page.getByRole('button', { name: 'Đăng xuất' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel('Mật khẩu').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Đăng nhập' }).click();
+    await expect(page.getByText('Email hoặc mật khẩu không đúng.')).toBeVisible();
+    // The form resets after a refused sign-in.
+    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel('Mật khẩu').fill(next);
+    await page.getByRole('button', { name: 'Đăng nhập' }).click();
+    await expect(page).not.toHaveURL(/\/login/);
+  } finally {
+    // Later specs sign this user in with the seed password.
+    await db.query(`update accounts set password = $1 where user_id = $2 and provider_id = 'credential'`, [await hashPassword(PASSWORD), user.id]);
+    await db.query(`delete from login_failures`);
+    await db.end();
+    await other.close();
+  }
 });
 
 test('/api/health answers 200 without a session and without a redirect', async ({ request }) => {
