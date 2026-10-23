@@ -2,6 +2,7 @@ import { savedIdeas } from '@ideas-hub/db';
 import { and, count, eq } from 'drizzle-orm';
 import { type ReactNode } from 'react';
 import { AttentionBar } from '@/components/shell/attention-bar';
+import { HideOnAlertsPage } from '@/components/shell/hide-on-alerts-page';
 import { BottomTabs } from '@/components/shell/bottom-tabs';
 import { CommandMenu } from '@/components/shell/command-menu';
 import { Sidebar } from '@/components/shell/sidebar';
@@ -38,7 +39,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <header className="bg-app sticky top-0 z-30 flex h-[var(--vet-header-h)] items-center justify-end gap-2 px-[var(--vet-main-pad-x)] mobile:h-[var(--vet-header-h-mobile)]">
             <CommandMenu isAdmin={isAdmin} />
           </header>
-          {isAdmin ? <AttentionBar /> : null}
+          {isAdmin ? (
+            <HideOnAlertsPage>
+              <AttentionBar />
+            </HideOnAlertsPage>
+          ) : null}
           <main id="main" tabIndex={-1} className="px-[var(--vet-main-pad-x)] pb-[calc(var(--vet-main-pad-y)+var(--vet-tabbar-h))] md:pb-[var(--vet-main-pad-y)]">
             {children}
           </main>
