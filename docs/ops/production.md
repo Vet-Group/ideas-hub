@@ -200,6 +200,80 @@ browser-mode fallbacks under "Display", ADR 0003) on the pilot issue and in that
 pilot run on; the owner chooses at the day-14 verdict (owner, 2026-10-22: nothing changes mid-pilot).
 Then the LCP check (`docs/ops/acceptance-run.md`), then the 14-day run.
 
+## Off-host backup (Cloudflare R2)
+
+ADR 0007 D3 was reversed by the owner on 2026-10-23: the daily backup goes to a Cloudflare R2 bucket. It is
+`restic` (the existing `scripts/linux/ideashub-backup`), not a plain upload: the same run snapshots the
+`pg_dump -Fc` of the database, `counts.txt` (row counts and bucket objects) and the whole MinIO volume
+(thumbnails), deduplicated between days and encrypted on the host with the restic password, on top of R2's
+own encryption at rest. Nothing is kept on the host except the staging directory, which is deleted after a
+good run and kept after a failed one; the pre-deploy dumps (last 3) are separate and unchanged.
+
+**What runs, and when.** `ideashub-backup.timer` starts `ideashub-backup.service` daily at 08:30
+Asia/Ho_Chi_Minh (no crawl or briefing then; it waits for `ops.lock` behind a deploy or retention pass).
+`ideashub-backup-drill.timer` starts `ideashub-backup-drill.service` (`ideashub-backup --drill`) on the 1st
+at 09:30. Both read `~/.config/ideas-hub/backup.env` (root's home on this host). The timers are installed
+disabled; enable them once `backup.env` exists:
+`XDG_RUNTIME_DIR=/run/user/0 systemctl --user enable --now ideashub-backup.timer ideashub-backup-drill.timer`.
+
+**`backup.env`** (`chmod 600`; never in the repo, chat or logs):
+
+| Variable | Meaning |
+|---|---|
+| `OFFSITE_S3_ENDPOINT` | R2 S3 endpoint, `https://<account id>.r2.cloudflarestorage.com` |
+| `OFFSITE_S3_BUCKET` | the bucket |
+| `OFFSITE_S3_ACCESS_KEY_ID`, `OFFSITE_S3_SECRET_ACCESS_KEY` | an R2 API token scoped to that bucket, object read and write |
+| `OFFSITE_S3_PREFIX` | optional, default `ideas-hub`: the restic repository is `s3:<endpoint>/<bucket>/<prefix>` |
+| `OFFSITE_S3_REGION` | optional, default `auto` (what R2 expects) |
+| `OFFSITE_RETENTION_DAYS` | optional, default `30`: snapshots older than this are forgotten (`restic forget --keep-within`), packs are pruned on Sundays; only this repository is touched |
+| `RESTIC_PASSWORD_FILE` | path of a `chmod 600` file holding the restic password; required. Keep the password in the owner's password manager too: without it no backup can be read |
+
+`RESTIC_REPOSITORY` plus `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` still work for any other restic
+repository when no `OFFSITE_S3_*` is set. The first run creates the repository (`restic init`) when it does
+not exist. A partial `OFFSITE_S3_*` set, an unreadable password file or a bad `OFFSITE_RETENTION_DAYS` is a
+`config` failure.
+
+**When nothing is configured** the script logs `no off-host target configured (OFFSITE_S3_* unset); nothing
+to do` and exits 0, with no Alert (this also holds for the drill). **A failure** (dump, counts, repository
+init, upload, forget, drill) writes a `backup_failed` Alert keyed `<date>:<stage>`, which the watchdog posts
+to Lark; the script exits 1. A failed upload does not touch the database, MinIO or earlier snapshots, and the
+staging directory stays for a look; the next run starts over. Log: `~/.local/state/ideas-hub/backup.log`.
+
+**Setup (session, after the owner creates the bucket and token).** Write `backup.env` and the password file
+(600), run `ideashub-backup` by hand (creates the repository and the first snapshot), run
+`ideashub-backup --drill` (every line `ok`), then enable the two timers above.
+
+**Check.** The restic image and variables are the script's; to list snapshots by hand:
+
+```
+set -a; . ~/.config/ideas-hub/backup.env; set +a
+export RESTIC_REPOSITORY="s3:${OFFSITE_S3_ENDPOINT%/}/$OFFSITE_S3_BUCKET/${OFFSITE_S3_PREFIX:-ideas-hub}" AWS_ACCESS_KEY_ID="$OFFSITE_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$OFFSITE_S3_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION=auto
+docker run --rm -e RESTIC_REPOSITORY -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
+  -e RESTIC_PASSWORD_FILE=/run/restic-password -v "$RESTIC_PASSWORD_FILE:/run/restic-password:ro" \
+  restic/restic:0.19.1 snapshots --host ideashub
+```
+
+(use the digest-pinned image named in `scripts/linux/ideashub-backup`).
+
+**Restore drill from R2.** `ideashub-backup --drill` (also the monthly unit) takes the latest snapshot from
+the same repository, restores it into a temporary database and a temporary MinIO, compares them with its
+`counts.txt` (`ok` or `DIFF` per line, exit 1 and an Alert on any difference) and removes both. It can run
+on any machine that has the checkout, Docker, the compose project and a `backup.env`.
+
+**Restore after a host loss.** (1) Bring up the host and the checkout, `docker compose -p ideas-hub up -d
+--wait postgres` and `docker compose -p ideas-hub create minio`; write `backup.env`. (2) With the `docker run`
+above, `restic snapshots --host ideashub` and pick a snapshot id (or `latest`). (3) Database: `restic dump
+<id> /backup/staging/ideashub.dump | docker compose -p ideas-hub exec -T postgres pg_restore -U ideashub -d
+ideashub --no-owner --exit-on-error` (make the `ideashub_ro` role first, as `restore.sh` does). (4) Thumbnails:
+`restic restore <id>:/backup/minio --target /data` with `-v ideas-hub_minio-data:/data` added to the
+`docker run`, then `docker compose -p ideas-hub up -d --wait minio`. (5) Compare with
+`restic dump <id> /backup/staging/counts.txt`, then continue at "7. Units". The drill in
+`scripts/linux/ideashub-backup` is the same sequence into temporary targets.
+
+**Cost.** R2 is free to 10 GB-month, then $0.015 per GB-month, and has no egress fee. Retention (ADR 0007)
+deletes old thumbnails on the host; they stay in the snapshots until those age out after
+`OFFSITE_RETENTION_DAYS`.
+
 ## Rollback
 
 1. On Linux: `systemctl --user disable --now ideashub-worker.service ideashub-watchdog.timer

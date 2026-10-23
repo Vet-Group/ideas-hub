@@ -1,5 +1,5 @@
 # Daily at 08:30, when no crawl or briefing runs (ADR 0007); a missed run starts at the next boot.
-# Installed disabled; enabled in phase 2 Step 5 after the repository and its password exist.
+# Installed disabled; enable it once ~/.config/ideas-hub/backup.env names the R2 bucket (docs/ops/production.md, "Off-host backup").
 [Unit]
 Description=Ideas Hub off-host backup at 08:30
 

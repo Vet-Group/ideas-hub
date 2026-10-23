@@ -61,10 +61,11 @@ case "$name" in
     args=("$@")
     for i in "${!args[@]}"; do
       if [ "${args[i]}" = postgres ] && [ "$i" -gt 0 ] && [ "${args[i - 1]}" = -T ]; then exec "${args[@]:i+1}"; fi
-      # `run ... restic/restic... SUBCOMMAND ...`; FAKE_RESTIC_FAIL names a subcommand that fails.
+      # `run ... restic/restic... SUBCOMMAND ...`; FAKE_RESTIC_FAIL names subcommands that fail.
       if [[ "${args[i]}" == restic/restic* ]]; then
         sub="${args[i + 1]}"
-        if [ "$sub" = "${FAKE_RESTIC_FAIL:-}" ]; then echo "Fatal: $sub failed (fake)" >&2; exit 1; fi
+        printf '%s repo=%s region=%s key=%s\n' "$sub" "${RESTIC_REPOSITORY:-}" "${AWS_DEFAULT_REGION:-}" "${AWS_ACCESS_KEY_ID:+set}" >> "$FAKE/restic-env.log"
+        if [[ " ${FAKE_RESTIC_FAIL:-} " == *" $sub "* ]]; then echo "Fatal: $sub failed (fake)" >&2; exit 1; fi
         case "$sub" in
           snapshots) if [ -n "${FAKE_NO_SNAPSHOT:-}" ]; then echo '[]'; else echo '[{"time":"2026-10-21T01:30:00Z","id":"5ca1ab1e00","short_id":"5ca1ab1e"}]'; fi ;;
           dump) case "${args[${#args[@]} - 1]}" in */counts.txt) cat "$FAKE/counts.txt" ;; *) echo dump ;; esac ;;

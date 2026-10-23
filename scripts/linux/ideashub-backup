@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 # ideashub-backup: the daily off-host backup and its restore drill (ADR 0007, phase 2 plan Step 2c), run
-# as the ideashub user by ideashub-backup.timer (08:30) and ideashub-backup-drill.timer (the 1st, 09:30).
+# as the host user by ideashub-backup.timer (08:30) and ideashub-backup-drill.timer (the 1st, 09:30).
 #   ideashub-backup          pg_dump and counts.txt to the staging directory; restic backup of it and the
-#                            MinIO volume; forget to 7 daily + 4 weekly (prune on Sundays)
+#                            MinIO volume to the off-host bucket (Cloudflare R2, ADR 0007 D3 reversed);
+#                            forget snapshots older than OFFSITE_RETENTION_DAYS (prune on Sundays)
 #   ideashub-backup --drill  restore the latest snapshot into a temporary database and a temporary MinIO,
 #                            compare with its counts.txt (ok/DIFF per line), remove both
 # restic runs in the restic/restic image pinned below, with the cache volume ideas-hub_restic-cache.
-# Environment (~/.config/ideas-hub/backup.env, chmod 600, read by the units): RESTIC_REPOSITORY,
-# RESTIC_PASSWORD_FILE, and the repository's keys (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY for R2).
+# Environment (~/.config/ideas-hub/backup.env, chmod 600, read by the units):
+#   OFFSITE_S3_ENDPOINT, OFFSITE_S3_BUCKET, OFFSITE_S3_ACCESS_KEY_ID, OFFSITE_S3_SECRET_ACCESS_KEY  the R2
+#     bucket (S3 API); OFFSITE_S3_PREFIX (default ideas-hub), OFFSITE_S3_REGION (default auto) and
+#     OFFSITE_RETENTION_DAYS (default 30) are optional
+#   RESTIC_PASSWORD_FILE  the client-side encryption key (required once the bucket is set)
+#   RESTIC_REPOSITORY (+ AWS_*)  any other restic repository, instead of OFFSITE_S3_*
+# With neither set the run logs one line and exits 0 (no off-host backup configured).
 # IDEASHUB_REPO (default: the checkout holding this script); IDEASHUB_ALERT_KEY replaces the date in the
 # Alert key (tests and the Step 5 check pass test:<timestamp>).
 # Every failure writes a backup_failed ops Alert keyed <date>:<stage>; the watchdog posts it.
@@ -38,11 +44,29 @@ drill=0
 case "${1:-}" in
   --drill) drill=1 ;;
   "") ;;
-  -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
+  -h | --help) sed -n '2,21p' "$0"; exit 0 ;;
   *) sed -n '4,7p' "$0" >&2; exit 2 ;;
 esac
 
 cd "$repo"
+
+# The off-host target. OFFSITE_S3_* become restic's repository and keys; a partial set is a config error.
+if [ -n "${OFFSITE_S3_ENDPOINT:-}${OFFSITE_S3_BUCKET:-}${OFFSITE_S3_ACCESS_KEY_ID:-}${OFFSITE_S3_SECRET_ACCESS_KEY:-}" ]; then
+  for v in OFFSITE_S3_ENDPOINT OFFSITE_S3_BUCKET OFFSITE_S3_ACCESS_KEY_ID OFFSITE_S3_SECRET_ACCESS_KEY; do
+    [ -n "${!v:-}" ] || fail config "$v is not set (~/.config/ideas-hub/backup.env)"
+  done
+  export RESTIC_REPOSITORY="s3:${OFFSITE_S3_ENDPOINT%/}/$OFFSITE_S3_BUCKET/${OFFSITE_S3_PREFIX:-ideas-hub}"
+  export AWS_ACCESS_KEY_ID="$OFFSITE_S3_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$OFFSITE_S3_SECRET_ACCESS_KEY"
+  export AWS_DEFAULT_REGION="${OFFSITE_S3_REGION:-auto}"
+fi
+if [ -z "${RESTIC_REPOSITORY:-}" ]; then
+  say "no off-host target configured (OFFSITE_S3_* unset); nothing to do"
+  exit 0
+fi
+[ -r "${RESTIC_PASSWORD_FILE:-}" ] || fail config "RESTIC_PASSWORD_FILE is not a readable file (~/.config/ideas-hub/backup.env)"
+retention_days="${OFFSITE_RETENTION_DAYS:-30}"
+[[ "$retention_days" =~ ^[1-9][0-9]*$ ]] || fail config "OFFSITE_RETENTION_DAYS must be a positive whole number"
+
 bucket="$(sed -n 's/^S3_BUCKET=//p' .env 2>/dev/null | tr -d '\r"')" || true
 bucket="${bucket:-ideas-hub}"
 # The MinIO image docker-compose.yml pins, for the drill's temporary MinIO.
@@ -56,7 +80,7 @@ flock -w 2400 9 || fail lock "ops.lock still held after 40 minutes"
 mounts=()
 restic() {
   docker run --rm --cpus 1 --memory 1g \
-    -e RESTIC_REPOSITORY -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
+    -e RESTIC_REPOSITORY -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
     -e RESTIC_PASSWORD_FILE=/run/restic-password -v "$RESTIC_PASSWORD_FILE:/run/restic-password:ro" \
     -e RESTIC_CACHE_DIR=/cache -v ideas-hub_restic-cache:/cache "${mounts[@]}" "$restic_image" "$@"
 }
@@ -69,9 +93,6 @@ bucket_counts() {
   mc_in "$1" ls --recursive --json "ih/$bucket" |
     awk '/"type":"file"/ { n++; if (match($0, /"size":[0-9]+/)) b += substr($0, RSTART + 7, RLENGTH - 7) } END { printf "%d %.0f\n", n, b }'
 }
-
-[ -n "${RESTIC_REPOSITORY:-}" ] || fail config "RESTIC_REPOSITORY is not set (~/.config/ideas-hub/backup.env)"
-[ -r "${RESTIC_PASSWORD_FILE:-}" ] || fail config "RESTIC_PASSWORD_FILE is not a readable file (~/.config/ideas-hub/backup.env)"
 
 if [ "$drill" = 0 ]; then
   # A database a failed deploy restore left broken is never snapshotted over the good ones.
@@ -91,16 +112,21 @@ if [ "$drill" = 0 ]; then
   echo "objects $bucket $objects" >> "$staging/counts.txt"
   say "dumped: $(grep -c '^rows ' "$staging/counts.txt") tables, $(sed -n 's/^objects [^ ]* //p' "$staging/counts.txt") (objects bytes)"
 
-  # 2. Snapshot. The fixed --host keeps the parent snapshot (incremental) and one forget group.
+  # 2. Snapshot. The fixed --host keeps the parent snapshot (incremental) and one forget group. A failure
+  # leaves the staging directory and every earlier snapshot as they are; the next run tries again.
+  restic cat config > /dev/null 2>&1 || {
+    out="$(restic init 2>&1)" || { printf '%s\n' "$out"; fail init "$(last_line "$out")"; }
+    say "initialised the off-host repository"
+  }
   mounts=(-v "$staging:/backup/staging:ro" -v ideas-hub_minio-data:/backup/minio:ro)
   out="$(restic backup --host ideashub /backup 2>&1)" || { printf '%s\n' "$out"; fail backup "$(last_line "$out")"; }
   printf '%s\n' "$out" | tail -n 3
   mounts=()
 
-  # 3. Retention of snapshots; pruning rewrites packs, so only once a week.
+  # 3. Retention: snapshots older than the window go; pruning rewrites packs, so only once a week.
   prune=()
   [ "$(date +%u)" != 7 ] || prune=(--prune)
-  out="$(restic forget --host ideashub --keep-daily 7 --keep-weekly 4 "${prune[@]}" 2>&1)" ||
+  out="$(restic forget --host ideashub --keep-within "${retention_days}d" "${prune[@]}" 2>&1)" ||
     { printf '%s\n' "$out"; fail forget "$(last_line "$out")"; }
   rm -rf "$staging"
   say "backup done${prune:+ (pruned)}"

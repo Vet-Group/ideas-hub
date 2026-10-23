@@ -1,6 +1,6 @@
 # The daily off-host backup (ADR 0007): scripts/linux/ideashub-backup, linked into ~/.local/bin by
 # install-units.sh. restic runs in a container capped at 1 CPU and 1 GB; this unit caps the rest. The
-# repository and its password file are named in ~/.config/ideas-hub/backup.env, chmod 600.
+# R2 bucket (OFFSITE_S3_*) and the restic password file are named in ~/.config/ideas-hub/backup.env, chmod 600.
 [Unit]
 Description=Ideas Hub off-host backup
 

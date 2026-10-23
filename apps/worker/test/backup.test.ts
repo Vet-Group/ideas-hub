@@ -52,17 +52,18 @@ describe('ideashub-backup', () => {
     expect(h.callsOf('pg_dump')).toEqual(['-U ideashub -d ideashub -Fc']);
     expect(h.callsOf('pg_restore')).toEqual(['--data-only -f -']);
     const runs = h.callsOf('docker').filter((l) => l.includes('restic/restic'));
-    expect(runs).toHaveLength(2);
+    expect(runs).toHaveLength(3);
     for (const l of runs) {
       expect(l).toMatch(/^run --rm --cpus 1 --memory 1g /);
       expect(l).toContain('-v ideas-hub_restic-cache:/cache');
       expect(l).toContain(':/run/restic-password:ro');
       expect(l).not.toContain('not-a-real-password');
     }
-    expect(runs[0]).toContain('/home/.local/state/ideas-hub/backup-staging:/backup/staging:ro -v ideas-hub_minio-data:/backup/minio:ro ');
+    expect(runs[1]).toContain('/home/.local/state/ideas-hub/backup-staging:/backup/staging:ro -v ideas-hub_minio-data:/backup/minio:ro ');
     expect(restic(h)).toEqual([
-      expect.stringMatching(/^restic\/restic:[\d.]+@sha256:[0-9a-f]{64} backup --host ideashub \/backup$/),
-      expect.stringMatching(/ forget --host ideashub --keep-daily 7 --keep-weekly 4$/),
+      expect.stringMatching(/^restic\/restic:[\d.]+@sha256:[0-9a-f]{64} cat config$/),
+      expect.stringMatching(/ backup --host ideashub \/backup$/),
+      expect.stringMatching(/ forget --host ideashub --keep-within 30d$/),
     ]);
     // Dump and counts before the snapshot; the staging directory is gone after a good run.
     const calls = h.calls();
@@ -73,7 +74,7 @@ describe('ideashub-backup', () => {
   it('prunes on Sundays only', () => {
     const h = host(BACKUP);
     expect(h.run([], backupEnv(h, { FAKE_WEEKDAY: '7' })).status).toBe(0);
-    expect(restic(h)[1]).toMatch(/ forget --host ideashub --keep-daily 7 --keep-weekly 4 --prune$/);
+    expect(restic(h)[2]).toMatch(/ forget --host ideashub --keep-within 30d --prune$/);
   });
 
   it('writes counts.txt from the dump: rows per table and the bucket objects and bytes', () => {
@@ -88,16 +89,73 @@ describe('ideashub-backup', () => {
   });
 
   it.each([
-    ['config', {}, { RESTIC_REPOSITORY: '' }],
+    ['config', {}, { OFFSITE_S3_BUCKET: 'b', OFFSITE_S3_ENDPOINT: 'https://x.invalid', OFFSITE_S3_ACCESS_KEY_ID: '' }],
+    ['config', {}, { RESTIC_PASSWORD_FILE: '/nonexistent' }],
+    ['config', {}, { OFFSITE_RETENTION_DAYS: '0' }],
     ['dump', { FAKE_DUMP_RC: '1' }, {}],
     ['counts', { FAKE_RESTORE_RC: '1' }, {}],
     ['forget', { FAKE_RESTIC_FAIL: 'forget' }, {}],
+    ['init', { FAKE_RESTIC_FAIL: 'cat init' }, {}],
   ])('Alerts a failure at %s with its own key and exits 1', (stage, env, override) => {
     const h = host(BACKUP);
     const r = h.run([], { ...backupEnv(h, env), ...override });
     expect(r.status, r.out).toBe(1);
     expect(h.alerts('backup_failed')).toEqual([expect.stringMatching(new RegExp(`^${DATE}:${stage} backup failed at ${stage}: `))]);
     if (stage !== 'forget') expect(restic(h).filter((l) => l.includes(' forget '))).toEqual([]);
+  });
+
+  it('skips with one log line and no Alert when no off-host target is configured', () => {
+    const h = host(BACKUP);
+    for (const args of [[], ['--drill']]) {
+      const r = h.run(args, { RESTIC_PASSWORD_FILE: '', RESTIC_REPOSITORY: '', OFFSITE_S3_ENDPOINT: '' });
+      expect(r.status, r.out).toBe(0);
+      expect(r.out.trim().split('\n')).toEqual([expect.stringMatching(/\[backup\] no off-host target configured/)]);
+    }
+    expect(h.alerts('backup_failed')).toEqual([]);
+    expect(h.calls().filter((l) => !l.startsWith('date '))).toEqual([]);
+  });
+
+  it('builds the R2 repository and keys from OFFSITE_S3_*, keeps the days asked for, never puts a secret on a command line', () => {
+    const h = host(BACKUP);
+    const env = {
+      RESTIC_REPOSITORY: '',
+      OFFSITE_S3_ENDPOINT: 'https://acct.r2.example.invalid/',
+      OFFSITE_S3_BUCKET: 'ih-backups',
+      OFFSITE_S3_ACCESS_KEY_ID: 'test-key-id',
+      OFFSITE_S3_SECRET_ACCESS_KEY: 'test-secret-value',
+      OFFSITE_RETENTION_DAYS: '45',
+    };
+    const r = h.run([], backupEnv(h, env));
+    expect(r.status, r.out).toBe(0);
+    expect(readFileSync(`${h.fake}/restic-env.log`, 'utf8').trim().split('\n')).toEqual(
+      ['cat', 'backup', 'forget'].map((s) => `${s} repo=s3:https://acct.r2.example.invalid/ih-backups/ideas-hub region=auto key=set`),
+    );
+    expect(restic(h)[2]).toMatch(/ forget --host ideashub --keep-within 45d$/);
+    expect(h.calls().join('\n')).not.toMatch(/test-key-id|test-secret-value/);
+    expect(r.out).not.toMatch(/test-key-id|test-secret-value/);
+  });
+
+  it('takes the prefix and region from OFFSITE_S3_PREFIX and OFFSITE_S3_REGION', () => {
+    const h = host(BACKUP);
+    const env = { RESTIC_REPOSITORY: '', OFFSITE_S3_ENDPOINT: 'https://e.invalid', OFFSITE_S3_BUCKET: 'b', OFFSITE_S3_ACCESS_KEY_ID: 'k', OFFSITE_S3_SECRET_ACCESS_KEY: 's', OFFSITE_S3_PREFIX: 'prod', OFFSITE_S3_REGION: 'eu' };
+    expect(h.run([], backupEnv(h, env)).status).toBe(0);
+    expect(readFileSync(`${h.fake}/restic-env.log`, 'utf8')).toContain('repo=s3:https://e.invalid/b/prod region=eu key=set');
+  });
+
+  it('initialises a repository that does not exist yet, once, before the snapshot', () => {
+    const h = host(BACKUP);
+    const r = h.run([], backupEnv(h, { FAKE_RESTIC_FAIL: 'cat' }));
+    expect(r.status, r.out).toBe(0);
+    expect(restic(h).map((l) => l.split(' ')[1])).toEqual(['cat', 'init', 'backup', 'forget']);
+  });
+
+  it('keeps the staging directory and the earlier snapshots when the upload fails, and Alerts', () => {
+    const h = host(BACKUP);
+    const r = h.run([], backupEnv(h, { FAKE_RESTIC_FAIL: 'backup' }));
+    expect(r.status, r.out).toBe(1);
+    expect(existsSync(`${h.state}/backup-staging/ideashub.dump`)).toBe(true);
+    expect(restic(h).filter((l) => / (forget|init) /.test(l))).toEqual([]);
+    expect(h.alerts('backup_failed')).toHaveLength(1);
   });
 
   it('skips with an Alert while the restore-failed sentinel exists', () => {
