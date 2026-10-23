@@ -15,5 +15,5 @@ export async function searchMenu(query: string): Promise<MenuResults> {
     .filter((n) => n.label.toLowerCase().includes(q) || n.href.includes(q))
     .slice(0, SEARCH_PER_GROUP)
     .map((n) => ({ href: n.href, label: n.label }));
-  return { ...(await globalSearch(db, query)), screens };
+  return { ...(await globalSearch(db, query, user)), screens };
 }

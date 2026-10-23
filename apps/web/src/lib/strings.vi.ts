@@ -72,6 +72,7 @@ export const t = {
     groupAds: 'Ads',
     groupShops: 'Shop',
     groupKeywords: 'Keyword',
+    groupIdeas: 'Ý tưởng',
     groupScreens: 'Màn hình',
   },
   attention: {
