@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
 import { boardCoordinateGetter } from './board-keyboard';
-import { IdeasEmpty } from './ideas-empty';
+import { IdeasNothing } from './ideas-empty';
 import { STATUSES, StatusMenu, type Status } from './status-menu';
 import { type IdeaItem } from './types';
 
@@ -15,7 +15,7 @@ const COLUMN_IDS = STATUSES.map((s) => `col-${s}`);
  * so a drop sets only the status. Drag with a pointer, or Space, ← →, Space with the keyboard; every card
  * also has a status menu. Without `save`, or on a phone, there is no drag (and without `save` no menu).
  */
-export function IdeaBoard({ ideas, canSave, onStatus }: { ideas: IdeaItem[]; canSave: boolean; onStatus: (id: string, s: Status) => void }) {
+export function IdeaBoard({ ideas, canSave, onStatus, storeHasIdeas, clearHref }: { ideas: IdeaItem[]; canSave: boolean; onStatus: (id: string, s: Status) => void; storeHasIdeas: boolean; clearHref: string | null }) {
   const [phone, setPhone] = useState(false);
   useEffect(() => {
     const m = window.matchMedia('(max-width: 820px)');
@@ -36,7 +36,7 @@ export function IdeaBoard({ ideas, canSave, onStatus }: { ideas: IdeaItem[]; can
     if (to && idea && idea.status !== to) onStatus(idea.id, to);
   };
 
-  if (ideas.length === 0) return <IdeasEmpty />;
+  if (ideas.length === 0) return <IdeasNothing storeHasIdeas={storeHasIdeas} clearHref={clearHref} />;
 
   const board = (
     <div className={cn('grid gap-3', phone ? 'grid-cols-1' : 'grid-cols-4')} aria-describedby={drag ? 'board-help' : undefined}>
@@ -122,8 +122,8 @@ function Card({ idea, drag, canSave, onStatus }: { idea: IdeaItem; drag: boolean
         <span className="font-medium">{idea.title}</span>
       )}
       <div className="flex items-center justify-between gap-2">
-        <Link href={`/ideas/${idea.id}`} className="text-fg-2 text-xs underline">
-          {t.ideaViews.openSource}
+        <Link href={`/ideas/${idea.id}`} aria-label={t.ideaViews.detailOf(idea.title)} className="text-fg-2 text-xs underline">
+          {t.ideaViews.detail}
         </Link>
         {canSave ? <StatusMenu title={idea.title} status={idea.status} onChange={(s) => onStatus(idea.id, s)} /> : <span className="text-fg-2 text-xs">{t.ideaViews.statuses[idea.status]}</span>}
       </div>

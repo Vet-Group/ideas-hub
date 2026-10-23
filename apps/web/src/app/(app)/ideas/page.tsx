@@ -1,11 +1,12 @@
 import { can } from '@ideas-hub/core';
 import { IDEA_STATUSES, storeMembers, users } from '@ideas-hub/db';
-import { type IdeaStatus, listIdeas, trackedKeywords } from '@ideas-hub/db/queries';
+import { type IdeaStatus, ideaKeywordOptions, listIdeas, storeHasIdeas } from '@ideas-hub/db/queries';
 import { asc, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { IdeasView } from '@/components/ideas/ideas-view';
 import { NewIdeaDialog } from '@/components/ideas/new-idea-dialog';
+import { StoreSelect } from '@/components/ideas/store-select';
 import { type IdeaItem } from '@/components/ideas/types';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -41,10 +42,12 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
   const rows = await listIdeas(db, user, storeId, filters);
   if (!rows) notFound();
   const tab: IdeaStatus = IDEA_STATUSES.includes(p.status as IdeaStatus) ? (p.status as IdeaStatus) : 'new';
-  const [members, keywords, targets] = await Promise.all([
+  const filtered = Object.values(filters).some(Boolean);
+  const [members, keywords, targets, anyIdeas] = await Promise.all([
     db.select({ id: users.id, name: users.name }).from(storeMembers).innerJoin(users, eq(users.id, storeMembers.userId)).where(eq(storeMembers.storeId, storeId)).orderBy(asc(users.name)),
-    trackedKeywords(db, user, storeId),
+    ideaKeywordOptions(db, user, storeId),
     saveTargets(user),
+    filtered ? storeHasIdeas(db, user, storeId) : rows.length > 0,
   ]);
   const canSave = can(user, storeId, 'save');
   const ideas: IdeaItem[] = rows.map((r) => {
@@ -67,11 +70,14 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
   const tabHref = (s: IdeaStatus) => `/ideas?${new URLSearchParams({ ...Object.fromEntries(keep), status: s }).toString()}`;
   const csv = `/ideas/csv?${new URLSearchParams(Object.entries({ store: storeId, tag: filters.tag, keyword: filters.keyword, assignee: filters.assigneeId, q: filters.q }).filter((e): e is [string, string] => !!e[1])).toString()}`;
   const view = p.view === 'board' || p.view === 'table' ? p.view : null;
+  // Back to the store's whole list; none when that is the page already shown.
+  const clearHref = filtered || tab !== 'new' ? `/ideas?${new URLSearchParams({ store: storeId, ...(view ? { view } : {}) }).toString()}` : null;
 
   return (
     <>
       <PageHeader title={`${t.ideaViews.title} · ${stores.find((s) => s.id === storeId)?.name ?? ''}`}>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {stores.length > 1 ? <StoreSelect stores={stores} storeId={storeId} /> : null}
           <Button asChild size="sm" variant="outline">
             <a href={csv} download>
               {t.ideaViews.csv}
@@ -97,8 +103,8 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
           <select id="i-kw" name="keyword" defaultValue={filters.keyword ?? ''} className={selectClass}>
             <option value="">{t.ideaViews.all}</option>
             {(keywords ?? []).map((k) => (
-              <option key={k.id} value={k.text}>
-                {k.text}
+              <option key={k} value={k}>
+                {k}
               </option>
             ))}
           </select>
@@ -130,7 +136,7 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
           </Link>
         ))}
       </nav>
-      <IdeasView ideas={ideas} canSave={canSave} view={view} tab={tab} />
+      <IdeasView ideas={ideas} canSave={canSave} view={view} tab={tab} storeHasIdeas={anyIdeas ?? false} clearHref={clearHref} />
     </>
   );
 }

@@ -17,7 +17,7 @@ const VIEW_KEY = 'ih-ideas-view';
  * The ideas screen's two views; the toggle is kept in local storage (table by default) and in the URL
  * (`view=table|board`), which wins when present. The table shows the tab's status, the board all four.
  */
-export function IdeasView({ ideas, canSave, view, tab }: { ideas: IdeaItem[]; canSave: boolean; view: 'table' | 'board' | null; tab: Status }) {
+export function IdeasView({ ideas, canSave, view, tab, storeHasIdeas, clearHref }: { ideas: IdeaItem[]; canSave: boolean; view: 'table' | 'board' | null; tab: Status; storeHasIdeas: boolean; clearHref: string | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -70,7 +70,11 @@ export function IdeasView({ ideas, canSave, view, tab }: { ideas: IdeaItem[]; ca
           {t.ideaViews.board}
         </Button>
       </div>
-      {current === 'table' ? <IdeaTable ideas={items.filter((i) => i.status === tab)} canSave={canSave} onStatus={onStatus} /> : <IdeaBoard ideas={items} canSave={canSave} onStatus={onStatus} />}
+      {current === 'table' ? (
+        <IdeaTable ideas={items.filter((i) => i.status === tab)} canSave={canSave} onStatus={onStatus} storeHasIdeas={storeHasIdeas} clearHref={clearHref} />
+      ) : (
+        <IdeaBoard ideas={items} canSave={canSave} onStatus={onStatus} storeHasIdeas={storeHasIdeas} clearHref={clearHref} />
+      )}
     </div>
   );
 }
