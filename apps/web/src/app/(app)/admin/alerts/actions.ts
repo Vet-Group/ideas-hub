@@ -16,3 +16,10 @@ export async function resolveAlert(form: FormData) {
     .where(and(eq(alerts.id, String(form.get('id'))), isNull(alerts.resolvedAt)));
   revalidatePath('/', 'layout');
 }
+
+/** "Đánh dấu tất cả đã xử lý": resolves every open Alert; admin only. */
+export async function resolveAllAlerts() {
+  await requireAdmin();
+  await db.update(alerts).set({ resolvedAt: now() }).where(isNull(alerts.resolvedAt));
+  revalidatePath('/', 'layout');
+}

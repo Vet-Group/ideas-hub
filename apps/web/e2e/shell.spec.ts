@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { USERS } from './fixtures/seed';
+import { USERS, e2ePool } from './fixtures/seed';
 import { contrast, expectShortMotion } from './support/a11y';
 import { signIn } from './support/session';
 
@@ -125,11 +125,38 @@ test('Ctrl+K treats % and _ as plain characters, ranks the closer match first, a
   await ctx.close();
 });
 
-test('"Đã xử lý" on the last open Alert hides the attention bar when blocked_until is past', async ({ page }) => {
+test('the attention bar is hidden on the Alerts page, and "Đã xử lý" on the last open Alert hides it elsewhere', async ({ page }) => {
+  await signIn(page, USERS.admin.email);
+  const bar = page.getByRole('status').filter({ hasText: 'alert chưa xử lý' });
+  await page.goto('/admin/alerts');
+  await expect(page.getByRole('button', { name: 'Đã xử lý', exact: true })).toBeVisible();
+  await expect(bar).toHaveCount(0);
+  await page.locator('a[href="/runs"]:visible').first().click();
+  await expect(bar).toBeVisible();
+  await page.goto('/admin/alerts');
+  await page.getByRole('button', { name: 'Đã xử lý', exact: true }).click();
+  await expect(page.getByText('Đã xử lý lúc')).toBeVisible();
+  await page.goto('/runs');
+  await expect(bar).toHaveCount(0);
+});
+
+test('the Alerts page shows a long detail in full and "Đánh dấu tất cả đã xử lý" resolves every open Alert', async ({ page }) => {
+  const detail = `Ideas Hub conductor parked milestone ${'long-detail '.repeat(30)}end-marker`;
+  const pool = e2ePool();
+  try {
+    for (const [id, d] of [['alert_e2e_long', detail], ['alert_e2e_short', 'short detail']]) {
+      await pool.query(`insert into alerts (id, kind, detail, dedupe_key) values ($1, 'acceptance_failed', $2, $1)`, [id, d]);
+    }
+  } finally {
+    await pool.end();
+  }
   await signIn(page, USERS.admin.email);
   await page.goto('/admin/alerts');
-  await expect(page.getByRole('status').filter({ hasText: 'alert chưa xử lý' })).toBeVisible();
-  await page.getByRole('button', { name: 'Đã xử lý' }).click();
-  await expect(page.getByText('Đã xử lý lúc')).toBeVisible();
-  await expect(page.getByRole('status').filter({ hasText: 'alert chưa xử lý' })).toHaveCount(0);
+  const cell = page.getByRole('cell', { name: /end-marker$/ });
+  await expect(cell).toBeVisible();
+  expect(await cell.evaluate((el) => el.scrollWidth <= el.clientWidth && getComputedStyle(el).textOverflow !== 'ellipsis')).toBe(true);
+  await page.getByRole('button', { name: 'Đánh dấu tất cả đã xử lý' }).click();
+  await expect(page.getByRole('button', { name: 'Đã xử lý', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Đánh dấu tất cả đã xử lý' })).toHaveCount(0);
+  await expect(page.getByText('Đã xử lý lúc')).toHaveCount(3);
 });

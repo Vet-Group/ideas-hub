@@ -434,6 +434,7 @@ export const t = {
       detail: 'Chi tiết',
       run: 'Run',
       resolve: 'Đã xử lý',
+      resolveAll: 'Đánh dấu tất cả đã xử lý',
       resolved: 'Đã xử lý lúc',
       empty: 'Không có alert nào.',
       kinds: {

@@ -6,7 +6,7 @@ import { db } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { requireAdmin } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
-import { resolveAlert } from './actions';
+import { resolveAlert, resolveAllAlerts } from './actions';
 
 const s = t.admin.alerts;
 
@@ -17,7 +17,15 @@ export default async function AlertsPage() {
   const open = rows.filter((a) => a.resolvedAt === null).length;
   return (
     <>
-      <PageHeader title={s.title} />
+      <PageHeader title={s.title}>
+        {open > 0 ? (
+          <form action={resolveAllAlerts}>
+            <Button type="submit" size="sm" variant="outline">
+              {s.resolveAll}
+            </Button>
+          </form>
+        ) : null}
+      </PageHeader>
       {rows.length === 0 || open === 0 ? <p className="text-fg-2 mb-3">{s.empty}</p> : null}
       {rows.length ? (
         <Table>
@@ -36,7 +44,7 @@ export default async function AlertsPage() {
                 <TableCell>{formatDateTime(a.createdAt)}</TableCell>
                 <TableCell>{s.kinds[a.kind] ?? a.kind}</TableCell>
                 <TableCell className="font-mono">{a.runId ?? t.common.none}</TableCell>
-                <TableCell className="max-w-96 truncate" title={a.detail ?? undefined}>
+                <TableCell className="max-w-[32rem] min-w-48 break-words whitespace-pre-wrap">
                   {a.detail ?? t.common.none}
                 </TableCell>
                 <TableCell className="text-right">
