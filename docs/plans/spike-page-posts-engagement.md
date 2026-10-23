@@ -1,6 +1,6 @@
 # Spike plan: engagement of public page posts, logged out (1 day)
 
-Status: **planned, not run.** Running it needs the owner's go (see "Gate").
+Status: **closed on pass 1 (2026-10-23).** Results and decision: [`docs/research/2026-10-23-page-posts-engagement.md`](../research/2026-10-23-page-posts-engagement.md).
 
 ## Question
 
