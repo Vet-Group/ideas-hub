@@ -1,4 +1,5 @@
 import { users } from '@ideas-hub/db';
+import { AC6_STORE_TARGET, AC6_TOTAL_TARGET, PILOT_RUN_START, storeAdoption, userAdoption } from '@ideas-hub/db/queries';
 import { asc } from 'drizzle-orm';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { db } from '@/lib/db';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { requireAdmin } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
 import { createUser, setDisabled } from './actions';
@@ -14,7 +16,14 @@ const s = t.admin.users;
 
 export default async function UsersPage() {
   const me = await requireAdmin();
-  const rows = await db.select().from(users).orderBy(asc(users.name));
+  const [rows, perUser, perStore] = await Promise.all([
+    db.select().from(users).orderBy(asc(users.name)),
+    userAdoption(db),
+    storeAdoption(db),
+  ]);
+  const adoption = new Map(perUser.map((a) => [a.userId, a]));
+  const lastActive = (id: string) => adoption.get(id)?.lastActiveAt;
+  const total = perStore.reduce((sum, st) => sum + st.ideas, 0);
   return (
     <>
       <PageHeader title={s.title} />
@@ -47,6 +56,8 @@ export default async function UsersPage() {
             <TableHead>{s.email}</TableHead>
             <TableHead>{s.role}</TableHead>
             <TableHead>{t.runs.status}</TableHead>
+            <TableHead>{s.lastActive}</TableHead>
+            <TableHead>{s.savedFromBriefing}</TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
@@ -57,6 +68,8 @@ export default async function UsersPage() {
               <TableCell>{u.email}</TableCell>
               <TableCell>{s.roles[u.role] ?? u.role}</TableCell>
               <TableCell>{u.disabled ? s.disabled : s.active}</TableCell>
+              <TableCell>{lastActive(u.id) ? formatDateTime(lastActive(u.id)) : s.neverActive}</TableCell>
+              <TableCell>{u.role === 'admin' ? t.common.none : (adoption.get(u.id)?.ideas ?? 0)}</TableCell>
               <TableCell className="text-right">
                 <form action={setDisabled}>
                   <input type="hidden" name="userId" value={u.id} />
@@ -74,6 +87,22 @@ export default async function UsersPage() {
               </TableCell>
             </TableRow>
           ))}
+        </TableBody>
+      </Table>
+      <h2 className="mt-6 mb-1 text-[15px] font-semibold">{s.adoptionTitle}</h2>
+      <p className="text-muted-foreground mb-2 text-[13px]">{s.adoptionNote(formatDate(PILOT_RUN_START))}</p>
+      <Table>
+        <TableBody>
+          {perStore.map((st) => (
+            <TableRow key={st.storeId}>
+              <TableCell>{st.name}</TableCell>
+              <TableCell className="text-right">{`${st.ideas}/${AC6_STORE_TARGET}`}</TableCell>
+            </TableRow>
+          ))}
+          <TableRow>
+            <TableCell className="font-semibold">{s.adoptionTotal}</TableCell>
+            <TableCell className="text-right font-semibold">{`${total}/${AC6_TOTAL_TARGET}`}</TableCell>
+          </TableRow>
         </TableBody>
       </Table>
     </>

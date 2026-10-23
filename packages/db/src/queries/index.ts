@@ -7,3 +7,4 @@ export * from './ideas';
 export * from './search';
 export * from './research';
 export * from './store-keywords';
+export * from './adoption';
