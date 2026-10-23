@@ -156,7 +156,7 @@ describe.skipIf(!testDatabaseAvailable())('scripts/acceptance.sql', () => {
       const host = new Host({ 'scripts/acceptance.sql': acceptanceSql }, scriptPath('ideashub-acceptance'));
       try {
         writeFileSync(`${host.fake}/ro.csv`, await roQuery(roUrl, acceptanceSql));
-        const r = host.run();
+        const r = host.run([], { RO_DATABASE_URL: roUrl });
         expect(r.status, r.out).toBe(0);
         expect(host.alerts('acceptance_failed')).toEqual([
           `${vnDay(0)} AC 1: success_ratio 0.3333 (7/21) < 0.90; AC 1: parse_error_unsent 1; AC 1: network_mismatch 2; ` +

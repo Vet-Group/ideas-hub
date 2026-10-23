@@ -102,6 +102,7 @@ case "$name" in
       "--silent retention") exit "${FAKE_RETENTION_RC:-0}" ;;
       "--silent ro-query")
         cat > "$FAKE/ro.sql"
+        if [ -z "${RO_DATABASE_URL:-}" ]; then echo "RO_DATABASE_URL is not set" >&2; exit 1; fi
         if [ -n "${FAKE_RO_ERR:-}" ]; then echo "$FAKE_RO_ERR" >&2; exit 1; fi
         cat "$FAKE/ro.csv" ;;
       "--filter @ideas-hub/web build") [ "$head" != "${FAKE_BUILD_FAIL:-}" ] || exit 1 ;;

@@ -1,6 +1,6 @@
 // scripts/linux/ideashub-acceptance on the fake host of ops-host.ts (phase 2 plan Step 8): the fake
 // `pnpm --silent ro-query` answers with $FAKE/ro.csv (acceptance.test.ts gives it real query output).
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Host, bash, scriptPath } from './ops-host';
@@ -27,16 +27,21 @@ function roOutput(v: Record<string, string> = {}) {
   ].join('\n');
 }
 
-function acceptanceHost(csv?: string) {
+/** A host whose HOME holds ~/.config/ideas-hub/ro.env, as on vet-linux; the unit loads no environment. */
+function acceptanceHost(csv?: string, roEnv = true) {
   const h = new Host({ 'scripts/acceptance.sql': acceptanceSql }, acceptanceScript);
   if (csv !== undefined) writeFileSync(`${h.fake}/ro.csv`, csv);
+  if (roEnv) {
+    mkdirSync(`${h.home}/.config/ideas-hub`, { recursive: true });
+    writeFileSync(`${h.home}/.config/ideas-hub/ro.env`, 'RO_DATABASE_URL=postgres://ideashub_ro@localhost:5433/ideas_hub\n');
+  }
   return h;
 }
 
 describe('ideashub-acceptance', () => {
   const hosts: Host[] = [];
-  const host = (csv?: string) => {
-    const h = acceptanceHost(csv);
+  const host = (csv?: string, roEnv = true) => {
+    const h = acceptanceHost(csv, roEnv);
     hosts.push(h);
     return h;
   };
@@ -96,5 +101,19 @@ describe('ideashub-acceptance', () => {
     const missing = host(roOutput().replace('on_time,', 'on_time_x,'));
     expect(missing.run().status).toBe(0);
     expect(missing.alerts('acceptance_failed')).toEqual([`${vnToday()} column on_time missing from the output`]);
+  });
+
+  it('keeps an RO_DATABASE_URL already set, and without one or ro.env Alerts and exits 1 before any query', () => {
+    expect(host(roOutput(), false).run([], { RO_DATABASE_URL: 'postgres://ideashub_ro@db/ideas_hub' }).out).toContain('passed');
+
+    const h = host(roOutput(), false);
+    const r = h.run([], { RO_DATABASE_URL: '' });
+    expect(r.status).toBe(1);
+    expect(h.callsOf('pnpm')).not.toContain('--silent ro-query');
+    // $HOME is /c/... under Git Bash, so only the path's tail is compared.
+    const missing = /RO_DATABASE_URL is not set and \S+\/home\/\.config\/ideas-hub\/ro\.env does not exist$/;
+    expect(h.file('acceptance.log')).toMatch(missing);
+    expect(h.alerts('acceptance_failed')).toHaveLength(1);
+    expect(h.alerts('acceptance_failed')[0]).toMatch(new RegExp(`^${vnToday()} ${missing.source.slice(0, -1)}`));
   });
 });
