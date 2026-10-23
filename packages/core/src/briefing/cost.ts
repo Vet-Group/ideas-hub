@@ -1,5 +1,5 @@
 // Pre-call AI cost estimate (spec §3, plan Step 7 "AI"): the prompt at about 3 characters a token plus
-// the full `max_tokens` of output, at the model's list price. Checked against the daily cap before every
+// the full `max_completion_tokens` of output, at the model's list price. Checked against the daily cap before every
 // call, the retry included; the estimate is what `briefings.ai_cost_usd` records, so it is an upper bound.
 
 export interface ModelPrice {
