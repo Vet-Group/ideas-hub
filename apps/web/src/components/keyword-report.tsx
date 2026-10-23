@@ -13,6 +13,7 @@ import { NoData } from '@/components/states/no-data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
+import { isRealDate } from '@/lib/day';
 import { formatTime } from '@/lib/format';
 import { now } from '@/lib/now';
 import { mayRunNow, runNowBlocker } from '@/lib/run-now';
@@ -34,7 +35,7 @@ const endOfVnDate = (date: string) => new Date(`${date}T23:59:59+07:00`);
 export async function KeywordReport({ id, date }: { id: string; date?: string }) {
   const user = await requireUser();
   const keyword = await getKeyword(db, id);
-  if (!keyword || (date && !/^\d{4}-\d{2}-\d{2}$/.test(date))) notFound();
+  if (!keyword || (date && !isRealDate(date))) notFound();
   const s = await loadSettings();
   const at = now();
   const canRun = mayRunNow(user, keyword) && !date;

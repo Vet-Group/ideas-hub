@@ -48,6 +48,37 @@ export function NewsPanel({ news }: { news: NewsSection | undefined }) {
   );
 }
 
+/** The ads and news items behind one suggestion, as links ("Dựa trên: ad 1, ad 2, …"). */
+export function SuggestionEvidence({
+  evidence,
+  newsById,
+  adHref,
+}: {
+  evidence: { ads: string[]; news: string[] };
+  newsById: Map<string, { link: string; title: string }>;
+  adHref: (id: string) => string;
+}) {
+  if (!evidence.ads.length && !evidence.news.length) return null;
+  return (
+    <p className="text-fg-2 flex flex-wrap gap-x-2 text-xs">
+      <span>{t.briefing.evidence}:</span>
+      {evidence.ads.map((id, i) => (
+        <Link key={id} href={adHref(id)} scroll={false} className="underline underline-offset-2">
+          {t.briefing.evidenceAd(i + 1)}
+        </Link>
+      ))}
+      {evidence.news.map((id) => {
+        const n = newsById.get(id);
+        return n ? (
+          <a key={id} href={n.link} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+            {n.title}
+          </a>
+        ) : null;
+      })}
+    </p>
+  );
+}
+
 /**
  * Section 6: 5–10 ideas and keywords, each with its reason, links to the ads and news behind it, and
  * "Lưu" (a save records `via = briefing`).
@@ -83,24 +114,7 @@ export function SuggestionsPanel({
             <SaveButton source={{ kind: 'suggestion', suggestionId: s.id }} stores={stores} title={s.text} saved={saved.includes(s.id)} compact />
           </div>
           <p className="text-fg-2">{s.reason}</p>
-          {s.evidence.ads.length || s.evidence.news.length ? (
-            <p className="text-fg-2 flex flex-wrap gap-x-2 text-xs">
-              <span>{t.briefing.evidence}:</span>
-              {s.evidence.ads.map((id, i) => (
-                <Link key={id} href={adHref(id)} scroll={false} className="underline underline-offset-2">
-                  {t.briefing.evidenceAd(i + 1)}
-                </Link>
-              ))}
-              {s.evidence.news.map((id) => {
-                const n = newsById.get(id);
-                return n ? (
-                  <a key={id} href={n.link} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                    {n.title}
-                  </a>
-                ) : null;
-              })}
-            </p>
-          ) : null}
+          <SuggestionEvidence evidence={s.evidence} newsById={newsById} adHref={adHref} />
         </li>
       ))}
     </ul>
