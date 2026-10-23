@@ -195,9 +195,10 @@ where r.trigger = 'schedule' and r.scheduled_for >= '<switch-time>' and r.schedu
 
 Pass: `success_ratio` ≥ 0.90 and run durations within the spec §1 estimate (compare with
 `docs/research/2026-10-20-block-rate.md`). Record the numbers, blocks, durations and backoff waits in
-that report under a "Linux trial" heading. Fail: stop (rollback below, or the browser-mode fallbacks
-under "Display") and bring the options to the owner (ADR 0003 decision point). Then the LCP check
-(`docs/ops/acceptance-run.md`), then the 14-day run.
+that report under a "Linux trial" heading. Fail: record the figures and the options (rollback below, the
+browser-mode fallbacks under "Display", ADR 0003) on the pilot issue and in that report, and let the
+pilot run on; the owner chooses at the day-14 verdict (owner, 2026-10-22: nothing changes mid-pilot).
+Then the LCP check (`docs/ops/acceptance-run.md`), then the 14-day run.
 
 ## Rollback
 
@@ -339,7 +340,35 @@ ideashub-retention.timer ideashub-tunnel ideashub-web ideashub-xvfb`; `docker co
 clone first (its git objects are broken). Remove the three forced-command lines from root's
 `authorized_keys` (or restore the backup above) and add the `ideashub-prod` alias back.
 
-## Pending owner
+## Pilot run (phase 2 Step 8)
 
-- Whether Cloudflare Access fronts `ideas.vetgroup.net` (the app has its own sign-in).
-- When to delete the `ideashub` user's home and rootless volumes (kept for rollback).
+Day 1 is 2026-10-23, `<run-start>` 2026-10-22T17:00:00Z, day 14 is 2026-11-05; tracking issue #55. The app
+version under test is `8849d3f`. The Trending sort went in just before day 1 (#60 merged 23:12, deployed
+23:28; #61 merged 23:42, deployed 23:54, 2026-10-22 ICT); on 2026-10-23 the owner kept it, and the code
+freeze counts from `8849d3f`. The first scheduled crawl on Linux is 2026-10-23 01:00: every slot from
+2026-10-20 13:00 to 2026-10-22 13:00 is `missed`, because the Linux worker first ran at 14:05 on 2026-10-22,
+when the watchdog backfilled them.
+
+Decided by the owner on 2026-10-22:
+
+- No Cloudflare Access in front of `ideas.vetgroup.net`: the app has its own sign-in.
+- Code freeze from day 1 to the verdict: no app-code, crawl-setting, schedule or model change reaches `main`.
+  Docs and ops PRs still merge; each new green commit is deployed by the timer, inside its quiet gate.
+- A failed check is recorded and reported only. Nothing on the host changes mid-pilot; the fix options go
+  to the verdict.
+- The `ideashub` user's home and rootless volumes (2.7 GB) are deleted after a passing verdict (#55 closed),
+  not before. A failed verdict keeps them. This replaces the 2026-10-29 cleanup approved earlier that day.
+
+Windows tasks on the development PC. They are read-only on the host except one `acceptance_failed` ops
+Alert on a failure, sent through `pnpm ops:alert`, which the watchdog posts to Lark. The day scripts are in
+the owner's `Documents\ops`, outside the repo.
+
+| Task | When (Asia/Ho_Chi_Minh) | What |
+|---|---|---|
+| `IdeasHub-Check-Crawl-20261023` | 2026-10-23 03:05 | `Report-IdeasHub-Day.ps1 crawl`: the 01:00 run's status, searches, worker and root Chrome on #55 |
+| `IdeasHub-Report-Day1-20261023` | 2026-10-23 07:40 | `Report-IdeasHub-Day.ps1 day1`: the day comment in the `acceptance-run.md` format, the model rule (keep `gpt-6-luna` only if the briefing is ready before 07:00 with news and suggestions ok, `llm_calls` ≤ 2 and cost under $0.20; otherwise recommend `gpt-6-sol`, never switched automatically) and the LCP check |
+| `IdeasHub-Pilot-Daily` | 08:00, 2026-10-24 to 2026-11-05 | `Report-IdeasHub-Day.ps1 daily`: the same comment without the LCP check. On a failure, `claude -p` (no usable tool, no MCP) writes a second comment with the likely cause and fix options |
+| `IdeasHub-Check-BlockRate-20261024` | 2026-10-24 20:00 | `Report-IdeasHub-Day.ps1 blockrate`: step 9 over the first four scheduled Linux runs, on #55 and under "Linux trial" in `docs/research/2026-10-20-block-rate.md` (a docs PR merged on green CI) |
+| `IdeasHub-Pilot-Verdict` | 2026-11-06 02:00 | `scripts/windows/ops-report.ps1 -Report pilot-verdict`: the verdict SQL, AC 4/5/7 tests at the deployed commit on this PC, the grade in code, `docs/ops/pilot-verdict.md` in a PR merged on green CI, the verdict on #55 (closed on a pass), Lark |
+| `IdeasHub-Cleanup-OldUser-20261106` | 2026-11-06 10:00 | `Cleanup-IdeasHub-OldUser.ps1`: deletes `/home/ideashub` only if #55 is closed, no comment on it mentions a rollback, the account is locked with no process and nothing mounted, the root units are active and `/root/ideas-hub-backup-20261022` exists |
+| `IdeasHub-Phase3-Start` | 2026-11-06 06:00 | `Start-IdeasHub-Phase3.ps1`: only if #55 is closed and `docs/ops/pilot-verdict.md` says PASS, a `claude -p` run builds item 1 of `docs/plans/ideas-hub-phase-3.md` in a worktree, PR "Phase 3: ...", merged on green CI |
