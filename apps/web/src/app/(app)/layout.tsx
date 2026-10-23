@@ -1,3 +1,4 @@
+import { can } from '@ideas-hub/core';
 import { savedIdeas } from '@ideas-hub/db';
 import { and, count, eq } from 'drizzle-orm';
 import { type ReactNode } from 'react';
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
   const { stores, selectedId } = await userStores(user);
   const isAdmin = user.role === 'admin';
+  const canKeywords = !!selectedId && can(user, selectedId, 'keywords');
   // `selectedId` is one of the user's own stores (userStores), so its count needs no further check.
   const [shown, [fresh]] = await Promise.all([
     latestReadyBriefing(db, vnDay(now())),
@@ -34,7 +36,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {t.app.skipToContent}
       </a>
       <div className="flex min-h-screen">
-        <Sidebar isAdmin={isAdmin} stores={stores} storeId={selectedId} badges={badges} />
+        <Sidebar isAdmin={isAdmin} canKeywords={canKeywords} stores={stores} storeId={selectedId} badges={badges} />
         <div className="min-w-0 flex-1">
           <header className="bg-app sticky top-0 z-30 flex h-[var(--vet-header-h)] items-center justify-end gap-2 px-[var(--vet-main-pad-x)] mobile:h-[var(--vet-header-h-mobile)]">
             <CommandMenu isAdmin={isAdmin} />
@@ -49,7 +51,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </main>
         </div>
       </div>
-      <BottomTabs isAdmin={isAdmin} />
+      <BottomTabs isAdmin={isAdmin} canKeywords={canKeywords} />
     </TooltipProvider>
   );
 }

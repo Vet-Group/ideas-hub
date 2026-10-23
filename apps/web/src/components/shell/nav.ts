@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarDays,
   KeyRound,
+  ListPlus,
   Lightbulb,
   ListChecks,
   Newspaper,
@@ -30,6 +31,9 @@ export const MAIN_NAV: NavItem[] = [
   { href: '/ideas', label: t.nav.ideas, icon: Lightbulb },
   { href: '/runs', label: t.nav.runs, icon: ListChecks },
 ];
+
+/** Only for users with the `keywords` tick on the selected store (the layout decides). */
+export const STORE_KEYWORDS_NAV: NavItem = { href: '/store-keywords', label: t.nav.storeKeywords, icon: ListPlus };
 
 export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/alerts', label: t.nav.alerts, icon: Bell },
