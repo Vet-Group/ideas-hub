@@ -3,6 +3,7 @@ packages:
   - packages/*
   - packages/sources/*
   - spikes/*
+  - deploy/cloudflare/*
 # Exact versions only (ADR 0001 pins every dependency).
 saveExact: true
 # Prebuilt binaries come as optional platform packages; their install scripts only re-check them.

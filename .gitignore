@@ -12,3 +12,6 @@ test-results/
 playwright-report/
 # Database dump and MinIO tar of the Linux trial (scripts/linux/dump-windows.ps1); never committed.
 transfer/
+# Cloudflare Worker local state and secrets for `wrangler dev`.
+.wrangler/
+.dev.vars
