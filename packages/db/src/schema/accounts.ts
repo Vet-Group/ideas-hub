@@ -1,5 +1,5 @@
 import { ROLES } from '@ideas-hub/core';
-import { bigint, boolean, check, index, integer, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, bigint, boolean, check, index, integer, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { createdAt, id, oneOf, tstz } from './columns';
 
@@ -17,6 +17,8 @@ export const users = pgTable(
     banExpires: tstz('ban_expires'),
     emailVerified: boolean('email_verified').notNull().default(false),
     image: text('image'),
+    /** The admin who created the account (set by /admin/users); only that admin may issue API tokens for it. */
+    createdBy: text('created_by').references((): AnyPgColumn => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },

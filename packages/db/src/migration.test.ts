@@ -100,4 +100,23 @@ describe.skipIf(!url)('first migration', () => {
         expect(rows.map((r) => r.d), table).toEqual(kept);
       }
     }));
+
+  it('0012 limits API tokens to known scopes and a lifetime of at most 365 days, with unique hashes', () =>
+    rolledBack(async () => {
+      await client.query(`insert into users (id, email, name) values ('user_tok', 'tok@test.local', 'Tok')`);
+      const insert = `insert into api_tokens (id, user_id, name, token_hash, scopes, created_at, expires_at)
+        values ($1, 'user_tok', 'n', $2, $3, '2026-10-23T00:00:00Z', $4)`;
+      await client.query(insert, ['tok_ok', 'h1', ['ideas:read'], '2027-10-23T00:00:00Z']);
+      // A refused insert aborts the transaction, so each one runs behind a savepoint.
+      const refused = async (values: unknown[], constraint: RegExp) => {
+        await client.query('savepoint refused');
+        await expect(client.query(insert, values)).rejects.toThrow(constraint);
+        await client.query('rollback to savepoint refused');
+      };
+      await refused(['tok_dup', 'h1', ['ideas:read'], '2026-11-23T00:00:00Z'], /api_tokens_token_hash_unique/);
+      await refused(['tok_long', 'h2', ['ideas:read'], '2027-10-23T00:00:01Z'], /api_tokens_expiry_check/);
+      await refused(['tok_past', 'h3', ['ideas:read'], '2026-10-23T00:00:00Z'], /api_tokens_expiry_check/);
+      await refused(['tok_none', 'h4', [], '2026-11-23T00:00:00Z'], /api_tokens_scopes_check/);
+      await refused(['tok_bad', 'h5', ['ideas:write'], '2026-11-23T00:00:00Z'], /api_tokens_scopes_check/);
+    }));
 });

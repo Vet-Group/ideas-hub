@@ -74,7 +74,7 @@ export interface KeywordBriefing {
 }
 
 /** Whether the viewer may see a keyword's AI sections (§4); false for an unknown keyword. */
-async function keywordAiVisible(db: Db, viewer: Viewer, keywordId: string): Promise<boolean> {
+export async function keywordAiVisible(db: Db, viewer: Viewer, keywordId: string): Promise<boolean> {
   const [kw] = await db.select({ origin: keywords.origin }).from(keywords).where(eq(keywords.id, keywordId));
   const trackedBy = (await db.select({ storeId: storeKeywords.storeId }).from(storeKeywords).where(eq(storeKeywords.keywordId, keywordId))).map((t) => t.storeId);
   return !!kw && canSeeKeywordAi(viewer, { origin: kw.origin, trackedBy });

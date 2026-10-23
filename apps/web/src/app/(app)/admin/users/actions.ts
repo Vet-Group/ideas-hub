@@ -1,9 +1,12 @@
 'use server';
 
+import { users } from '@ideas-hub/db';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/session';
 
 const NewUser = z.object({
@@ -14,10 +17,12 @@ const NewUser = z.object({
 });
 
 export async function createUser(form: FormData) {
-  await requireAdmin();
+  const me = await requireAdmin();
   const body = NewUser.parse(Object.fromEntries(form));
   // The admin plugin's createUser: sign-up stays disabled for everyone else.
-  await auth.api.createUser({ body, headers: await headers() });
+  const { user } = await auth.api.createUser({ body, headers: await headers() });
+  // Only the creating admin may issue API tokens for this account (contract `ideas-hub-v1.md` section 3).
+  await db.update(users).set({ createdBy: me.userId }).where(eq(users.id, user.id));
   revalidatePath('/admin/users');
 }
 

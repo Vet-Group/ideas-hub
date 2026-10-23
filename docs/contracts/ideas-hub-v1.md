@@ -2,7 +2,8 @@
 
 Status: **Draft (2026-10-20)**. Pending owner: review with the POD Studio owner; agree on every item
 marked "to confirm with the POD Studio owner" before phase 2. Nothing in this contract is built in
-phase 1 (spec §5): there is no `/api/v1` route, no token table and no call to POD Studio.
+phase 1 (spec §5): there is no `/api/v1` route, no token table and no call to POD Studio. Section 3 was
+built in phase 3 item 5 (see the changelog for the readings chosen); section 2 is still not built.
 
 Inputs: spec §2 "Main entities", §4 and §5, ADR 0001 (stack), ADR 0002 (data model),
 `apps/web/src/proxy.ts`, `apps/web/src/lib/auth.ts`, `packages/core/src/access.ts`,
@@ -148,7 +149,7 @@ in v1.
 
 ### Personal tokens
 
-- Created by a signed-in user for themselves on a "Tokens" page (phase 2); admins may create one for a
+- Created by a signed-in user for themselves on a "Tokens" page (`/account/tokens`); admins may create one for a
   service user they created for an app. Shown once, as `ihp_` followed by 40 random base62 characters.
   Stored only as a SHA-256 hash, with its owner, name, scopes, optional store list, `expires_at`
   (default 90 days, at most 365), `last_used_at` and `revoked_at`.
@@ -387,3 +388,29 @@ Every error has the same body; `message` is English and meant for developers, no
 ## Changelog
 
 - 2026-10-20: first draft (plan Step 8).
+- 2026-10-23: section 3 built (phase 3 item 5; migration `0012_api_tokens`). Where the draft left a choice,
+  the safest reading was taken; none of these changes a rule above, and each is additive for clients:
+  - "A service user they created" is `users.created_by` (new nullable column, set when an admin creates a
+    user on `/admin/users`). An admin can issue a token for themselves and for accounts they created;
+    accounts that existed before the migration have no creator, so they need a one-off
+    `update users set created_by = '<admin id>' where id = '<service user id>'`. Tokens can be revoked by
+    their owner, or by the admin who created the owner.
+  - A token with a store list narrows an admin owner too: the token then sees only the listed stores, and
+    the AI sections of a keyword briefing follow `canSeeKeywordAi` over those stores (no admin shortcut).
+    An admin token without a list keeps the admin rule.
+  - `GET /briefings` returns each briefing's head (`id`, `date`, `scope`, `keyword`, `ready_at`) and not its
+    sections; `GET /briefings/{id}` and `/briefings/latest` return the full representation. `latest` is the
+    ready global briefing with the newest date.
+  - Every list is paginated with `limit`, `cursor` and `next_cursor`, `/stores` included (ordered by
+    `id` ascending). `/me` carries its stores inline, not paginated.
+  - `store_id` on `/ideas` outside the effective stores is `404 not_found`, like an idea outside them.
+    `updated_since` is inclusive (`>=`), so a client that stores the last `updated_at` it saw loses nothing.
+    Unknown query parameter names are ignored (new optional parameters stay additive); unknown values of a
+    known filter are `400 invalid_request`.
+  - An idea's `snapshot` always has the same keys, `null` when missing, plus `text` and `reason` for an idea
+    saved from an AI suggestion. `thumbnail_url` and `url` are absolute, built on `APP_URL`.
+  - Rate limits count authenticated requests only; a request with no valid token gets `401` with the
+    install's `RateLimit-*` values and consumes nothing. The reported bucket is the one with less left.
+  - `last_used_at` is written at most once a minute per token.
+  - Any other path under `/api/v1` answers `404 not_found` in the error shape after the token check; methods
+    other than `GET` get Next.js's plain `405`. HTTPS is the Cloudflare tunnel's job; the app does not check it.

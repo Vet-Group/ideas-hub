@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { requireUser } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
@@ -24,6 +25,11 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         ) : null}
         <ChangePasswordForm />
       </section>
+      <p className="mt-6 text-[13px]">
+        <Link href="/account/tokens" className="underline">
+          {t.account.tokensLink}
+        </Link>
+      </p>
     </>
   );
 }

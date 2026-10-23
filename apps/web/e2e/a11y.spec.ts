@@ -21,6 +21,8 @@ const RESEARCH_PAGES = [
   '/briefing',
   '/briefing?ad=e2e_mug_1',
   '/briefing/2026-10-20',
+  // Phase 3 API tokens.
+  '/account/tokens',
 ];
 
 test('sign in passes axe and the a11y checks @phone', async ({ page }) => {
