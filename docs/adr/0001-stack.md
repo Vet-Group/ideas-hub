@@ -67,7 +67,7 @@ Drivers, in order:
   (`_launchTimeout` and `DEFAULT_PLAYWRIGHT_LAUNCH_TIMEOUT` in playwright-core 1.63.0
   `lib/coreBundle.js`), although its `types.d.ts` documents 30000.
 - **Installed pins** (`package.json`, `pnpm-lock.yaml`), one patch or minor release below the column
-  where the latest was too new: pg-boss 12.37.0, drizzle-orm 0.45.3, better-auth 1.7.7, next 16.4.0,
+  where the latest was too new: pg-boss 12.37.0, drizzle-orm 0.45.3, better-auth 1.7.7, next 16.4.3 (raised from 16.4.0 on 2026-10-23 to fix GHSA-2464-fhr4-w9xw, GHSA-673q-mjm6-r5xr and GHSA-p3m5-59mp-jv5r),
   react, react-dom 19.3.0, playwright and @playwright/test 1.63.0, openai 7.30.0, zod 4.6.5, geist
   1.7.2. The dry runs below used the column's versions; the CI install of the lockfile is the check for
   the pins. pg-boss 12.37.0 keeps the `>=22.12.0` engines floor, so the Node range is unchanged.
