@@ -12,15 +12,15 @@ before the verdict (3 onwards).
 
 | # | Item | Needs | Why here |
 |---|---|---|---|
-| 1 | Change one's own password (spec below) | nobody | Staff accounts are created by an admin with a first password; no one can change it without the admin today. Small, in-app, no data migration |
-| 2 | Screen for a store's tracked keywords for store staff with `keywords` permission | nobody | Today only admins edit them (`/admin/keywords`); the `keywords` permission exists but has no screen |
-| 3 | External heartbeat for a fully down host | owner: which account runs the probe (for example a Cloudflare Worker cron on the owner's account) | The watchdog runs on the host itself, so a dead host stays silent |
-| 4 | Off-host backup (ADR 0007, D3 reversed) | owner: bucket and key | Built 2026-10-23 (restic to Cloudflare R2, `docs/ops/production.md`); switched on when the bucket and key are installed |
-| 5 | `/api/v1` read API (contract `ideas-hub-v1.md` §3) | the consumers agreeing the contract | Draft exists |
+| 1 | **Done** (#69, 2026-10-23). Change one's own password (spec below) | nobody | Staff accounts are created by an admin with a first password; no one can change it without the admin today. Small, in-app, no data migration |
+| 2 | **Done** (#70, 2026-10-23). Screen for a store's tracked keywords for store staff with `keywords` permission | nobody | Today only admins edit them (`/admin/keywords`); the `keywords` permission exists but has no screen |
+| 3 | **Done** (#72, #75, 2026-10-23: Cloudflare Worker `ideas-hub-heartbeat` on the owner's account). External heartbeat for a fully down host | owner: which account runs the probe (for example a Cloudflare Worker cron on the owner's account) | The watchdog runs on the host itself, so a dead host stays silent |
+| 4 | **Done** (#73, 2026-10-23: R2 bucket `ideas-hub-backup`, first snapshot and drill ok, timers on). Off-host backup (ADR 0007, D3 reversed) | owner: bucket and key | Built 2026-10-23 (restic to Cloudflare R2, `docs/ops/production.md`); switched on when the bucket and key are installed |
+| 5 | **Done** (#76, 2026-10-23). `/api/v1` read API (contract `ideas-hub-v1.md` §3) | the consumers agreeing the contract | Draft exists |
 | 6 | Push a saved idea to POD Studio (contract §2) | POD Studio owner | Draft exists; review with the POD Studio owner first |
 | 7 | Sign-in with the ERP's Keycloak (draft below) | ERP owner; the ERP repo and host are frozen | Draft questions below |
 | 8 | Etsy Open API and Google Trends sources | owner: Etsy API key | New sources after the Ad Library is stable |
-| 9 | Stored WebP thumbnails | a size measurement | Only if it saves much |
+| 9 | **Not worth it now** (measured 2026-10-24). Stored WebP thumbnails | a size measurement | 8,631 objects, 1.39 GB (160 KB each on average) with 157 GB free on the host and a deduplicating off-host backup; WebP would save well under 1 GB. Measure again at 10 GB |
 | 10 | Larger crawl scale (more browsers or IPs, a proxy) | owner: cost | Measured again after |
 
 Rules from the verdict:
