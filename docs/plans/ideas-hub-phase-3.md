@@ -15,7 +15,7 @@ before the verdict (3 onwards).
 | 1 | Change one's own password (spec below) | nobody | Staff accounts are created by an admin with a first password; no one can change it without the admin today. Small, in-app, no data migration |
 | 2 | Screen for a store's tracked keywords for store staff with `keywords` permission | nobody | Today only admins edit them (`/admin/keywords`); the `keywords` permission exists but has no screen |
 | 3 | External heartbeat for a fully down host | owner: which account runs the probe (for example a Cloudflare Worker cron on the owner's account) | The watchdog runs on the host itself, so a dead host stays silent |
-| 4 | Off-host backup (ADR 0007, D3 reversed) | owner: bucket and key | No copy of the data leaves the host today |
+| 4 | Off-host backup (ADR 0007, D3 reversed) | owner: bucket and key | Built 2026-10-23 (restic to Cloudflare R2, `docs/ops/production.md`); switched on when the bucket and key are installed |
 | 5 | `/api/v1` read API (contract `ideas-hub-v1.md` §3) | the consumers agreeing the contract | Draft exists |
 | 6 | Push a saved idea to POD Studio (contract §2) | POD Studio owner | Draft exists; review with the POD Studio owner first |
 | 7 | Sign-in with the ERP's Keycloak (draft below) | ERP owner; the ERP repo and host are frozen | Draft questions below |

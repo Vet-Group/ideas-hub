@@ -1,7 +1,7 @@
 # ADR 0007: Data retention, backup and disk Alerts
 
 Status: accepted (2026-10-21), with the phase 2 plan (v5, consensus); D3 decided 2026-10-22: no off-host
-backup.
+backup, **reversed 2026-10-23** (see "D3 reversed" below).
 Deciders: owner (through the phase 2 plan).
 Inputs: [phase 2 plan](../plans/ideas-hub-phase-2.md) Steps 2b, 2c and 5, ADR 0002 (sightings kept 180
 days), ADR 0005.
@@ -41,6 +41,17 @@ production, whose own backups sit on the same disk. Saved ideas and stored brief
 - **No off-host backup (owner, D3, 2026-10-22)**, to avoid any extra cost. The backup and drill code
   and units stay in the repo, disabled; only the last 3 pre-deploy dumps are kept, on the host. The
   proposal it replaces was Cloudflare R2 with restic (10 GB free, then $0.015 per GB-month).
+
+## D3 reversed (owner, 2026-10-23)
+
+The owner wants a copy of the data off the host after all. The decision above is restored in its original
+form (restic, client-side encrypted, to Cloudflare R2) with two changes: the repository and keys come from
+`OFFSITE_S3_*` variables in `~/.config/ideas-hub/backup.env`, and snapshots are kept for
+`OFFSITE_RETENTION_DAYS` (default 30) instead of 7 daily + 4 weekly. With no `OFFSITE_S3_*` (and no
+`RESTIC_REPOSITORY`) `ideashub-backup` logs one line and exits 0, so the timers can be enabled before the
+bucket exists. R2 encrypts at rest; restic's own encryption (the password file) comes on top. Variables,
+retention and restore steps: `docs/ops/production.md`, "Off-host backup (Cloudflare R2)". The "No off-host
+backup" bullet and the first consequence below describe the state until then.
 
 ## Alternatives considered
 
