@@ -56,7 +56,7 @@ Checklist per store (fill outside the repo; pending owner):
    its keywords. Tap the link: it opens `/briefing` directly (0 actions with a valid session; the session
    lasts 7 days and renews on use).
 2. Read the briefing: KPI row (ads running, change vs 7 days ago, crawl success, days to the next US
-   holiday), then trending ads, rising ads, hot keywords, rising shops, news and holidays, AI suggestions.
+   holiday), then AI suggestions, trending ads, rising ads, hot keywords, rising shops, news and holidays.
 3. Open an ad row (1 click) for its detail pane: thumbnail, caption, days active, countries, shop, link to
    the Ad Library; follow the shop or keyword for more (`/ads`, `/shops`, `/keywords`).
 4. Save: "Lưu" on the row, the pane or a suggestion (1 action with one store; with several, pick and

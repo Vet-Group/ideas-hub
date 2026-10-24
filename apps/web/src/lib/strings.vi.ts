@@ -86,6 +86,7 @@ export const t = {
     none: 'Chưa có briefing nào sẵn sàng.',
     noneOn: (date: string) => `Không có briefing cho ngày ${date}.`,
     dayNav: 'Chuyển ngày briefing',
+    sectionNav: 'Các phần của briefing',
     prevDay: '← Ngày trước',
     nextDay: 'Ngày sau →',
     beforeReady: (date: string, ready: string) => `Đang hiển thị briefing ngày ${date}; bản hôm nay sẽ có trước ${ready}`,
