@@ -5,12 +5,12 @@ import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
 import { AdGrid } from '@/components/ads/ad-grid';
 import { NewsPanel, SuggestionsPanel } from '@/components/briefing/ai-panels';
+import { CountTable } from '@/components/briefing/count-table';
 import { toCard } from '@/components/ads/cards';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { PageHeader } from '@/components/page-header';
 import { DeltaLabel } from '@/components/states/delta-label';
 import { NoData } from '@/components/states/no-data';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
 import { isRealDate } from '@/lib/day';
@@ -121,30 +121,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
                 {t.keywords.section4}
               </h2>
               {ownShops.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t.shops.domain}</TableHead>
-                      <TableHead className="text-right">{t.shops.runningAds}</TableHead>
-                      <TableHead>{t.charts.count}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ownShops.map((r) => (
-                      <TableRow key={r.key}>
-                        <TableCell>
-                          <Link href={`/shops/${encodeURIComponent(r.key)}`} className="underline-offset-2 hover:underline">
-                            {r.label}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">{r.runningAds}</TableCell>
-                        <TableCell className="whitespace-normal">
-                          <DeltaLabel delta={r.delta} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <CountTable rows={ownShops} head={t.shops.domain} href={(k) => `/shops/${encodeURIComponent(k)}`} />
               ) : (
                 <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>
               )}

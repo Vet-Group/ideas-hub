@@ -110,6 +110,7 @@ export const t = {
     evidence: 'Dựa trên',
     evidenceAd: (n: number) => `ad ${n}`,
     empty: 'Không có mục nào.',
+    changeSince: (baseline: string) => `Thay đổi ${baseline}`,
     aiSkipped: 'Bỏ qua: đã hết hạn mức AI hôm nay',
     aiFailed: 'Chưa tạo được phần AI hôm nay',
     sightings: (n: number) => `${n} lần thấy`,
@@ -310,7 +311,6 @@ export const t = {
     weekAgo: '7 ngày trước',
     date: 'Ngày',
     slot: (time: string) => `Ca ${time}`,
-    count: 'Số ads',
   },
   save: {
     button: 'Lưu',
