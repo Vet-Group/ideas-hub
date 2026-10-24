@@ -136,7 +136,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
             <p className="text-fg-2 text-sm">{t.keywords.aiHidden}</p>
           ) : kwBriefing ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} saved={savedSuggestions} />
+              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} ads={[...(kwBriefing.sections.topAds ?? []), ...(kwBriefing.sections.risingAds ?? [])]} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} saved={savedSuggestions} />
               <NewsPanel news={kwBriefing.sections.news} />
             </div>
           ) : (

@@ -70,7 +70,7 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid content-start gap-4">
           <Panel id="b-ai" title={t.briefing.suggestions}>
-            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} adHref={adHref} stores={stores} saved={savedSuggestions} />
+            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} ads={[...(s.topAds ?? []), ...(s.risingAds ?? [])]} adHref={adHref} stores={stores} saved={savedSuggestions} />
           </Panel>
           <Panel id="b-top" title={t.briefing.top}>
             <AdRows ads={s.topAds ?? []} adHref={adHref} stores={stores} saved={savedAds} />
