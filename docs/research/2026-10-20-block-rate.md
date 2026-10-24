@@ -117,3 +117,18 @@ version `8849d3f`). The owner asked for the figures now rather than after four r
   on 2026-10-22, so the two never crawl at the same time: register the tasks with
   `scripts/windows/register-worker-tasks.ps1 -StartAt '2026-10-23 00:30'`.
 - `pnpm briefing:preview` renders sections 1–4 from those runs.
+
+## Linux trial (2026-10-24)
+
+Step 9 of `docs/ops/production.md` on the VET Linux host, <switch-time> 2026-10-22T07:05:00Z, 4 scheduled runs; recorded by
+the owner's day-report script (read-only). Pass: success_ratio >= 0.90 and durations within the spec section 1 estimate.
+
+- success_ratio **1.0000** (640 of 640 planned searches ok or no results); blocked searches 0
+- Result: pass
+
+| Slot (Asia/Ho_Chi_Minh) | Status | ok/planned | Duration | Browser restarts | Network cool-downs | Block reason |
+|---|---|---|---|---|---|---|
+| 2026-10-23 01:00 | done | 160/160 | 02:46 | 16 | 0 | - |
+| 2026-10-23 13:00 | done | 160/160 | 02:42 | 11 | 0 | - |
+| 2026-10-24 01:00 | done | 160/160 | 02:43 | 14 | 0 | - |
+| 2026-10-24 13:00 | done | 160/160 | 02:51 | 18 | 0 | - |
