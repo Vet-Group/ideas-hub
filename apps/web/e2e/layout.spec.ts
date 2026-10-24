@@ -19,11 +19,13 @@ test('the chart’s line-end label is not clipped @phone', async ({ page }) => {
   expect(l.x + l.width).toBeLessThanOrEqual(c.x + c.width);
 });
 
-test('the baseline label of hot keywords and rising shops fits its panel @phone', async ({ page }) => {
+test('hot keywords and rising shops state their shared baseline once, under the table, inside the panel @phone', async ({ page }) => {
   await open(page, '/briefing');
   for (const name of ['Keyword nóng', 'Shop đang lên']) {
     const panel = page.getByRole('region', { name, exact: true });
-    const label = panel.getByText('từ 17/10 (chưa đủ 7 ngày dữ liệu)');
+    await expect(panel.getByRole('columnheader', { name: 'Thay đổi' })).toBeVisible();
+    await expect(panel.getByRole('table').getByText('chưa đủ 7 ngày')).toHaveCount(0);
+    const label = panel.getByText('Thay đổi từ 17/10 (chưa đủ 7 ngày dữ liệu)', { exact: true });
     await expect(label).toBeVisible();
     const [p, l] = [await box(panel), await box(label)];
     expect(l.x + l.width, name).toBeLessThanOrEqual(p.x + p.width);
