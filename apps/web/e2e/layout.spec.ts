@@ -32,6 +32,21 @@ test('hot keywords and rising shops state their shared baseline once, under the 
   }
 });
 
+test('phone: the briefing section links scroll to their panel; desktop has both columns and no links @phone', async ({ page }, info) => {
+  await open(page, '/briefing');
+  const nav = page.getByRole('navigation', { name: 'Các phần của briefing' });
+  if (info.project.name !== 'phone') {
+    await expect(nav).toBeHidden();
+    return;
+  }
+  await expect(nav.getByRole('link')).toHaveCount(6);
+  for (const name of ['Gợi ý từ AI', 'Shop đang lên']) {
+    await nav.getByRole('link', { name, exact: true }).click();
+    await expect(page.getByRole('heading', { name, exact: true })).toBeInViewport();
+  }
+  await expect(page).toHaveURL(/\/briefing#b-shops$/);
+});
+
 test('the ad detail lists days running and days seen under their own labels @phone', async ({ page }) => {
   await open(page, '/ads/e2e_mug_1');
   const pane = page.getByRole('article', { name: 'Chi tiết ad' });

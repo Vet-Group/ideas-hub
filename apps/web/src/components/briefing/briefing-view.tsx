@@ -2,6 +2,7 @@ import { storeScope } from '@ideas-hub/core';
 import { type BriefingRow, briefingSuggestions, getAd, savedRefs } from '@ideas-hub/db/queries';
 import { DetailPane } from '@/components/ads/detail-pane';
 import { PaneSheet } from '@/components/ads/pane-sheet';
+import { Button } from '@/components/ui/button';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
 import { ddmm, formatTime } from '@/lib/format';
@@ -14,10 +15,20 @@ import { NewsPanel, SuggestionsPanel } from './ai-panels';
 import { CountTable } from './count-table';
 import { KpiRow } from './kpi-row';
 
+/** Panel heading ids in reading order (the desktop columns stacked), for the phone's section links. */
+const SECTIONS = [
+  ['b-top', 'top'],
+  ['b-rising', 'rising'],
+  ['b-ai', 'suggestions'],
+  ['b-keywords', 'hotKeywords'],
+  ['b-shops', 'risingShops'],
+  ['b-news', 'news'],
+] as const;
+
 function Panel({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id} className="bg-surface border-line rounded-card grid content-start gap-2 border p-3">
-      <h2 id={id} className="font-semibold">
+      <h2 id={id} className="scroll-mt-4 font-semibold">
         {title}
       </h2>
       {children}
@@ -48,6 +59,14 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
     <div className="grid gap-4">
       {run ? <p className="text-fg-2 text-sm">{t.keywords.sourceRun(formatTime(run), ddmm(vnDay(run)))}</p> : null}
       <KpiRow kpi={s.kpi} />
+      {/* Stacked panels make a phone briefing about 8 screens long; these links reach each panel. */}
+      <nav aria-label={t.briefing.sectionNav} className="flex flex-wrap gap-2 lg:hidden">
+        {SECTIONS.map(([id, title]) => (
+          <Button key={id} asChild size="sm" variant="outline">
+            <a href={`#${id}`}>{t.briefing[title]}</a>
+          </Button>
+        ))}
+      </nav>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid content-start gap-4">
           <Panel id="b-top" title={t.briefing.top}>
