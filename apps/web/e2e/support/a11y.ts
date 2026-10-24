@@ -86,9 +86,17 @@ export async function expectShortMotion(page: Page) {
 /** Every visible target is at least 24 × 24 px, or has 24 px of room around its center (WCAG 2.5.8). */
 export async function expectTargetSize(page: Page) {
   const small = await page.evaluate(() => {
+    // A target whose center sits under a fixed bar (the phone tab bar at this scroll position) is not
+    // clickable there, so it is not measured against the bar's tabs. Off-screen targets have no hit and stay.
+    const underFixedBar = (el: Element, r: DOMRect) => {
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!hit || el.contains(hit)) return false;
+      for (let n: Element | null = hit; n; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return !n.contains(el);
+      return false;
+    };
     const targets = [...document.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=checkbox]')]
       .map((el) => ({ el, r: el.getBoundingClientRect() }))
-      .filter(({ r }) => r.width > 0 && r.height > 0);
+      .filter(({ el, r }) => r.width > 0 && r.height > 0 && !underFixedBar(el, r));
     const centers = targets.map(({ r }) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 }));
     return targets
       .filter(({ el, r }, i) => {
