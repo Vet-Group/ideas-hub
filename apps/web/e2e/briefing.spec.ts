@@ -101,6 +101,12 @@ test('with several stores a save from a briefing row or its ad sheet takes 2 act
   const both = [STORES.a.id, STORES.b.id].sort().map((store_id) => ({ store_id, source: 'ad', via: 'briefing' }));
   // The picker's per-store results; a saved button elsewhere (a row, the ad sheet) also reads "Đã lưu".
   const created = page.getByRole('group', { name: 'Lưu vào store' }).getByText('Đã lưu', { exact: true });
+  // The closing picker stays in the DOM for its exit animation; the next picker's checkboxes must not
+  // be read from it.
+  const closePicker = async () => {
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('group', { name: 'Lưu vào store' })).toHaveCount(0);
+  };
   try {
     // One save to A and B (B is pre-checked from the seed), so the next saves pre-check both stores.
     await row(page, 'Ads trend nhất', 'Best dog mom mug gift 1').getByRole('button', { name: 'Lưu' }).click();
@@ -108,7 +114,7 @@ test('with several stores a save from a briefing row or its ad sheet takes 2 act
     await page.keyboard.press('Enter');
     await expect(created).toHaveCount(2);
     expect(await savedBy('e2e_mug_1')).toEqual(both);
-    await page.keyboard.press('Escape');
+    await closePicker();
 
     const a = new Actions(page);
     await a.click(row(page, 'Ads trend nhất', 'Best dog mom mug gift 3').getByRole('button', { name: 'Lưu' }));
@@ -118,7 +124,7 @@ test('with several stores a save from a briefing row or its ad sheet takes 2 act
     await expect(created).toHaveCount(2);
     expect(a.count).toBe(2);
     expect(await savedBy('e2e_mug_3')).toEqual(both);
-    await page.keyboard.press('Escape');
+    await closePicker();
 
     await row(page, 'Ads mới đang lên', 'Best dog mom mug gift 5').getByRole('link').click();
     const sheet = page.getByRole('dialog');

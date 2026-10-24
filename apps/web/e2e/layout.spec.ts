@@ -32,8 +32,9 @@ test('hot keywords and rising shops state their shared baseline once, under the 
   }
 });
 
-test('phone: the briefing section links scroll to their panel; desktop has both columns and no links @phone', async ({ page }, info) => {
+test('AI suggestions lead the briefing; phone section links scroll to their panel, desktop has none @phone', async ({ page }, info) => {
   await open(page, '/briefing');
+  await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText('Gợi ý từ AI');
   const nav = page.getByRole('navigation', { name: 'Các phần của briefing' });
   if (info.project.name !== 'phone') {
     await expect(nav).toBeHidden();

@@ -479,8 +479,10 @@ pasted link shows the same view.
   running under §1 "Measures" after its upserts), their change against the `running_ads` of the same
   slot 7 crawl days earlier under the baseline rule of §3, the baseline being the run of that slot that
   wrote KeywordDay, searches ok in the run (`ok_searches` ÷ `planned_searches` as a percentage, the
-  success of AC 1) and days to the next US holiday; then panels: top trending ads, rising new ads and AI
-  suggestions on the left; hot keywords, rising shops, and news and holidays on the right. Rows show the
+  success of AC 1) and days to the next US holiday; then panels: AI suggestions, top trending ads and
+  rising new ads on the left; hot keywords, rising shops, and news and holidays on the right (AI
+  suggestions lead since 2026-10-24, owner decision, so the picks with their reasons are the first
+  thing to save; a missing AI section shows its state in that place). Rows show the
   thumbnail, page · keyword, domain · country · days, the score and "Lưu"; clicking a row opens the ad
   pane as a sheet, and a save from that sheet sets `via = briefing`. Each briefing names its source run
   ("Từ run 01:00 ngày 19/10"). Before today's global briefing is ready, `/briefing` shows the latest
@@ -549,8 +551,8 @@ pasted link shows the same view.
 
 - Bottom tab bar (Briefing, Ads, Shop, Keyword, "Ý tưởng", "Khác"); "Khác" leads to the Run log and, for
   admins only, "Quản trị"; the store switcher moves to the header of the "Ý tưởng" screen.
-- Briefing: KPI tiles 2 × 2 and panels stacked in the desktop order; rows at least 44 px high and
-  targets at least 24 px, so "Lưu" stays reachable.
+- Briefing: KPI tiles 2 × 2, links to each panel, and panels stacked in the desktop order (left column,
+  then right); rows at least 44 px high and targets at least 24 px, so "Lưu" stays reachable.
 - Ads: a two-column grid, filters in a sheet, and the detail as a bottom sheet with "Lưu" pinned at the
   bottom.
 - Ideas: the table becomes cards; the board becomes one column per status with a status menu and no

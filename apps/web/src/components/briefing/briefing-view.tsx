@@ -17,9 +17,9 @@ import { KpiRow } from './kpi-row';
 
 /** Panel heading ids in reading order (the desktop columns stacked), for the phone's section links. */
 const SECTIONS = [
+  ['b-ai', 'suggestions'],
   ['b-top', 'top'],
   ['b-rising', 'rising'],
-  ['b-ai', 'suggestions'],
   ['b-keywords', 'hotKeywords'],
   ['b-shops', 'risingShops'],
   ['b-news', 'news'],
@@ -37,9 +37,9 @@ function Panel({ id, title, children }: { id: string; title: string; children: R
 }
 
 /**
- * A briefing (spec §6): the KPI row and the source run's label, then top trending ads, rising new ads
- * and AI suggestions on the left; hot keywords, rising shops, and news and holidays on the right. A row
- * opens the ad sheet through `?ad=` on the same page (`basePath`).
+ * A briefing (spec §6): the KPI row and the source run's label, then AI suggestions, top trending ads and
+ * rising new ads on the left; hot keywords, rising shops, and news and holidays on the right. A row opens
+ * the ad sheet through `?ad=` on the same page (`basePath`).
  */
 export async function BriefingView({ briefing, basePath, adId }: { briefing: BriefingRow; basePath: string; adId: string | null }) {
   const user = await requireUser();
@@ -69,14 +69,14 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
       </nav>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid content-start gap-4">
+          <Panel id="b-ai" title={t.briefing.suggestions}>
+            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} adHref={adHref} stores={stores} saved={savedSuggestions} />
+          </Panel>
           <Panel id="b-top" title={t.briefing.top}>
             <AdRows ads={s.topAds ?? []} adHref={adHref} stores={stores} saved={savedAds} />
           </Panel>
           <Panel id="b-rising" title={t.briefing.rising}>
             <AdRows ads={s.risingAds ?? []} adHref={adHref} stores={stores} saved={savedAds} />
-          </Panel>
-          <Panel id="b-ai" title={t.briefing.suggestions}>
-            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} adHref={adHref} stores={stores} saved={savedSuggestions} />
           </Panel>
         </div>
         <div className="grid content-start gap-4">
