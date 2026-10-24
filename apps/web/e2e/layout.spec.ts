@@ -48,6 +48,15 @@ test('AI suggestions lead the briefing; phone section links scroll to their pane
   await expect(page).toHaveURL(/\/briefing#b-shops$/);
 });
 
+test('the KPI change shows its number at tile size with the baseline on one line under it @phone', async ({ page }) => {
+  await open(page, '/briefing');
+  const value = (label: string) => page.getByRole('term').filter({ hasText: label }).locator('xpath=following-sibling::dd');
+  await expect(value('Thay đổi')).toHaveText('+312 ▲ so với 13/10');
+  // Same shape as the holiday tile (a number, then one small line), so the same height.
+  const [change, holiday] = [await box(value('Thay đổi')), await box(value('Ngày lễ kế tiếp'))];
+  expect(Math.abs(change.height - holiday.height)).toBeLessThan(2);
+});
+
 test('the ad detail lists days running and days seen under their own labels @phone', async ({ page }) => {
   await open(page, '/ads/e2e_mug_1');
   const pane = page.getByRole('article', { name: 'Chi tiết ad' });

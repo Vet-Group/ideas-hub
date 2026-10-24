@@ -44,6 +44,10 @@ test('a Lark link opens the briefing it names with 0 actions on a valid session;
   await expect(page.locator('[data-sidebar]').getByRole('link', { name: /^Briefing/ })).toContainText('21/10');
   await expect(row(page, 'Ads trend nhất', 'Best dog mom mug gift 1')).toBeVisible();
   await expect(panel(page, 'Gợi ý từ AI')).toContainText('halloween dog mom shirt');
+  // Evidence links name the briefing's ads by title; an ad in neither list would read "ad N".
+  const evidence = panel(page, 'Gợi ý từ AI').getByRole('link', { name: 'Best dog mom mug gift 4', exact: true });
+  await expect(evidence).toHaveAttribute('href', '/briefing?ad=e2e_mug_4');
+  await expect(panel(page, 'Gợi ý từ AI').getByRole('link', { name: /^ad \d+$/ })).toHaveCount(0);
   await expect(panel(page, 'Tin tức và ngày lễ')).toContainText('Người mua sắm dịp lễ bắt đầu sớm');
 });
 

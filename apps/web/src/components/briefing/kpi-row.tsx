@@ -1,5 +1,6 @@
 import { type BriefingKpi } from '@ideas-hub/core';
 import { DeltaLabel } from '@/components/states/delta-label';
+import { baselineText } from '@/lib/delta';
 import { t } from '@/lib/strings.vi';
 
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
@@ -18,9 +19,15 @@ export function KpiRow({ kpi }: { kpi: BriefingKpi | undefined }) {
     <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Tile label={t.briefing.kpi.runningAds}>{kpi.runningAds}</Tile>
       <Tile label={t.briefing.kpi.change}>
-        <span className="text-base">
-          <DeltaLabel delta={kpi.delta} />
-        </span>
+        {/* The number at tile size, its baseline under it like the holiday tile's line; inline, the
+            baseline wrapped the tile to three lines on a phone. */}
+        <DeltaLabel delta={kpi.delta} bare />
+        {kpi.delta ? (
+          <>
+            {' '}
+            <span className="text-fg-2 block font-sans text-xs">{baselineText(kpi.delta)}</span>
+          </>
+        ) : null}
       </Tile>
       <Tile label={t.briefing.kpi.okRate}>{kpi.okRate === null ? t.common.none : `${Math.round(kpi.okRate * 1000) / 10}%`}</Tile>
       <Tile label={t.briefing.kpi.holiday}>

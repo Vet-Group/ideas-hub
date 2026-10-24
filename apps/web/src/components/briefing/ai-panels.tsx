@@ -1,4 +1,4 @@
-import { type AiMissing, type NewsSection, type SuggestionsSection } from '@ideas-hub/core';
+import { type AiMissing, type BriefingAd, type NewsSection, type SuggestionsSection } from '@ideas-hub/core';
 import { type SuggestionRow } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { SaveButton, type SaveTarget } from '@/components/save/save-button';
@@ -48,23 +48,28 @@ export function NewsPanel({ news }: { news: NewsSection | undefined }) {
   );
 }
 
-/** The ads and news items behind one suggestion, as links ("Dựa trên: ad 1, ad 2, …"). */
+/**
+ * The ads and news items behind one suggestion, as links ("Dựa trên: <ad title>, …"). An ad not in
+ * `adTitles` (not in the briefing's lists, or the idea page, which has no list) reads "ad 1", "ad 2", ….
+ */
 export function SuggestionEvidence({
   evidence,
   newsById,
   adHref,
+  adTitles,
 }: {
   evidence: { ads: string[]; news: string[] };
   newsById: Map<string, { link: string; title: string }>;
   adHref: (id: string) => string;
+  adTitles?: Map<string, string>;
 }) {
   if (!evidence.ads.length && !evidence.news.length) return null;
   return (
-    <p className="text-fg-2 flex flex-wrap gap-x-2 text-xs">
+    <p className="text-fg-2 flex flex-wrap gap-x-2 gap-y-3 text-xs">
       <span>{t.briefing.evidence}:</span>
       {evidence.ads.map((id, i) => (
-        <Link key={id} href={adHref(id)} scroll={false} className="underline underline-offset-2">
-          {t.briefing.evidenceAd(i + 1)}
+        <Link key={id} href={adHref(id)} scroll={false} className="max-w-64 truncate underline underline-offset-2">
+          {adTitles?.get(id) ?? t.briefing.evidenceAd(i + 1)}
         </Link>
       ))}
       {evidence.news.map((id) => {
@@ -87,6 +92,7 @@ export function SuggestionsPanel({
   section,
   rows,
   news,
+  ads = [],
   adHref,
   stores,
   saved,
@@ -94,6 +100,8 @@ export function SuggestionsPanel({
   section: SuggestionsSection | undefined;
   rows: SuggestionRow[];
   news: NewsSection | undefined;
+  /** The briefing's ad lists, whose titles name the evidence links. */
+  ads?: BriefingAd[];
   adHref: (id: string) => string;
   stores: SaveTarget[];
   /** Suggestion ids already saved. */
@@ -102,6 +110,7 @@ export function SuggestionsPanel({
   if (!section || section.state !== 'ok') return <AiMissingNote section={section} />;
   if (rows.length === 0) return <p className="text-fg-2 text-sm">{t.briefing.empty}</p>;
   const newsById = new Map((news?.items ?? []).map((n) => [n.id, n]));
+  const adTitles = new Map(ads.map((a) => [a.adArchiveId, a.caption || a.pageName || a.adArchiveId]));
   return (
     <ul className="divide-line grid divide-y">
       {rows.map((s) => (
@@ -114,7 +123,7 @@ export function SuggestionsPanel({
             <SaveButton source={{ kind: 'suggestion', suggestionId: s.id }} stores={stores} title={s.text} saved={saved.includes(s.id)} compact />
           </div>
           <p className="text-fg-2">{s.reason}</p>
-          <SuggestionEvidence evidence={s.evidence} newsById={newsById} adHref={adHref} />
+          <SuggestionEvidence evidence={s.evidence} newsById={newsById} adHref={adHref} adTitles={adTitles} />
         </li>
       ))}
     </ul>
