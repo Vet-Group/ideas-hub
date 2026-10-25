@@ -8,7 +8,9 @@ import {
   daysActive,
   deltaAt,
   isNonShopDomain,
+  isProven,
   isRisingNew,
+  marketStage,
   momentumScore,
   pacificDate,
   pacificDateFromUnix,
@@ -93,6 +95,25 @@ describe('momentumScore', () => {
     expect(momentumScore({ ...none, variantsNow: 1, variantsBefore: 4, daysActive: 5 })).toBe(5);
     expect(momentumScore({ ...none, pageLikesNow: 900, pageLikesBefore: 100, daysActive: 0 })).toBe(100);
     expect(momentumScore({ ...none, pageLikesNow: 900, pageLikesBefore: 0 })).toBe(0);
+  });
+});
+
+describe('isProven', () => {
+  it('needs 6+ variants, or 30+ days in 3+ countries', () => {
+    expect(isProven({ variants: 6, daysActive: 2, countries: 1 })).toBe(true);
+    expect(isProven({ variants: 5, daysActive: 30, countries: 3 })).toBe(true);
+    expect(isProven({ variants: 5, daysActive: 29, countries: 4 })).toBe(false);
+    expect(isProven({ variants: null, daysActive: 90, countries: 2 })).toBe(false);
+    expect(isProven({ variants: null, daysActive: null, countries: 4 })).toBe(false);
+  });
+});
+
+describe('marketStage', () => {
+  it('is rising from 15% new ads, else proven from 35% proven ads, else steady', () => {
+    expect(marketStage({ ads: 100, newAds: 15, proven: 60 })).toBe('rising');
+    expect(marketStage({ ads: 100, newAds: 14, proven: 35 })).toBe('proven');
+    expect(marketStage({ ads: 100, newAds: 14, proven: 34 })).toBe('steady');
+    expect(marketStage({ ads: 0, newAds: 0, proven: 0 })).toBe('steady');
   });
 });
 

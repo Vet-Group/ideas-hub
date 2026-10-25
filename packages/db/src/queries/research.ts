@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MOMENTUM_WINDOW_DAYS, VIETNAM, addDays, daysActive, nonShopPattern, trendScore } from '@ideas-hub/core';
+import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, VIETNAM, addDays, daysActive, nonShopPattern, trendScore } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { adStatusQuery } from './ad-status';
@@ -296,6 +296,50 @@ export async function listKeywords(db: Db, sort: KeywordSort = 'running_ads'): P
       (select array_agg(sk.store_id order by sk.store_id) from store_keywords sk where sk.keyword_id = k.id) as tracked_by
     from keywords k order by ${KEYWORD_ORDER[sort]}`);
   return rows.map((r) => ({ id: r.id, text: r.text, origin: r.origin, active: r.active, runningAds: r.running_ads, trackedBy: r.tracked_by ?? [] }));
+}
+
+/**
+ * The market read of each keyword's running ads (spec §6 "Market read"), keyed by keyword id: shops and
+ * the top 3 shops' share, ads started in the last 7 days and the 7 before, proven ads (isProven in SQL,
+ * countries over all sightings) and videos. A keyword without running ads has no entry.
+ */
+export async function marketReads(
+  db: Db,
+  o: StatusOptions,
+  f: { keywordId?: string; nonShopDomains?: readonly string[] } = {},
+): Promise<Map<string, MarketRead>> {
+  // JIT compiling took 1.6 s of 2.5 s on production data (2026-10-25); the query itself runs in 0.85 s.
+  const { rows } = await db.transaction(async (tx) => {
+    await tx.execute(sql`set local jit = off`);
+    return tx.execute<{ keyword_id: string; ads: number; shops: number; top3: number | null; new_ads: number; new_before: number; proven: number; video: number }>(sql`
+    with r as (
+      select distinct s.keyword_id, a.ad_archive_id, a.landing_domain, a.media_type, a.start_date, ${DAYS} as days_active, a.collation_count
+      from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id and st.status = 'running'
+      join ad_sightings s on s.ad_archive_id = a.ad_archive_id
+      ${f.keywordId ? sql`where s.keyword_id = ${f.keywordId}` : sql``}
+    ),
+    c as (select s.ad_archive_id, count(distinct s.country)::int as n from ad_sightings s where s.ad_archive_id in (select ad_archive_id from r) group by 1),
+    shop as (
+      select keyword_id, count(*) as n, row_number() over (partition by keyword_id order by count(*) desc, landing_domain) as rk
+      from r where nullif(landing_domain, '') is not null and ${shopDomainFilter(sql`landing_domain`, f.nonShopDomains ?? [])}
+      group by keyword_id, landing_domain
+    ),
+    k as (select keyword_id, count(*)::int as shops, (sum(n) filter (where rk <= 3))::int as top3 from shop group by keyword_id)
+    select r.keyword_id, count(*)::int as ads, coalesce(max(k.shops), 0) as shops, max(k.top3) as top3,
+      (count(*) filter (where r.start_date > ${o.today}::date - ${MARKET.newDays}::int))::int as new_ads,
+      (count(*) filter (where r.start_date > ${o.today}::date - ${2 * MARKET.newDays}::int and r.start_date <= ${o.today}::date - ${MARKET.newDays}::int))::int as new_before,
+      (count(*) filter (where coalesce(r.collation_count, 0) >= ${PROVEN.variants}
+        or (coalesce(r.days_active, 0) >= ${PROVEN.days} and coalesce(c.n, 0) >= ${PROVEN.countries})))::int as proven,
+      (count(*) filter (where upper(r.media_type) = 'VIDEO'))::int as video
+    from r left join c on c.ad_archive_id = r.ad_archive_id left join k on k.keyword_id = r.keyword_id
+    group by r.keyword_id`);
+  });
+  return new Map(
+    rows.map((r) => [
+      r.keyword_id,
+      { ads: r.ads, shops: r.shops, top3Share: r.top3 === null || r.ads === 0 ? null : r.top3 / r.ads, newAds: r.new_ads, newAdsBefore: r.new_before, proven: r.proven, video: r.video },
+    ]),
+  );
 }
 
 export async function getKeyword(db: Db, id: string): Promise<KeywordRow | null> {
