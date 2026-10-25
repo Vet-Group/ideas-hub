@@ -33,3 +33,14 @@ export function rangeStart(rows: readonly ChartRow[], days: number): string | nu
   const last = rows[rows.length - 1]?.date;
   return last ? addDays(last, -(days - 1)) : null;
 }
+
+/**
+ * Whether each line's end label has room: the last values sit at least `gap` of the highest shown value
+ * apart. Closer lines would print one label over the other; the legend names them anyway.
+ */
+export function endLabelsFit(rows: readonly ChartRow[], slots: readonly string[], gap = 0.08): boolean {
+  const values = (r: ChartRow | undefined) => slots.map((s) => r?.[slotKey(s)]).filter((v): v is number => typeof v === 'number');
+  const peak = Math.max(1, ...rows.flatMap(values));
+  const last = values(rows.at(-1)).sort((a, b) => a - b);
+  return last.every((v, i) => i === 0 || (v - last[i - 1]!) / peak >= gap);
+}
