@@ -43,7 +43,7 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
         {t.ads.keyHelp}
       </p>
       {/* The 360 px pane only takes a column while an ad is open, so the grid keeps 3+ columns at 1440 px. */}
-      <div className={cn('grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]', selected && 'xl:grid-cols-[200px_minmax(0,1fr)_360px]')}>
+      <div className={cn('grid gap-4 xl:grid-cols-[200px_minmax(0,1fr)]', selected && 'xl:grid-cols-[200px_minmax(0,1fr)_360px]')}>
         <FilterRail f={f} keywords={keywords.map((k) => ({ id: k.id, text: k.text }))} countries={settings.countries} />
         <div>
           {/* Page 1 only: later pages of a descending sort end in zeros even when there is data. */}

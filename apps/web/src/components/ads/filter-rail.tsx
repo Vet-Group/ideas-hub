@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { FilterToggle } from './filter-toggle';
 import { t } from '@/lib/strings.vi';
 
 const selectClass = 'border-input bg-surface h-9 w-full rounded-md border px-2 text-sm focus:ring-ring/50 focus:border-ring outline-none focus:ring-[3px]';
@@ -15,17 +16,17 @@ export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords:
   const active = [f.status && f.status !== 'running', f.keywordId, f.country, f.minDays, f.minScore, f.domain, f.title, f.dedupe, f.proven].filter(Boolean).length;
   return (
     <form action="/ads" method="get" className="grid content-start gap-3" aria-label={t.ads.filters}>
-      {/* Below lg the fields fold behind this toggle so the ads come first on a phone; a checkbox needs no script. */}
-      <input id="f-toggle" type="checkbox" className="peer sr-only lg:hidden" aria-controls="f-fields" />
+      {/* Below xl the fields fold behind this toggle so the ads come first (3 columns at 1024 px); a checkbox needs no script. */}
+      <FilterToggle />
       <label
         htmlFor="f-toggle"
-        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'peer-focus-visible:ring-ring/50 justify-self-start peer-focus-visible:ring-[3px] lg:hidden')}
+        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'peer-focus-visible:ring-ring/50 justify-self-start peer-focus-visible:ring-[3px] xl:hidden')}
       >
         <SlidersHorizontal aria-hidden />
         {t.ads.filters}
         {active ? <span className="font-mono tabular-nums">{` · ${active}`}</span> : null}
       </label>
-      <div id="f-fields" className="hidden content-start gap-3 peer-checked:grid sm:grid-cols-2 lg:grid lg:grid-cols-1">
+      <div id="f-fields" className="hidden content-start gap-3 peer-checked:grid sm:grid-cols-2 xl:grid xl:grid-cols-1">
         <div className="grid gap-1">
           <Label htmlFor="f-status">{t.ads.status}</Label>
           <select id="f-status" name="status" defaultValue={f.status ?? 'running'} className={selectClass}>

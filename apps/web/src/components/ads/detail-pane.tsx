@@ -66,7 +66,16 @@ export function DetailPane({
         <dt className="text-fg-2">{t.ads.country}</dt>
         <dd>{ad.countries.join(', ') || t.common.none}</dd>
       </dl>
-      <p className="text-fg-2 text-xs">{t.ads.scoreHelp}</p>
+      <details className="text-xs">
+        <summary className="text-fg-2 cursor-pointer">{t.ads.glossary}</summary>
+        <ul className="mt-1 grid gap-1">
+          {t.ads.glossaryItems.map(([k, v]) => (
+            <li key={k}>
+              <span className="font-medium">{k}:</span> <span className="text-fg-2">{v}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
       <div className="flex flex-wrap gap-2">
         <Button asChild size="sm" variant="outline">
           <a href={adLibraryUrl(ad.adArchiveId)} target="_blank" rel="noopener noreferrer">

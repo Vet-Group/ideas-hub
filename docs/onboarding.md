@@ -87,6 +87,24 @@ staff member's two practice saves are there. The 14-day run started on 2026-10-2
 from the briefing now counts toward AC 6: either save an idea that is really worth doing, or remove a
 practice save with "Hoàn tác" within its 10 seconds.
 
+## 5. Words on screen
+
+New staff stumbled on these in a phone review (2026-10-25). The ad pane explains the four numbers under
+"Các số này là gì?"; the facilitator can point there.
+
+| On screen | Meaning |
+|---|---|
+| "Từ run 01:00 ngày …" | The crawl the data comes from (a run is one crawl, at 01:00 or 13:00 Vietnam time). |
+| "Search thành công" | Share of the run's planned keyword searches that finished OK; near 100% is normal. |
+| "Số ngày chạy" | Days the ad has run, counted from its start date in the Ad Library. |
+| "Số ngày thấy" | Days on which Ideas Hub's crawl saw the ad running. |
+| "Biến thể" | Versions of the same ad the Ad Library groups together; many usually means the shop is scaling it. |
+| "Điểm" | Days running × days seen, for ads running 5+ days with a shop domain: how long and how steadily it ran. |
+| "Đã chứng minh" | 6+ variants, or 30+ days in 3+ countries: a known winner. |
+| "Mới nổi" / "Có mẫu thắng" | Keyword stage: ≥ 15% of its ads started in the last 7 days / ≥ 35% are proven. |
+| "Cụm từ nhiều shop dùng" | Two-word phrases 2+ shops put in their ad titles: the products inside a keyword. Tap one to see those ads. |
+| "Gộp mẫu trùng" / "N mẫu trùng" | Ads with the same text from the same shop shown once, with the count. |
+
 ## Pending owner
 
 - Staff names, emails and roles; the store list with `erp_store_code` and Lark chat ids.

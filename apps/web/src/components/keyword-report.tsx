@@ -99,7 +99,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
           ) : null}
         </div>
         {!run ? <NoData nextRun={next ? formatTime(next) : null} /> : null}
-        <TrendChart points={series} />
+        {run ? null : <TrendChart points={series} />}
         {run ? (
           <>
             <section className="grid gap-2" aria-labelledby="kw-s3">
@@ -136,6 +136,8 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
                 </div>
               ) : null}
             </section>
+            {/* After the market read and phrases, which answer "what to make"; first, it pushed them 3 screens down on a phone. */}
+            <TrendChart points={series} />
             <section className="grid gap-2" aria-labelledby="kw-s1">
               <h2 id="kw-s1" className="font-semibold">
                 {t.keywords.section1}

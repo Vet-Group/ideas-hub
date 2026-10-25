@@ -143,7 +143,6 @@ export function AdGrid({
               ref={(h) => {
                 saves.current[i] = h;
               }}
-              compact
               source={{ kind: 'ad', adArchiveId: a.adArchiveId, via, keyword: a.keyword ?? undefined }}
               stores={saveStores}
               title={a.caption || a.pageName || a.adArchiveId}

@@ -223,7 +223,7 @@ test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane 
   await expect(card(page, 'Best dog mom mug gift 1').getByRole('button', { name: 'Đã chứng minh' })).toHaveCount(0);
 });
 
-test('below lg the ads filters fold behind a toggle with the active count, so the first ad is on the first screen @phone', async ({ page }, info) => {
+test('below xl the ads filters fold behind a toggle with the active count, so the first ad is on the first screen @phone', async ({ page }, info) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?proven=1&kw=kw_e2e_mug')}`);
   const proven = page.getByRole('checkbox', { name: 'Chỉ ads đã chứng minh' });
   const toggle = page.locator('label[for="f-toggle"]');
@@ -239,6 +239,11 @@ test('below lg the ads filters fold behind a toggle with the active count, so th
   await toggle.click();
   await expect(proven).toBeVisible();
   await expect(proven).toBeChecked();
+  // Enter on the focused toggle folds the fields again instead of submitting the form.
+  await page.locator('#f-toggle').focus();
+  await page.keyboard.press('Enter');
+  await expect(proven).toBeHidden();
+  await expect(page).toHaveURL(/\/ads\?proven=1&kw=kw_e2e_mug$/);
 });
 
 // Two shops put "sea glass" in their ad titles: 2 mug ads of dogmom.example and a copy of one on seaglass.example.
@@ -430,7 +435,7 @@ test('shops read as markets: new and proven ads and keywords in the table and on
   await expect(cells.nth(3)).toHaveText('17% (1)');
   await expect(cells.nth(4)).toHaveText('1');
   await page.goto(`/shops/${MUG.domain}`);
-  await expect(page.getByLabel('Đọc thị trường').locator('dd')).toHaveText(['2 33% số ads', '1 17% số ads', '1']);
+  await expect(page.getByLabel('Đọc thị trường').locator('dd')).toHaveText(['2 33% số ads', '1 17% số ads', '1 keyword có ads của shop']);
 });
 
 test('the shop page groups a creative the shop runs twice and links to the same view in Ads; briefing ad rows label the score @phone', async ({ page }) => {
@@ -447,4 +452,17 @@ test('the shop page groups a creative the shop runs twice and links to the same 
   }
   await page.goto('/briefing');
   await expect(page.getByRole('region', { name: 'Ads trend nhất' }).locator('li').first()).toContainText(/Điểm (\d+|—)/);
+});
+
+test('a new member reads the page: labelled save on cards, a glossary in the ad pane, the market read above the chart @phone', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?kw=kw_e2e_mug')}`);
+  await expect(card(page, 'Best dog mom mug gift 1').getByText('Lưu', { exact: true })).toBeVisible();
+  await page.goto('/ads/e2e_mug_1');
+  const pane = page.getByRole('article', { name: 'Chi tiết ad' }).first();
+  await pane.getByText('Các số này là gì?').click();
+  await expect(pane.getByText('Số ngày Ideas Hub quét thấy ad này đang chạy.')).toBeVisible();
+  await page.goto(`/keywords/${MUG.keywordId}`);
+  const market = await page.getByRole('heading', { name: 'Đọc thị trường' }).boundingBox();
+  const chart = await page.getByRole('heading', { name: 'Ads đang chạy theo ngày' }).boundingBox();
+  expect(market!.y).toBeLessThan(chart!.y);
 });
