@@ -11,6 +11,7 @@ describe('ads query params', () => {
     expect(parseAdFilters({ sort: 'started' }).sort).toBe('started');
     expect(parseAdFilters({ proven: '1' }).proven).toBe(true);
     expect(adQuery(parseAdFilters({ proven: '1', sort: 'started' }))).toBe('?proven=1&sort=started');
+    expect(adQuery(parseAdFilters({ kw: 'kw_1', title: ' sea glass ' }))).toBe('?kw=kw_1&title=sea+glass');
     expect(adQuery(parseAdFilters({}))).toBe('');
   });
 

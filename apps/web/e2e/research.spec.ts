@@ -223,6 +223,33 @@ test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane 
   await expect(card(page, 'Best dog mom mug gift 1').getByRole('button', { name: 'Đã chứng minh' })).toHaveCount(0);
 });
 
+// Two shops put "sea glass" in their ad titles: 2 mug ads of dogmom.example and a copy of one on seaglass.example.
+test('the keyword report lists the title phrases of 2+ shops, and a phrase opens the ads that have it', async ({ page }) => {
+  const pool = e2ePool();
+  try {
+    await pool.query(`update ads set title = 'Sea Glass Dog Mom Mug' where ad_archive_id in ('e2e_mug_1', 'e2e_mug_2')`);
+    await pool.query(
+      `insert into ads select (jsonb_populate_record(null::ads, to_jsonb(a) || '{"ad_archive_id": "e2e_phrase", "landing_domain": "seaglass.example", "title": "sea-glass mug"}')).* from ads a where ad_archive_id = 'e2e_mug_2'`,
+    );
+    await pool.query(
+      `insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) select 'e2e_phrase', run_id, keyword_id, country, position, crawl_day from ad_sightings where ad_archive_id = 'e2e_mug_2'`,
+    );
+    await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(`/keywords/${MUG.keywordId}`)}`);
+    // "glass dog" and "glass mug" are on 1 shop each; "dog mom" and "mom mug" are the keyword's own words.
+    const phrases = page.getByRole('heading', { name: 'Cụm từ nhiều shop dùng trong tiêu đề ads' }).locator('xpath=following-sibling::ul[1]').getByRole('link');
+    await expect(phrases).toHaveText(['sea glass 2 shop · 3 ads']);
+    await phrases.first().click();
+    await expect(page).toHaveURL(`/ads?kw=${MUG.keywordId}&title=sea+glass`);
+    await expect(page.getByLabel('Tiêu đề có')).toHaveValue('sea glass');
+    await expect(page.getByRole('link', { name: /^Best dog mom mug gift [12]$/ })).toHaveCount(3);
+  } finally {
+    await pool.query(`delete from ad_sightings where ad_archive_id = 'e2e_phrase'`);
+    await pool.query(`delete from ads where ad_archive_id = 'e2e_phrase'`);
+    await pool.query(`update ads set title = null where ad_archive_id in ('e2e_mug_1', 'e2e_mug_2')`);
+    await pool.end();
+  }
+});
+
 test('Run now: disabled with its reason for a running run, a cool-down and the margin; hidden without `keywords`', async ({ page, browser }) => {
   const pool = e2ePool();
   const path = `/keywords/${MUG.keywordId}`;

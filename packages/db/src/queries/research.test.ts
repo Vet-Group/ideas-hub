@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, getAd, listAds, listKeywords, listShops, marketReads, shopReads } from './research';
+import { daySeries, getAd, listAds, listKeywords, listShops, marketReads, shopReads, titlePhrases } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -254,5 +254,18 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect(reads.get('teeshop.com')).toMatchObject({ ads: 1, keywords: 1 });
     expect(reads.has('none.com')).toBe(false);
     expect((await shopReads(db, O, [])).size).toBe(0);
+  });
+
+  // Uses the kw_m ads above: shop1.com twice, shop2.com, and amazon.com as a non-shop domain.
+  it('reads the 2-word title phrases most shops use, and filters ads by them as whole words', async () => {
+    await db.execute(sql`update ads set title = case ad_archive_id
+      when 'm_new' then 'Sea-Glass Ornament for Mom' when 'm_before' then 'sea glass ornament'
+      when 'm_long' then 'SEA GLASS Market Shirt' when 'm_app' then 'Sea glass' end
+      where ad_archive_id in ('m_new', 'm_before', 'm_long', 'm_app')`);
+    // "glass ornament" is on 1 shop only, "ornament for"/"for mom" have a stop word, "market shirt" is the keyword.
+    expect(await titlePhrases(db, O, { id: 'kw_m', text: 'Market shirt' }, ['amazon.*'])).toEqual([{ phrase: 'sea glass', ads: 4, shops: 2 }]);
+    expect((await ids({ keywordId: 'kw_m', title: 'Sea glass!', sort: 'started' }))).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
+    expect(await ids({ keywordId: 'kw_m', title: 'glass ornament', sort: 'started' })).toEqual(['m_new', 'm_before']);
+    expect(await ids({ keywordId: 'kw_m', title: 'glass orn' })).toEqual([]);
   });
 });

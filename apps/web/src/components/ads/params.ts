@@ -19,6 +19,7 @@ export function parseAdFilters(p: SearchParams): AdFilters {
     minScore: num(one(p.score)),
     proven: one(p.proven) === '1',
     domain: one(p.domain),
+    title: one(p.title),
     dedupe: one(p.dedupe) === '1',
     sort: AD_SORTS.includes(sort as AdSort) ? (sort as AdSort) : 'score',
     page: num(one(p.page)) || 1,
@@ -34,6 +35,7 @@ export function adQuery(f: AdFilters): string {
   if (f.minDays !== undefined) q.set('days', String(f.minDays));
   if (f.minScore !== undefined) q.set('score', String(f.minScore));
   if (f.domain) q.set('domain', f.domain);
+  if (f.title) q.set('title', f.title);
   if (f.dedupe) q.set('dedupe', '1');
   if (f.proven) q.set('proven', '1');
   if (f.sort && f.sort !== 'score') q.set('sort', f.sort);

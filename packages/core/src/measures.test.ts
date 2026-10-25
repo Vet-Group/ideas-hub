@@ -14,6 +14,7 @@ import {
   momentumScore,
   pacificDate,
   pacificDateFromUnix,
+  titleWords,
   trendScore,
 } from './measures';
 
@@ -114,6 +115,14 @@ describe('marketStage', () => {
     expect(marketStage({ ads: 100, newAds: 14, proven: 35 })).toBe('proven');
     expect(marketStage({ ads: 100, newAds: 14, proven: 34 })).toBe('steady');
     expect(marketStage({ ads: 0, newAds: 0, proven: 0 })).toBe('steady');
+  });
+});
+
+describe('titleWords', () => {
+  it('lower-cases a title into single-spaced words, dropping digits, punctuation and emoji', () => {
+    expect(titleWords('  Sea-Glass ORNAMENT, 2026 🎄 for Mom’s tree ')).toBe('sea glass ornament for mom s tree');
+    expect(titleWords('Áo thun  Bố')).toBe('áo thun bố');
+    expect(titleWords('!!')).toBe('');
   });
 });
 
