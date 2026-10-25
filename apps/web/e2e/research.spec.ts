@@ -161,6 +161,43 @@ test('the keyword report: chart with a gap and the table toggle, "Less than 7 da
   await expect(page.getByText('Chưa có run nào xong. Run kế tiếp: 13:00')).toBeVisible();
 });
 
+// dog mom mug: 6 running ads on one shop, 2 started on 19/10 (within 7 days of the crawl day 20/10), none
+// proven (20 days, 1 country, no variants), all images. 2 / 6 new is over 15%: "Mới nổi".
+test('keywords read as markets: stage filter, market columns, phone cards; the report has the market read @phone', async ({ page }, info) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/keywords')}`);
+  const stages = page.getByRole('navigation', { name: 'Lọc theo giai đoạn' });
+  await expect(stages.getByRole('link')).toHaveText(['Tất cả · 3', 'Mới nổi · 1', 'Có mẫu thắng · 0', 'Bình thường · 0']);
+  await stages.getByRole('link', { name: 'Mới nổi · 1' }).click();
+  await expect(page).toHaveURL(/\/keywords\?stage=rising$/);
+  await expect(stages.getByRole('link', { name: 'Mới nổi · 1' })).toHaveAttribute('aria-current', 'page');
+  if (info.project.name === 'phone') {
+    const item = page.getByRole('listitem').filter({ hasText: 'dog mom mug' });
+    await expect(item).toContainText('17 ads đang chạy · ads mới 7 ngày 33% · đã chứng minh 0% · 1 shop');
+    await expect(page.getByRole('table')).toBeHidden();
+  } else {
+    const cells = page.getByRole('row', { name: /dog mom mug/ }).getByRole('cell');
+    await expect(cells.nth(1)).toHaveText('Mới nổi');
+    await expect(cells.nth(2)).toHaveText('17');
+    await expect(cells.nth(3)).toHaveText('33% (2)');
+    await expect(cells.nth(4)).toHaveText('0% (0)');
+    await expect(cells.nth(5)).toHaveText('1');
+    await expect(cells.nth(6)).toHaveText('100%');
+    await expect(page.getByRole('row')).toHaveCount(2);
+    // Without running ads to read, a keyword has no stage: a dash, in no stage filter.
+    await page.getByRole('navigation', { name: 'Lọc theo giai đoạn' }).getByRole('link', { name: 'Tất cả · 3' }).click();
+    await expect(page.getByRole('row', { name: /nurse shirt/ }).getByRole('cell').nth(1)).toHaveText('—');
+    await stages.getByRole('link', { name: 'Mới nổi · 1' }).click();
+    await expect(page).toHaveURL(/\/keywords\?stage=rising$/);
+    // A market sort keeps the stage filter.
+    await page.getByRole('link', { name: 'Đã chứng minh' }).click();
+    await expect(page).toHaveURL(/\/keywords\?stage=rising&sort=proven$/);
+  }
+  await page.goto(`/keywords/${MUG.keywordId}`);
+  const market = page.getByRole('region', { name: 'Đọc thị trường' });
+  await expect(market.getByRole('button', { name: 'Mới nổi' })).toBeVisible();
+  await expect(market.locator('dd')).toHaveText(['2 7 ngày trước đó: 0', '0 0% số ads', '1 Top 3 shop chạy 100% số ads', '0% 0 trên 6 ads']);
+});
+
 test('Run now: disabled with its reason for a running run, a cool-down and the margin; hidden without `keywords`', async ({ page, browser }) => {
   const pool = e2ePool();
   const path = `/keywords/${MUG.keywordId}`;

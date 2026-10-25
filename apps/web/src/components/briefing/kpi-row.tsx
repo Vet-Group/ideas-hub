@@ -3,7 +3,7 @@ import { DeltaLabel } from '@/components/states/delta-label';
 import { baselineText } from '@/lib/delta';
 import { t } from '@/lib/strings.vi';
 
-function Tile({ label, children }: { label: string; children: React.ReactNode }) {
+export function Tile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="bg-surface border-line rounded-card grid gap-1 border p-3">
       <dt className="text-fg-2 text-xs">{label}</dt>

@@ -445,7 +445,7 @@ pasted link shows the same view.
 | Main | Briefing today and history by day | `/briefing`, `/briefing/[date]` | all |
 | Main | Ads grid with filters and detail pane | `/ads`, `/ads/[id]` (a direct link opens the pane) | all |
 | Main | Shops: list, and shop page with chart | `/shops`, `/shops/[domain]` | all |
-| Main | Keywords: list, and keyword report (sections 1–4, AI sections as §4 allows) with chart and Run now | `/keywords`, `/keywords/[id]`, `/keywords/[id]/[date]` | all; Run now with the `keywords` tick |
+| Main | Keywords: list as markets, and keyword report (sections 1–4, market read, AI sections as §4 allows) with chart and Run now | `/keywords`, `/keywords/[id]`, `/keywords/[id]/[date]` | all; Run now with the `keywords` tick |
 | Main | Ideas per store, as a table or a Kanban board | `/ideas?store=…&view=table\|board` | members with `view` on the store; admins |
 | Main | Run log (manual runs shown as "manual" to non-admins) | `/runs` | all |
 | "Quản trị" | Alerts | `/admin/alerts` | admin |
@@ -523,6 +523,23 @@ pasted link shows the same view.
   labels at the line ends, and a crosshair tooltip with date, slot and count; "7 ngày trước" is a dashed
   vertical rule, not a series. Range 30 days by default (14 / 30 / 90 / all); a "Bảng" toggle shows the
   same data as a table. Built with the shadcn chart component (Recharts).
+
+### Market read
+
+Added 2026-10-25 (owner request to use more of the crawled data). Read from each keyword's running ads,
+with no new crawling (`marketReads`, packages/db; `isProven` and `marketStage`, packages/core):
+
+- **Proven ad:** 6+ variants (`collation_count`), or 30+ days active in 3+ countries.
+- **New ads:** started (Ad Library start date) in the last 7 days; shown with the 7 days before.
+- **Shops:** landing domains outside `nonShopDomains`, and the share of the ads run by the 3 biggest.
+- **Stage:** "Mới nổi" when ≥ 15% of the running ads are new (new demand: try it early), else "Có mẫu
+  thắng" when ≥ 35% are proven (known winners to learn from), else "Bình thường"; no stage without running
+  ads. On production data of 2026-10-25 the 41 seed keywords split 7 / 18 / 16.
+- `/keywords` lists the keywords as markets: stage filter chips with counts, then stage, running ads, new
+  and proven ads (share first, count after), shops and top 3 share, sortable; cards on phones. The
+  keyword report has a "Đọc thị trường" section after section 3: the stage with its rule and 4 tiles
+  (new ads, proven ads, shops, videos).
+- Saves are unchanged: the market read has no "Lưu", so AC 6 is measured as before.
 
 ### Special states
 

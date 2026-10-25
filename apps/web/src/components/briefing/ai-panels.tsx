@@ -112,7 +112,8 @@ export function SuggestionsPanel({
   const newsById = new Map((news?.items ?? []).map((n) => [n.id, n]));
   const adTitles = new Map(ads.map((a) => [a.adArchiveId, a.caption || a.pageName || a.adArchiveId]));
   return (
-    <ul className="divide-line grid divide-y">
+    // content-start: beside a taller news column (the keyword report) the rows keep their height.
+    <ul className="divide-line grid content-start divide-y">
       {rows.map((s) => (
         <li key={s.id} className="grid gap-1 py-2 text-sm">
           <div className="flex items-start justify-between gap-2">

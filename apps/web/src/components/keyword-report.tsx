@@ -1,5 +1,5 @@
 import { VIETNAM, canSeeKeywordAi, nextSlotAfter, storeScope } from '@ideas-hub/core';
-import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, risingNewAds, risingShops, savedRefs, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
+import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
@@ -8,6 +8,7 @@ import { NewsPanel, SuggestionsPanel } from '@/components/briefing/ai-panels';
 import { CountTable } from '@/components/briefing/count-table';
 import { toCard } from '@/components/ads/cards';
 import { TrendChart } from '@/components/charts/trend-chart';
+import { MarketReadPanel } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { DeltaLabel } from '@/components/states/delta-label';
 import { NoData } from '@/components/states/no-data';
@@ -41,7 +42,8 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
   const canRun = mayRunNow(user, keyword) && !date;
   const run: SourceRun | null = await sourceRun(db, date ? endOfVnDate(date) : at);
   const o = { staleAfterDays: s.staleAfterDays, countries: s.countries, keywordId: id, limit: 12 };
-  const [series, stores, top, rising, counts, shops, blocker, keywordAds] = await Promise.all([
+  const status = run ? { today: run.crawlDay, staleAfterDays: s.staleAfterDays, countries: s.countries } : null;
+  const [series, stores, top, rising, counts, shops, blocker, keywordAds, market] = await Promise.all([
     daySeries(db, 'keyword', id),
     saveTargets(user),
     run ? topTrendingAds(db, run, o) : [],
@@ -49,7 +51,8 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
     run ? hotKeywords(db, run, { keywordId: id }) : [],
     run ? risingShops(db, run, { limit: 1000, nonShopDomains: s.nonShopDomains }) : [],
     canRun ? runNowBlocker(s, at) : Promise.resolve(null),
-    run ? listAds(db, { today: run.crawlDay, staleAfterDays: s.staleAfterDays, countries: s.countries }, { keywordId: id, limit: 10_000 }).then((r) => r.items) : [],
+    status ? listAds(db, status, { keywordId: id, limit: 10_000 }).then((r) => r.items) : [],
+    status ? marketReads(db, status, { keywordId: id, nonShopDomains: s.nonShopDomains }).then((r) => r.get(id)) : undefined,
   ]);
   // Section 4 for one keyword: the rising shops among the domains of its running ads.
   const domains = new Set(keywordAds.map((a) => a.landingDomain));
@@ -103,6 +106,12 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
               <p>
                 <span className="font-mono text-lg">{counts[0]?.runningAds ?? t.common.none}</span> <DeltaLabel delta={counts[0]?.delta ?? null} />
               </p>
+            </section>
+            <section className="grid gap-2" aria-labelledby="kw-market">
+              <h2 id="kw-market" className="font-semibold">
+                {t.keywords.market.title}
+              </h2>
+              <MarketReadPanel read={market} />
             </section>
             <section className="grid gap-2" aria-labelledby="kw-s1">
               <h2 id="kw-s1" className="font-semibold">

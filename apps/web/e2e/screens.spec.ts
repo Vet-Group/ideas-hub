@@ -46,6 +46,7 @@ test('Loading: the route skeleton', async ({ page }, info) => {
 for (const [name, path] of [
   ['ads-pane', '/ads/e2e_mug_1'],
   ['keyword-report', '/keywords/kw_e2e_mug'],
+  ['keywords', '/keywords'],
   ['ideas-table', '/ideas?store=store_e2e_a&view=table'],
   ['ideas-board', '/ideas?store=store_e2e_a&view=board'],
   ['briefing', '/briefing'],

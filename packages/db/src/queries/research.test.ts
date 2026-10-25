@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, getAd, listAds, listKeywords, listShops } from './research';
+import { daySeries, getAd, listAds, listKeywords, listShops, marketReads } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -204,5 +204,35 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
       { date: '2026-10-19', slotTime: '13:00', runningAds: 4 },
       { date: '2026-10-20', slotTime: '01:00', runningAds: 5 },
     ]);
+  });
+
+  // Last: it adds ads that the exact lists above do not expect.
+  it('reads a keyword market: shops without non-shop domains, top 3 share, new ads by start date, proven ads and videos', async () => {
+    await db.execute(sql`insert into keywords (id, text, origin) values ('kw_m', 'market shirt', 'seed')`);
+    const ad = (id: string, domain: string, media: string, start: string, variants: number | null) =>
+      sql`(${id}, ${domain}, ${media}, ${start}, '2026-10-20', 2, '2026-10-01', '2026-10-20', ${variants}, '{}'::jsonb)`;
+    await db.execute(sql`insert into ads (ad_archive_id, landing_domain, media_type, start_date, end_date, seen_days, first_seen_date, last_seen_date, collation_count, parsed) values
+      ${sql.join(
+        [
+          // New (started in the last 7 days), a video, proven by 7 variants.
+          ad('m_new', 'shop1.com', 'VIDEO', '2026-10-18', 7),
+          // Started in the 7 days before.
+          ad('m_before', 'shop1.com', 'IMAGE', '2026-10-10', null),
+          // Proven by 50 days in 3 countries.
+          ad('m_long', 'shop2.com', 'IMAGE', '2026-09-01', 1),
+          // 50 days in 1 country, on a non-shop domain: counted as an ad, not as a shop.
+          ad('m_app', 'amazon.com', 'IMAGE', '2026-09-01', null),
+        ],
+        sql`, `,
+      )}`);
+    await db.execute(sql`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) values
+      ('m_new', 'run_1', 'kw_m', 'US', 1, '2026-10-19'), ('m_before', 'run_1', 'kw_m', 'US', 2, '2026-10-19'),
+      ('m_long', 'run_1', 'kw_m', 'US', 3, '2026-10-19'), ('m_long', 'run_1', 'kw_m', 'GB', 3, '2026-10-19'), ('m_long', 'run_1', 'kw_m', 'CA', 3, '2026-10-19'),
+      ('m_app', 'run_1', 'kw_m', 'US', 4, '2026-10-19')`);
+    const reads = await marketReads(db, O, { nonShopDomains: ['amazon.*'] });
+    expect(reads.get('kw_m')).toEqual({ ads: 4, shops: 2, top3Share: 0.75, newAds: 1, newAdsBefore: 1, proven: 2, video: 1 });
+    expect([...(await marketReads(db, O, { keywordId: 'kw_m' })).keys()]).toEqual(['kw_m']);
+    // kw_1's running ads: a_hi (20 days, 1 country, not proven) and a_lo (started 14/10, within 7 days of 20/10).
+    expect(reads.get('kw_1')).toMatchObject({ ads: 2, proven: 0, newAds: 1, newAdsBefore: 0 });
   });
 });

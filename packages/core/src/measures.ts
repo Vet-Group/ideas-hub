@@ -96,6 +96,51 @@ export function momentumScore(m: MomentumInput): number {
   return 10 * (variants ?? 0) + (likes ?? 0) + Math.min(30, m.daysActive ?? 0);
 }
 
+/** An ad the advertiser has scaled (6+ variants), or kept running 30+ days in 3+ countries. */
+export const PROVEN = { variants: 6, days: 30, countries: 3 } as const;
+
+export interface ProvenInput {
+  /** collation_count; null when the Ad Library gave none. */
+  variants: number | null;
+  daysActive: number | null;
+  countries: number;
+}
+
+/** marketReads (packages/db queries/research.ts) counts the same rule in SQL. */
+export function isProven(ad: ProvenInput): boolean {
+  return (ad.variants ?? 0) >= PROVEN.variants || ((ad.daysActive ?? 0) >= PROVEN.days && ad.countries >= PROVEN.countries);
+}
+
+/** Days back that count as "new ads" in the market read, and the share of new or proven ads that names its stage. */
+export const MARKET = { newDays: 7, risingShare: 0.15, provenShare: 0.35 } as const;
+
+export type MarketStage = 'rising' | 'proven' | 'steady';
+
+/** One keyword's running ads, read as a market (spec §6 "Market read"). */
+export interface MarketRead {
+  ads: number;
+  /** Landing domains outside `nonShopDomains`. */
+  shops: number;
+  /** Share of the ads run by the 3 biggest of those shops; null without a shop. */
+  top3Share: number | null;
+  /** Started in the last MARKET.newDays days, and in the days before those. */
+  newAds: number;
+  newAdsBefore: number;
+  proven: number;
+  video: number;
+}
+
+/**
+ * "rising" when ≥ 15% of the running ads started in the last 7 days (new demand: try it early), else
+ * "proven" when ≥ 35% are proven (known winners to learn from), else "steady". Thresholds from the
+ * production spread of 41 keywords on 2026-10-25: 7 rising, 18 proven.
+ */
+export function marketStage(m: Pick<MarketRead, 'ads' | 'newAds' | 'proven'>): MarketStage {
+  if (m.ads === 0) return 'steady';
+  if (m.newAds / m.ads >= MARKET.risingShare) return 'rising';
+  return m.proven / m.ads >= MARKET.provenShare ? 'proven' : 'steady';
+}
+
 /**
  * A `nonShopDomains` entry as a regex over a landing domain: the domain itself or any subdomain, `*`
  * standing for the rest of the name (`amazon.*` is amazon.com and amazon.co.uk). Valid in JS and in
