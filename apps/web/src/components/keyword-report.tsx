@@ -13,7 +13,6 @@ import { MarketReadPanel } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { DeltaLabel } from '@/components/states/delta-label';
 import { NoData } from '@/components/states/no-data';
-import { Button } from '@/components/ui/button';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
 import { isRealDate } from '@/lib/day';
@@ -119,15 +118,17 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
               {phrases.length ? (
                 <div className="grid gap-2">
                   <h3 className="text-sm font-medium">{t.keywords.market.phrases}</h3>
-                  <ul className="flex flex-wrap gap-2">
+                  {/* Two lines per phrase in a grid: as one-line chips, 12 phrases stacked one per row on a phone. */}
+                  <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                     {phrases.map((p) => (
                       <li key={p.phrase}>
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/ads${adQuery({ keywordId: id, title: p.phrase })}`}>
-                            {p.phrase}{' '}
-                            <span className="text-fg-2 font-mono text-xs tabular-nums">{t.keywords.market.phraseCount(p.shops, p.ads)}</span>
-                          </Link>
-                        </Button>
+                        <Link
+                          href={`/ads${adQuery({ keywordId: id, title: p.phrase })}`}
+                          className="border-line bg-surface hover:bg-muted focus-visible:ring-ring/50 grid h-full rounded-md border px-3 py-2 outline-none focus-visible:ring-[3px]"
+                        >
+                          <span className="text-sm font-medium">{p.phrase}</span>{' '}
+                          <span className="text-fg-2 text-xs tabular-nums">{t.keywords.market.phraseCount(p.shops, p.ads)}</span>
+                        </Link>
                       </li>
                     ))}
                   </ul>
