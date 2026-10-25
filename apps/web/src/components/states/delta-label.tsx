@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 export function DeltaLabel({ delta, bare = false }: { delta: Delta | null; bare?: boolean }) {
   if (!delta) return <span className="text-fg-2">{t.common.none}</span>;
   const n = delta.change;
-  const text = n > 0 ? `+${n} ▲` : n < 0 ? `−${Math.abs(n)} ▼` : '0';
+  const text = n > 0 ? `+${n} ▲` : n < 0 ? `−${Math.abs(n)} ▼` : '±0';
   return (
     <span>
       <span className={cn('font-mono whitespace-nowrap', n > 0 ? 'text-success' : 'text-fg-2')}>{text}</span>

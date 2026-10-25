@@ -1,8 +1,10 @@
 import { isNonShopDomain, storeScope } from '@ideas-hub/core';
 import { daySeries, getShop, listAds, savedRefs, shopReads } from '@ideas-hub/db/queries';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdGrid } from '@/components/ads/ad-grid';
 import { toCard } from '@/components/ads/cards';
+import { adQuery } from '@/components/ads/params';
 import { Tile } from '@/components/briefing/kpi-row';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { Sub, pct } from '@/components/market-read';
@@ -22,7 +24,8 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
   const o = await statusOptions(settings);
   const [series, ads, stores, read] = await Promise.all([
     daySeries(db, 'shop', domain),
-    listAds(db, o, { domain }),
+    // Grouped like "Gộp mẫu trùng": one shop runs the same creative many times.
+    listAds(db, o, { domain, dedupe: true }),
     saveTargets(user),
     shopReads(db, o, [domain]).then((r) => r.get(domain)),
   ]);
@@ -51,7 +54,12 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
           </dl>
         ) : null}
         <TrendChart points={series} />
-        <h2 className="font-semibold">{t.shops.ads}</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold">{t.shops.ads}</h2>
+          <Link href={`/ads${adQuery({ domain, dedupe: true })}`} className="text-sm underline underline-offset-2">
+            {t.shops.openInAds}
+          </Link>
+        </div>
         <AdGrid
           ads={own.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))}
           selectedId={null}
