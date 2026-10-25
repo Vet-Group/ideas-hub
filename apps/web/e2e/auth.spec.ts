@@ -40,6 +40,15 @@ test('a link opens its page with 0 actions on a valid session and is kept throug
   await expect(page.getByRole('heading', { name: 'Run log' })).toBeVisible();
 });
 
+test('the bare domain opens the briefing, before and after sign-in', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/login\?callbackURL=%2F$/);
+  await signIn(page, USERS.admin.email, page.url());
+  await expect(page).toHaveURL(/\/briefing$/);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/briefing$/);
+});
+
 for (const cb of ['//example.com', '/%09/example.com', 'https://example.com/x', '/..//example.com', '/.//example.com', '/%2e%2e//example.com']) {
   test(`a callback of ${cb} lands on /briefing`, async ({ page }) => {
     await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(cb)}`);
