@@ -325,3 +325,29 @@ test('shops: total shown, non-shop domains left out, the domain looks like a lin
   expect(dateText.left - countText.right).toBeGreaterThanOrEqual(24);
   expect((await page.getByRole('columnheader', { name: /Domain/ }).boundingBox())!.width).toBeGreaterThanOrEqual(224);
 });
+
+test('the run log shows the next 2 scheduled runs apart and lists the rest by when they ran, newest first', async ({ page }) => {
+  const pool = e2ePool();
+  // Created ahead like the scheduler does, after the finished runs: with created_at order they came first.
+  const future = [
+    ['run_e2e_next1', '2026-10-21T06:00:00Z'],
+    ['run_e2e_next2', '2026-10-21T18:00:00Z'],
+    ['run_e2e_later', '2026-11-07T06:00:00Z'],
+  ];
+  try {
+    for (const [id, at] of future)
+      await pool.query(
+        `insert into crawl_runs (id, source, trigger, scheduled_for, status, planned_searches, deadline, created_at) values ($1, 'fb_ad_library', 'schedule', $2, 'scheduled', 160, $2, now())`,
+        [id, at],
+      );
+    await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fruns');
+    await expect(page.getByText('Run kế tiếp: 13:00 21-10, 01:00 22-10')).toBeVisible();
+    const rows = page.getByRole('row');
+    await expect(rows.nth(1)).toContainText('manual');
+    await expect(rows.nth(1).getByRole('cell').nth(2)).toHaveText('xong');
+    await expect(page.getByRole('cell', { name: 'chờ chạy' })).toHaveCount(0);
+  } finally {
+    await pool.query(`delete from crawl_runs where id = any($1)`, [future.map(([id]) => id)]);
+    await pool.end();
+  }
+});

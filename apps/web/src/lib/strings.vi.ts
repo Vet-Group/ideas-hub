@@ -173,6 +173,7 @@ export const t = {
   runs: {
     title: 'Run log',
     empty: 'Chưa có run nào.',
+    next: 'Run kế tiếp',
     scheduledFor: 'Lịch',
     trigger: 'Kiểu',
     status: 'Trạng thái',
