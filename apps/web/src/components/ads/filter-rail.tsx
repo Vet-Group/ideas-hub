@@ -55,6 +55,10 @@ export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords:
         <Label htmlFor="f-domain">{t.ads.domain}</Label>
         <Input id="f-domain" name="domain" defaultValue={f.domain ?? ''} />
       </div>
+      <div className="grid gap-1">
+        <Label htmlFor="f-title">{t.ads.titleHas}</Label>
+        <Input id="f-title" name="title" defaultValue={f.title ?? ''} />
+      </div>
       <div className="flex items-center gap-2">
         <Checkbox id="f-dedupe" name="dedupe" value="1" defaultChecked={f.dedupe} className="size-6" />
         <Label htmlFor="f-dedupe">{t.ads.dedupe}</Label>

@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, VIETNAM, addDays, daysActive, isProven, nonShopPattern, trendScore } from '@ideas-hub/core';
+import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_STOPWORDS, VIETNAM, addDays, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
 import { type SQL, sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { adStatusQuery } from './ad-status';
@@ -30,6 +30,8 @@ export interface AdFilters {
   proven?: boolean;
   /** Part of the landing domain. */
   domain?: string;
+  /** Words in the title, in this order (titleWords). */
+  title?: string;
   /** Near-duplicate creatives (same caption and landing domain) as one item with their count. */
   dedupe?: boolean;
   sort?: AdSort;
@@ -121,6 +123,8 @@ async function selectAds(db: Db, o: StatusOptions, where: ReturnType<typeof sql>
 }
 
 const DAYS = sql`(a.end_date - a.start_date + 1)`;
+/** titleWords (packages/core) in SQL. */
+const titleWordsSql = (title: SQL) => sql`trim(regexp_replace(lower(${title}), '[^[:alpha:]]+', ' ', 'g'))`;
 /** trendScore (packages/core) in SQL, so the score filter and sort run in the database. */
 const SCORE = sql`case when ${DAYS} >= 5 and nullif(a.landing_domain, '') is not null then ${DAYS} * a.seen_days end`;
 /** isProven (packages/core) in SQL, from an ad's variants, days active and countries. */
@@ -174,6 +178,8 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
       f.keywordId ? sql`and exists (select 1 from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.keyword_id = ${f.keywordId})` : sql``,
       f.country ? sql`and exists (select 1 from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.country = ${f.country})` : sql``,
       f.domain ? sql`and a.landing_domain ilike ${`%${escapeLike(f.domain)}%`} escape '\\'` : sql``,
+      // Whole words, so a phrase from the keyword report (titlePhrases) finds the ads it counted.
+      f.title && titleWords(f.title) ? sql`and ' ' || ${titleWordsSql(sql`a.title`)} || ' ' like ${`% ${titleWords(f.title)} %`}` : sql``,
       f.minDays === undefined ? sql`` : sql`and coalesce(${DAYS}, 0) >= ${f.minDays}`,
       f.minScore === undefined ? sql`` : sql`and coalesce(${SCORE}, 0) >= ${f.minScore}`,
       f.proven
@@ -394,6 +400,55 @@ export async function marketReads(
       { ads: r.ads, shops: r.shops, top3Share: r.top3 === null || r.ads === 0 ? null : r.top3 / r.ads, newAds: r.new_ads, newAdsBefore: r.new_before, proven: r.proven, video: r.video },
     ]),
   );
+}
+
+export interface TitlePhrase {
+  phrase: string;
+  /** Running ads of the keyword with the phrase in their title. */
+  ads: number;
+  /** Shops (landing domains outside nonShopDomains) among them; at least 2. */
+  shops: number;
+}
+
+/**
+ * The 2-word phrases most shops put in the titles of a keyword's running ads, by shops then ads: the
+ * products inside the keyword ("acrylic ornament", "first christmas"). Phrases with a stop word or made
+ * only of the keyword's own words are left out.
+ */
+export async function titlePhrases(
+  db: Db,
+  o: StatusOptions,
+  keyword: { id: string; text: string },
+  nonShopDomains: readonly string[] = [],
+  limit = 12,
+): Promise<TitlePhrase[]> {
+  const stop = sql.param([...TITLE_STOPWORDS]);
+  const own = sql.param(titleWords(keyword.text).split(' '));
+  const { rows } = await db.transaction(async (tx) => {
+    // As in marketReads: JIT compiling would cost more than the query.
+    await tx.execute(sql`set local jit = off`);
+    return tx.execute<{ phrase: string; ads: number; shops: number }>(sql`
+    with r as (
+      select distinct a.ad_archive_id, a.title, a.landing_domain,
+        nullif(a.landing_domain, '') is not null and ${shopDomainFilter(sql`a.landing_domain`, nonShopDomains)} as is_shop
+      from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id and st.status = 'running'
+      join ad_sightings s on s.ad_archive_id = a.ad_archive_id and s.keyword_id = ${keyword.id}
+      where a.title is not null
+    ),
+    w as (select r.ad_archive_id, t.word, t.n from r, regexp_split_to_table(${titleWordsSql(sql`r.title`)}, ' ') with ordinality t(word, n)),
+    g as (
+      select distinct w1.ad_archive_id, w1.word || ' ' || w2.word as phrase
+      from w w1 join w w2 on w2.ad_archive_id = w1.ad_archive_id and w2.n = w1.n + 1
+      where length(w1.word) > 1 and length(w2.word) > 1
+        and not (w1.word = any(${stop}::text[]) or w2.word = any(${stop}::text[]))
+        and not (w1.word = any(${own}::text[]) and w2.word = any(${own}::text[]))
+    )
+    select g.phrase, count(*)::int as ads, (count(distinct r.landing_domain) filter (where r.is_shop))::int as shops
+    from g join r on r.ad_archive_id = g.ad_archive_id
+    group by g.phrase having count(distinct r.landing_domain) filter (where r.is_shop) >= 2
+    order by shops desc, ads desc, g.phrase limit ${limit}`);
+  });
+  return rows;
 }
 
 export async function getKeyword(db: Db, id: string): Promise<KeywordRow | null> {

@@ -1,5 +1,5 @@
 import { VIETNAM, canSeeKeywordAi, nextSlotAfter, storeScope } from '@ideas-hub/core';
-import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, sourceRun, topTrendingAds } from '@ideas-hub/db/queries';
+import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, sourceRun, titlePhrases, topTrendingAds } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
@@ -7,11 +7,13 @@ import { AdGrid } from '@/components/ads/ad-grid';
 import { NewsPanel, SuggestionsPanel } from '@/components/briefing/ai-panels';
 import { CountTable } from '@/components/briefing/count-table';
 import { toCard } from '@/components/ads/cards';
+import { adQuery } from '@/components/ads/params';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { MarketReadPanel } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { DeltaLabel } from '@/components/states/delta-label';
 import { NoData } from '@/components/states/no-data';
+import { Button } from '@/components/ui/button';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
 import { isRealDate } from '@/lib/day';
@@ -43,7 +45,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
   const run: SourceRun | null = await sourceRun(db, date ? endOfVnDate(date) : at);
   const o = { staleAfterDays: s.staleAfterDays, countries: s.countries, keywordId: id, limit: 12 };
   const status = run ? { today: run.crawlDay, staleAfterDays: s.staleAfterDays, countries: s.countries } : null;
-  const [series, stores, top, rising, counts, shops, blocker, keywordAds, market] = await Promise.all([
+  const [series, stores, top, rising, counts, shops, blocker, keywordAds, market, phrases] = await Promise.all([
     daySeries(db, 'keyword', id),
     saveTargets(user),
     run ? topTrendingAds(db, run, o) : [],
@@ -53,6 +55,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
     canRun ? runNowBlocker(s, at) : Promise.resolve(null),
     status ? listAds(db, status, { keywordId: id, limit: 10_000 }).then((r) => r.items) : [],
     status ? marketReads(db, status, { keywordId: id, nonShopDomains: s.nonShopDomains }).then((r) => r.get(id)) : undefined,
+    status ? titlePhrases(db, status, { id, text: keyword.text }, s.nonShopDomains) : [],
   ]);
   // Section 4 for one keyword: the rising shops among the domains of its running ads.
   const domains = new Set(keywordAds.map((a) => a.landingDomain));
@@ -113,6 +116,24 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
                 {t.keywords.market.title}
               </h2>
               <MarketReadPanel read={market} />
+              {phrases.length ? (
+                <div className="grid gap-2">
+                  <h3 className="text-sm font-medium">{t.keywords.market.phrases}</h3>
+                  <ul className="flex flex-wrap gap-2">
+                    {phrases.map((p) => (
+                      <li key={p.phrase}>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/ads${adQuery({ keywordId: id, title: p.phrase })}`}>
+                            {p.phrase}{' '}
+                            <span className="text-fg-2 font-mono text-xs tabular-nums">{t.keywords.market.phraseCount(p.shops, p.ads)}</span>
+                          </Link>
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-fg-2 text-xs">{t.keywords.market.phrasesHelp}</p>
+                </div>
+              ) : null}
             </section>
             <section className="grid gap-2" aria-labelledby="kw-s1">
               <h2 id="kw-s1" className="font-semibold">

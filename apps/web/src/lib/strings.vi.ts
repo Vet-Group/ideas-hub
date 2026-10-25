@@ -232,6 +232,7 @@ export const t = {
     trendingNoData: 'Chưa đủ dữ liệu để xếp "Đang lên": cần ít nhất 2 ngày crawl có số mẫu hoặc số like của trang trong 3 ngày gần nhất.',
     dedupe: 'Gộp mẫu trùng',
     provenOnly: 'Chỉ ads đã chứng minh',
+    titleHas: 'Tiêu đề có',
     variants: 'Biến thể',
     duplicates: (n: number) => `${n} mẫu trùng`,
     detail: 'Chi tiết ad',
@@ -307,6 +308,9 @@ export const t = {
       outOf: (n: number, total: number) => `${n} trên ${total} ads`,
       none: 'Chưa có ads đang chạy để đọc thị trường.',
       noRunning: 'Chưa có ads đang chạy',
+      phrases: 'Cụm từ nhiều shop dùng trong tiêu đề ads',
+      phraseCount: (shops: number, ads: number) => `${shops} shop · ${ads} ads`,
+      phrasesHelp: 'Cụm 2 từ có trong tiêu đề ads đang chạy của từ 2 shop trở lên, xếp theo số shop: các sản phẩm con trong keyword. Bấm để xem các ads đó.',
     },
   },
   storeKeywords: {

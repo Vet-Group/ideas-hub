@@ -141,6 +141,19 @@ export function marketStage(m: Pick<MarketRead, 'ads' | 'newAds' | 'proven'>): M
   return m.proven / m.ads >= MARKET.provenShare ? 'proven' : 'steady';
 }
 
+/** Words that never make a title phrase on their own side ("gift for", "shop now"). */
+export const TITLE_STOPWORDS = [
+  'a', 'an', 'the', 'and', 'or', 'of', 'for', 'to', 'in', 'on', 'at', 'by', 'with', 'from', 'as', 'is', 'are', 'be',
+  'it', 'its', 'this', 'that', 'your', 'you', 'our', 'my', 'me', 'we', 'us', 'her', 'his', 'him', 'she', 'he', 'they',
+  'them', 'their', 'get', 'now', 'off', 'up', 'out', 'all', 'just', 'more', 'best', 'shop', 'buy', 'order', 'free',
+  'only', 'so', 'if', 'not', 'no', 'will', 'can', 'what', 'who', 'how', 'when', 'new',
+] as const;
+
+/** A title as lower-case words split by single spaces; titlePhrases (packages/db) splits the same way in SQL. */
+export function titleWords(title: string): string {
+  return title.toLowerCase().replace(/[^\p{L}]+/gu, ' ').trim();
+}
+
 /**
  * A `nonShopDomains` entry as a regex over a landing domain: the domain itself or any subdomain, `*`
  * standing for the rest of the name (`amazon.*` is amazon.com and amazon.co.uk). Valid in JS and in
