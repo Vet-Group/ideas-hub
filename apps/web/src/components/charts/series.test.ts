@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildChartRows, rangeStart } from './series';
+import { buildChartRows, endLabelsFit, rangeStart } from './series';
 
 describe('buildChartRows', () => {
   it('makes one row per day with one column per slot, and a gap (null) for a missing snapshot', () => {
@@ -28,5 +28,17 @@ describe('buildChartRows', () => {
     expect(rangeStart(rows, 14)).toBe('2026-10-07');
     expect(rangeStart(rows, 8)).toBe('2026-10-13');
     expect(rangeStart([], 14)).toBeNull();
+  });
+});
+
+describe('endLabelsFit', () => {
+  const slots = ['01:00', '13:00'];
+  it('labels lines whose last values sit apart, and drops labels that would overlap', () => {
+    expect(endLabelsFit([{ date: '2026-10-24', s0100: 300, s1300: 380 }, { date: '2026-10-25', s0100: 300, s1300: 404 }], slots)).toBe(true);
+    expect(endLabelsFit([{ date: '2026-10-24', s0100: 300, s1300: 380 }, { date: '2026-10-25', s0100: 394, s1300: 404 }], slots)).toBe(false);
+  });
+  it('a line with no last value and a single line always fit', () => {
+    expect(endLabelsFit([{ date: '2026-10-25', s0100: 404, s1300: null }], slots)).toBe(true);
+    expect(endLabelsFit([], slots)).toBe(true);
   });
 });

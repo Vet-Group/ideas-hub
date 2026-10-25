@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { type ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { t } from '@/lib/strings.vi';
-import { buildChartRows, rangeStart, slotKey } from './series';
+import { buildChartRows, endLabelsFit, rangeStart, slotKey } from './series';
 
 export interface Point {
   date: string;
@@ -32,6 +32,7 @@ export function TrendChart({ points }: { points: Point[] }) {
     const from = range === 'all' ? null : rangeStart(rows, Number(range));
     return from ? rows.filter((r) => r.date >= from) : rows;
   }, [rows, range]);
+  const endLabels = endLabelsFit(shown, slots);
   const weekAgo = rows.length ? rangeStart(rows, 8) : null;
   const config: ChartConfig = Object.fromEntries(slots.map((s, i) => [slotKey(s), { label: t.charts.slot(s), color: SERIES_COLORS[Math.min(i, 2)] }]));
 
@@ -81,7 +82,7 @@ export function TrendChart({ points }: { points: Point[] }) {
         </div>
       ) : (
         <ChartContainer config={config} className="aspect-auto h-64 w-full [&_.recharts-surface:focus]:outline-2 [&_.recharts-surface:focus]:outline-solid [&_.recharts-surface:focus]:outline-ring">
-          <LineChart data={shown} margin={{ top: 8, right: 64, bottom: 0, left: 0 }} accessibilityLayer>
+          <LineChart data={shown} margin={{ top: 8, right: endLabels ? 64 : 16, bottom: 0, left: 0 }} accessibilityLayer>
             <CartesianGrid vertical={false} strokeOpacity={0.4} />
             <XAxis dataKey="date" tickFormatter={ddmm} tickLine={false} axisLine={false} tick={{ fill: 'var(--vet-ink)' }} minTickGap={16} />
             <YAxis domain={[0, 'auto']} allowDecimals={false} tickLine={false} axisLine={false} width={40} tick={{ fill: 'var(--vet-ink)' }} />
@@ -92,7 +93,9 @@ export function TrendChart({ points }: { points: Point[] }) {
             <ChartLegend content={<ChartLegendContent />} />
             {slots.map((s) => (
               <Line key={s} dataKey={slotKey(s)} name={slotKey(s)} type="linear" stroke={`var(--color-${slotKey(s)})`} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false}>
-                <LabelList dataKey={slotKey(s)} content={({ x, y, index, value }) => (index === shown.length - 1 && value != null ? <text x={Number(x) + 6} y={Number(y) + 4} fontSize={12} fill="var(--vet-ink)">{t.charts.slot(s)}</text> : null)} />
+                {endLabels ? (
+                  <LabelList dataKey={slotKey(s)} content={({ x, y, index, value }) => (index === shown.length - 1 && value != null ? <text x={Number(x) + 6} y={Number(y) + 4} fontSize={12} fill="var(--vet-ink)">{t.charts.slot(s)}</text> : null)} />
+                ) : null}
               </Line>
             ))}
           </LineChart>
