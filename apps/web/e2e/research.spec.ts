@@ -432,3 +432,19 @@ test('shops read as markets: new and proven ads and keywords in the table and on
   await page.goto(`/shops/${MUG.domain}`);
   await expect(page.getByLabel('Đọc thị trường').locator('dd')).toHaveText(['2 33% số ads', '1 17% số ads', '1']);
 });
+
+test('the shop page groups a creative the shop runs twice and links to the same view in Ads; briefing ad rows label the score @phone', async ({ page }) => {
+  const pool = e2ePool();
+  try {
+    await pool.query(`update ads set caption = 'Best dog mom mug gift 1' where ad_archive_id = 'e2e_mug_2'`);
+    await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(`/shops/${MUG.domain}`)}`);
+    await expect(page.getByText('2 mẫu trùng')).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'Best dog mom mug gift 2', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Lọc trong trang Ads' })).toHaveAttribute('href', `/ads?domain=${MUG.domain}&dedupe=1`);
+  } finally {
+    await pool.query(`update ads set caption = 'Best dog mom mug gift 2' where ad_archive_id = 'e2e_mug_2'`);
+    await pool.end();
+  }
+  await page.goto('/briefing');
+  await expect(page.getByRole('region', { name: 'Ads trend nhất' }).locator('li').first()).toContainText(/Điểm (\d+|—)/);
+});

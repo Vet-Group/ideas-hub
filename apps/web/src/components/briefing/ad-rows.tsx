@@ -39,8 +39,9 @@ export function AdRows({
                 .join(' · ')}
             </span>
           </div>
-          <span className="font-mono text-xs" title={t.ads.score}>
-            {a.trendScore ?? t.common.none}
+          {/* Labelled like the ad cards: a title tooltip never shows on a phone. */}
+          <span className="shrink-0 text-xs whitespace-nowrap">
+            <span className="text-fg-2">{t.ads.score}</span> <span className="font-mono">{a.trendScore ?? t.common.none}</span>
           </span>
           <div className="relative z-10">
             <SaveButton

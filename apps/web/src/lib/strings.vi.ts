@@ -260,6 +260,7 @@ export const t = {
     empty: 'Chưa có shop nào.',
     count: (shown: number, total: number) => `${shown} / ${total} shop`,
     ads: 'Ads của shop',
+    openInAds: 'Lọc trong trang Ads',
     sortBy: (label: string) => `Sắp xếp theo ${label}`,
   },
   keywords: {
