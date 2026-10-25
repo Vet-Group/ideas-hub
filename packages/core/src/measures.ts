@@ -106,7 +106,7 @@ export interface ProvenInput {
   countries: number;
 }
 
-/** marketReads (packages/db queries/research.ts) counts the same rule in SQL. */
+/** provenSql (packages/db queries/research.ts) is the same rule in SQL. */
 export function isProven(ad: ProvenInput): boolean {
   return (ad.variants ?? 0) >= PROVEN.variants || ((ad.daysActive ?? 0) >= PROVEN.days && ad.countries >= PROVEN.countries);
 }

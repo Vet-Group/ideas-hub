@@ -57,10 +57,11 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
   // Section 4 for one keyword: the rising shops among the domains of its running ads.
   const domains = new Set(keywordAds.map((a) => a.landingDomain));
   const ownShops = shops.filter((r) => domains.has(r.key)).slice(0, 10);
+  const provenIds = new Set(keywordAds.filter((a) => a.proven).map((a) => a.adArchiveId));
   const next = nextSlotAfter(s.runTimes, at);
   const card = (a: AdRow) =>
     toCard(
-      { ...a, title: null, link: null, mediaType: null, firstSeenDate: '', lastSeenDate: '', status: 'running', keywords: [{ id, text: keyword.text }], countries: [] },
+      { ...a, title: null, link: null, mediaType: null, firstSeenDate: '', lastSeenDate: '', variants: null, proven: provenIds.has(a.adArchiveId), status: 'running', keywords: [{ id, text: keyword.text }], countries: [] },
       `/ads/${encodeURIComponent(a.adArchiveId)}`,
       keyword.text,
     );

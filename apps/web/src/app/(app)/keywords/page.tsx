@@ -1,7 +1,7 @@
 import { type MarketRead, type MarketStage, marketStage } from '@ideas-hub/core';
 import { KEYWORD_SORTS, type KeywordRow, type KeywordSort, listKeywords, marketReads } from '@ideas-hub/db/queries';
 import Link from 'next/link';
-import { MarketStageChip, pct } from '@/components/market-read';
+import { MarketStageChip, Share, pct } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { SortHead } from '@/components/sort-head';
 import { Button } from '@/components/ui/button';
@@ -26,13 +26,6 @@ const MARKET_ORDER: Record<(typeof MARKET_SORTS)[number], (r: MarketRead | undef
 };
 
 const Stage = ({ stage }: { stage: MarketStage | null }) => (stage ? <MarketStageChip stage={stage} /> : <span className="text-fg-muted">{t.common.none}</span>);
-
-/** The share leads (it compares keywords); the count follows, muted. */
-const Share = ({ part, whole }: { part: number; whole: number }) => (
-  <>
-    {pct(part, whole)} <span className="text-fg-muted">({part})</span>
-  </>
-);
 
 function KeywordName({ k }: { k: KeywordRow }) {
   return (

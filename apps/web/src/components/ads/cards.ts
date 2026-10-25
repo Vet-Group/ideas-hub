@@ -17,6 +17,7 @@ export function toCard(a: AdListItem & { duplicates?: number }, href: string, ke
     countries: a.countries,
     daysActive: a.daysActive,
     trendScore: a.trendScore,
+    proven: a.proven,
     status: a.status,
     duplicates: a.duplicates ?? 1,
   };

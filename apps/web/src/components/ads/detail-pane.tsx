@@ -2,6 +2,7 @@ import { type AdSighting, type AdListItem } from '@ideas-hub/db/queries';
 import { ExternalLink } from 'lucide-react';
 import { SaveButton, type SaveTarget } from '@/components/save/save-button';
 import { AdStatusChip } from '@/components/states/ad-status-chip';
+import { ProvenChip } from '@/components/states/proven-chip';
 import { Button } from '@/components/ui/button';
 import { t } from '@/lib/strings.vi';
 import { thumbUrl } from '@/lib/thumb-url';
@@ -26,6 +27,7 @@ export function DetailPane({
     [t.ads.started, ddmm(ad.startDate)],
     [t.ads.daysActive, t.ads.days(ad.daysActive)],
     [t.ads.seenDays, String(ad.seenDays)],
+    [t.ads.variants, ad.variants === null ? t.common.none : String(ad.variants)],
     [t.ads.score, ad.trendScore === null ? t.common.none : String(ad.trendScore)],
     [t.ads.firstSeen, ddmm(ad.firstSeenDate)],
     [t.ads.lastSeen, ddmm(ad.lastSeenDate)],
@@ -42,7 +44,10 @@ export function DetailPane({
     <article className="grid gap-3" aria-label={t.ads.detail}>
       <Thumb src={ad.thumbnailKey ? thumbUrl(ad.thumbnailKey) : null} mediaType={ad.mediaType} alt={ad.caption ?? ''} className="rounded-card" />
       <div className="flex items-center justify-between gap-2">
-        <AdStatusChip status={ad.status} />
+        <span className="flex flex-wrap gap-1">
+          <AdStatusChip status={ad.status} />
+          {ad.proven ? <ProvenChip /> : null}
+        </span>
         <div className="group-data-[pane=bottom]:hidden">{save}</div>
       </div>
       <h2 className="font-semibold">{ad.pageName ?? ad.adArchiveId}</h2>
