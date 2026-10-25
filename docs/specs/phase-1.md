@@ -538,7 +538,8 @@ with no new crawling (`marketReads`, packages/db; `isProven` and `marketStage`, 
 - `/keywords` lists the keywords as markets: stage filter chips with counts, then stage, running ads, new
   and proven ads (share first, count after), shops and top 3 share, sortable; cards on phones. The
   keyword report has a "Đọc thị trường" section after section 3: the stage with its rule and 4 tiles
-  (new ads, proven ads, shops, videos).
+  (new ads, proven ads, shops, videos). The chart follows the market read and title phrases, which
+  answer "what to make" first (on a phone the chart had pushed them 3 screens down).
 - Ads: a proven ad carries a "Đã chứng minh" chip (tooltip states the rule) on its card and in the
   detail pane, which also shows its variants ("Biến thể"). The filter rail has "Chỉ ads đã chứng minh"
   (`proven=1`) and the sort "Mới bắt đầu chạy" (start date, newest first, `sort=started`).

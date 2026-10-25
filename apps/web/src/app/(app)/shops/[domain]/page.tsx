@@ -50,7 +50,10 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
               {read.proven}
               <Sub>{m.ofAds(pct(read.proven, read.ads))}</Sub>
             </Tile>
-            <Tile label={t.shops.keywords}>{read.keywords}</Tile>
+            <Tile label={t.shops.keywords}>
+              {read.keywords}
+              <Sub>{t.shops.keywordsSub}</Sub>
+            </Tile>
           </dl>
         ) : null}
         <TrendChart points={series} />

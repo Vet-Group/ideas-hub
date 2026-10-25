@@ -121,7 +121,7 @@ export function SuggestionsPanel({
               <span className="bg-neutral-bg text-fg-2 rounded-pill mr-2 px-2 py-0.5 text-xs">{t.briefing.suggestionKind[s.kind]}</span>
               <span className="font-medium">{s.text}</span>
             </p>
-            <SaveButton source={{ kind: 'suggestion', suggestionId: s.id }} stores={stores} title={s.text} saved={saved.includes(s.id)} compact />
+            <SaveButton source={{ kind: 'suggestion', suggestionId: s.id }} stores={stores} title={s.text} saved={saved.includes(s.id)} />
           </div>
           <p className="text-fg-2">{s.reason}</p>
           <SuggestionEvidence evidence={s.evidence} newsById={newsById} adHref={adHref} adTitles={adTitles} />
