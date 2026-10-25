@@ -8,6 +8,9 @@ describe('ads query params', () => {
     expect(adQuery(f)).toBe('?kw=kw_1&country=GB&dedupe=1&sort=days&page=3');
     expect(adQuery({ ...f, page: 4 })).toBe('?kw=kw_1&country=GB&dedupe=1&sort=days&page=4');
     expect(parseAdFilters({ sort: 'trending' }).sort).toBe('trending');
+    expect(parseAdFilters({ sort: 'started' }).sort).toBe('started');
+    expect(parseAdFilters({ proven: '1' }).proven).toBe(true);
+    expect(adQuery(parseAdFilters({ proven: '1', sort: 'started' }))).toBe('?proven=1&sort=started');
     expect(adQuery(parseAdFilters({}))).toBe('');
   });
 

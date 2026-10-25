@@ -1,8 +1,8 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, VIETNAM, addDays, daysActive, nonShopPattern, trendScore } from '@ideas-hub/core';
-import { sql } from 'drizzle-orm';
+import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, VIETNAM, addDays, daysActive, isProven, nonShopPattern, trendScore } from '@ideas-hub/core';
+import { type SQL, sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { adStatusQuery } from './ad-status';
 import { escapeLike } from './search';
@@ -14,7 +14,7 @@ export interface StatusOptions {
   countries: readonly string[];
 }
 
-export const AD_SORTS = ['score', 'trending', 'days', 'last_seen', 'first_seen'] as const;
+export const AD_SORTS = ['score', 'trending', 'started', 'days', 'last_seen', 'first_seen'] as const;
 export type AdSort = (typeof AD_SORTS)[number];
 export const AD_PAGE_SIZE = 120;
 
@@ -26,6 +26,8 @@ export interface AdFilters {
   /** Minimum days active. */
   minDays?: number;
   minScore?: number;
+  /** Proven ads only (isProven). */
+  proven?: boolean;
   /** Part of the landing domain. */
   domain?: string;
   /** Near-duplicate creatives (same caption and landing domain) as one item with their count. */
@@ -52,6 +54,9 @@ export interface AdListItem {
   seenDays: number;
   daysActive: number | null;
   trendScore: number | null;
+  /** collation_count: the ad's variants in the Ad Library. */
+  variants: number | null;
+  proven: boolean;
   status: AdStatus;
   keywords: { id: string; text: string }[];
   countries: string[];
@@ -71,6 +76,7 @@ type AdSqlRow = {
   first_seen_date: string;
   last_seen_date: string;
   seen_days: number;
+  collation_count: number | null;
   status: AdStatus;
   keywords: { id: string; text: string }[] | null;
   countries: string[] | null;
@@ -94,6 +100,8 @@ function toItem(r: AdSqlRow): AdListItem {
     seenDays: r.seen_days,
     daysActive: active,
     trendScore: active === null ? null : trendScore({ daysActive: active, seenDays: r.seen_days, landingDomain: r.landing_domain }),
+    variants: r.collation_count,
+    proven: isProven({ variants: r.collation_count, daysActive: active, countries: r.countries?.length ?? 0 }),
     status: r.status,
     keywords: r.keywords ?? [],
     countries: r.countries ?? [],
@@ -103,7 +111,7 @@ function toItem(r: AdSqlRow): AdListItem {
 async function selectAds(db: Db, o: StatusOptions, where: ReturnType<typeof sql>) {
   const { rows } = await db.execute<AdSqlRow>(sql`
     select a.ad_archive_id, a.page_name, a.caption, a.title, a.link, a.landing_domain, a.media_type, a.thumbnail_key,
-      a.start_date::text, a.end_date::text, a.first_seen_date::text, a.last_seen_date::text, a.seen_days, st.status,
+      a.start_date::text, a.end_date::text, a.first_seen_date::text, a.last_seen_date::text, a.seen_days, a.collation_count, st.status,
       (select json_agg(distinct jsonb_build_object('id', k.id, 'text', k.text)) from ad_sightings s join keywords k on k.id = s.keyword_id
         where s.ad_archive_id = a.ad_archive_id) as keywords,
       (select array_agg(distinct s.country order by s.country) from ad_sightings s where s.ad_archive_id = a.ad_archive_id) as countries
@@ -115,6 +123,9 @@ async function selectAds(db: Db, o: StatusOptions, where: ReturnType<typeof sql>
 const DAYS = sql`(a.end_date - a.start_date + 1)`;
 /** trendScore (packages/core) in SQL, so the score filter and sort run in the database. */
 const SCORE = sql`case when ${DAYS} >= 5 and nullif(a.landing_domain, '') is not null then ${DAYS} * a.seen_days end`;
+/** isProven (packages/core) in SQL, from an ad's variants, days active and countries. */
+const provenSql = (variants: SQL, days: SQL, countries: SQL) =>
+  sql`(coalesce(${variants}, 0) >= ${PROVEN.variants} or (coalesce(${days}, 0) >= ${PROVEN.days} and coalesce(${countries}, 0) >= ${PROVEN.countries}))`;
 
 /**
  * momentumScore (packages/core) in SQL for ad `a` as of crawl day `today`: each series (the ad's
@@ -141,6 +152,7 @@ const AD_ORDER: Record<AdSort, ReturnType<typeof sql>> = {
   days: sql`days_active desc nulls last, last_seen_date desc, ad_archive_id`,
   last_seen: sql`last_seen_date desc, ad_archive_id`,
   first_seen: sql`first_seen_date desc, last_seen_date desc, ad_archive_id`,
+  started: sql`start_date desc nulls last, last_seen_date desc, ad_archive_id`,
 };
 
 export interface AdPage {
@@ -164,6 +176,9 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
       f.domain ? sql`and a.landing_domain ilike ${`%${escapeLike(f.domain)}%`} escape '\\'` : sql``,
       f.minDays === undefined ? sql`` : sql`and coalesce(${DAYS}, 0) >= ${f.minDays}`,
       f.minScore === undefined ? sql`` : sql`and coalesce(${SCORE}, 0) >= ${f.minScore}`,
+      f.proven
+        ? sql`and ${provenSql(sql`a.collation_count`, DAYS, sql`(select count(distinct s.country) from ad_sightings s where s.ad_archive_id = a.ad_archive_id)`)}`
+        : sql``,
     ],
     sql` `,
   );
@@ -174,7 +189,7 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
   const { rows } = await db.execute<Omit<AdSqlRow, 'ad_archive_id'> & { ad_archive_id: string | null; duplicates: number; momentum: number; total: number }>(sql`
     with f as (
       select a.ad_archive_id, a.page_name, a.caption, a.title, a.link, a.landing_domain, a.media_type, a.thumbnail_key,
-        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, st.status, ${DAYS} as days_active, ${SCORE} as score,
+        a.start_date, a.end_date, a.first_seen_date, a.last_seen_date, a.seen_days, a.collation_count, st.status, ${DAYS} as days_active, ${SCORE} as score,
         ${f.sort === 'trending' ? momentumSql(o.today) : sql`0`} as momentum
       from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id
       where true ${where}
@@ -183,7 +198,7 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
     p as (select * from g where rn = 1 order by ${order} limit ${limit} offset ${offset})
     -- The left join keeps one row with the total when the page is empty.
     select p.ad_archive_id, p.page_name, p.caption, p.title, p.link, p.landing_domain, p.media_type, p.thumbnail_key,
-      p.start_date::text, p.end_date::text, p.first_seen_date::text, p.last_seen_date::text, p.seen_days, p.status,
+      p.start_date::text, p.end_date::text, p.first_seen_date::text, p.last_seen_date::text, p.seen_days, p.collation_count, p.status,
       p.duplicates::int, p.momentum, t.total,
       (select json_agg(distinct jsonb_build_object('id', k.id, 'text', k.text)) from ad_sightings s join keywords k on k.id = s.keyword_id
         where s.ad_archive_id = p.ad_archive_id) as keywords,
@@ -328,8 +343,7 @@ export async function marketReads(
     select r.keyword_id, count(*)::int as ads, coalesce(max(k.shops), 0) as shops, max(k.top3) as top3,
       (count(*) filter (where r.start_date > ${o.today}::date - ${MARKET.newDays}::int))::int as new_ads,
       (count(*) filter (where r.start_date > ${o.today}::date - ${2 * MARKET.newDays}::int and r.start_date <= ${o.today}::date - ${MARKET.newDays}::int))::int as new_before,
-      (count(*) filter (where coalesce(r.collation_count, 0) >= ${PROVEN.variants}
-        or (coalesce(r.days_active, 0) >= ${PROVEN.days} and coalesce(c.n, 0) >= ${PROVEN.countries})))::int as proven,
+      (count(*) filter (where ${provenSql(sql`r.collation_count`, sql`r.days_active`, sql`c.n`)}))::int as proven,
       (count(*) filter (where upper(r.media_type) = 'VIDEO'))::int as video
     from r left join c on c.ad_archive_id = r.ad_archive_id left join k on k.keyword_id = r.keyword_id
     group by r.keyword_id`);

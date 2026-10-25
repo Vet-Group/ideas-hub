@@ -161,8 +161,8 @@ test('the keyword report: chart with a gap and the table toggle, "Less than 7 da
   await expect(page.getByText('Chưa có run nào xong. Run kế tiếp: 13:00')).toBeVisible();
 });
 
-// dog mom mug: 6 running ads on one shop, 2 started on 19/10 (within 7 days of the crawl day 20/10), none
-// proven (20 days, 1 country, no variants), all images. 2 / 6 new is over 15%: "Mới nổi".
+// dog mom mug: 6 running ads on one shop, 2 started on 19/10 (within 7 days of the crawl day 20/10), one
+// proven (e2e_mug_3, 7 variants; the others 20 days in 1 country), all images. 2 / 6 new is over 15%: "Mới nổi".
 test('keywords read as markets: stage filter, market columns, phone cards; the report has the market read @phone', async ({ page }, info) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/keywords')}`);
   const stages = page.getByRole('navigation', { name: 'Lọc theo giai đoạn' });
@@ -172,14 +172,14 @@ test('keywords read as markets: stage filter, market columns, phone cards; the r
   await expect(stages.getByRole('link', { name: 'Mới nổi · 1' })).toHaveAttribute('aria-current', 'page');
   if (info.project.name === 'phone') {
     const item = page.getByRole('listitem').filter({ hasText: 'dog mom mug' });
-    await expect(item).toContainText('17 ads đang chạy · ads mới 7 ngày 33% · đã chứng minh 0% · 1 shop');
+    await expect(item).toContainText('17 ads đang chạy · ads mới 7 ngày 33% · đã chứng minh 17% · 1 shop');
     await expect(page.getByRole('table')).toBeHidden();
   } else {
     const cells = page.getByRole('row', { name: /dog mom mug/ }).getByRole('cell');
     await expect(cells.nth(1)).toHaveText('Mới nổi');
     await expect(cells.nth(2)).toHaveText('17');
     await expect(cells.nth(3)).toHaveText('33% (2)');
-    await expect(cells.nth(4)).toHaveText('0% (0)');
+    await expect(cells.nth(4)).toHaveText('17% (1)');
     await expect(cells.nth(5)).toHaveText('1');
     await expect(cells.nth(6)).toHaveText('100%');
     await expect(page.getByRole('row')).toHaveCount(2);
@@ -195,7 +195,24 @@ test('keywords read as markets: stage filter, market columns, phone cards; the r
   await page.goto(`/keywords/${MUG.keywordId}`);
   const market = page.getByRole('region', { name: 'Đọc thị trường' });
   await expect(market.getByRole('button', { name: 'Mới nổi' })).toBeVisible();
-  await expect(market.locator('dd')).toHaveText(['2 7 ngày trước đó: 0', '0 0% số ads', '1 Top 3 shop chạy 100% số ads', '0% 0 trên 6 ads']);
+  await expect(market.locator('dd')).toHaveText(['2 7 ngày trước đó: 0', '1 17% số ads', '1 Top 3 shop chạy 100% số ads', '0% 0 trên 6 ads']);
+});
+
+test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane say so with its variants; "Mới bắt đầu chạy" sorts by start date @phone', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads')}`);
+  await page.goto('/ads?proven=1');
+  await expect(page.getByLabel('Chỉ ads đã chứng minh')).toBeChecked();
+  await expect(page.getByRole('link', { name: /^Best dog mom mug gift/ })).toHaveText(['Best dog mom mug gift 3']);
+  const proven = card(page, 'Best dog mom mug gift 3');
+  await expect(proven.getByRole('button', { name: 'Đã chứng minh' })).toBeVisible();
+  await proven.getByRole('link', { name: 'Best dog mom mug gift 3', exact: true }).click();
+  const pane = page.getByRole('article', { name: 'Chi tiết ad' }).first();
+  await expect(pane.getByRole('button', { name: 'Đã chứng minh' })).toBeVisible();
+  await expect(pane.locator('dt', { hasText: 'Biến thể' }).locator('xpath=following-sibling::dd[1]')).toHaveText('7');
+  // The two ads started on 19/10 come first.
+  await page.goto('/ads?kw=kw_e2e_mug&sort=started');
+  await expect(page.getByRole('link', { name: /^Best dog mom mug gift/ }).first()).toHaveText(/Best dog mom mug gift [12]$/);
+  await expect(card(page, 'Best dog mom mug gift 1').getByRole('button', { name: 'Đã chứng minh' })).toHaveCount(0);
 });
 
 test('Run now: disabled with its reason for a running run, a cool-down and the margin; hidden without `keywords`', async ({ page, browser }) => {

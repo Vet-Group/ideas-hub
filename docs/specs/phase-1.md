@@ -539,6 +539,9 @@ with no new crawling (`marketReads`, packages/db; `isProven` and `marketStage`, 
   and proven ads (share first, count after), shops and top 3 share, sortable; cards on phones. The
   keyword report has a "Đọc thị trường" section after section 3: the stage with its rule and 4 tiles
   (new ads, proven ads, shops, videos).
+- Ads: a proven ad carries a "Đã chứng minh" chip (tooltip states the rule) on its card and in the
+  detail pane, which also shows its variants ("Biến thể"). The filter rail has "Chỉ ads đã chứng minh"
+  (`proven=1`) and the sort "Mới bắt đầu chạy" (start date, newest first, `sort=started`).
 - Saves are unchanged: the market read has no "Lưu", so AC 6 is measured as before.
 
 ### Special states

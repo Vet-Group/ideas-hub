@@ -235,4 +235,15 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     // kw_1's running ads: a_hi (20 days, 1 country, not proven) and a_lo (started 14/10, within 7 days of 20/10).
     expect(reads.get('kw_1')).toMatchObject({ ads: 2, proven: 0, newAds: 1, newAdsBefore: 0 });
   });
+
+  // Uses the kw_m ads of the test above.
+  it('filters proven ads, sorts by start date and marks each ad with its variants and proven', async () => {
+    const ads = (await listAds(db, O, { keywordId: 'kw_m', proven: true })).items;
+    expect(ads.map((a) => [a.adArchiveId, a.variants, a.proven])).toEqual([
+      ['m_long', 1, true],
+      ['m_new', 7, true],
+    ]);
+    expect(await ids({ keywordId: 'kw_m', sort: 'started' })).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
+    expect((await getAd(db, O, 'm_before'))).toMatchObject({ variants: null, proven: false });
+  });
 });

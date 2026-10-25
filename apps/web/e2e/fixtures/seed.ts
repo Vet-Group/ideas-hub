@@ -114,6 +114,8 @@ export async function seedE2e(): Promise<void> {
       );
       await q(`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) values ($1, 'run_e2e_sched', $2, 'US', $3, '2026-10-20')`, [id, MUG.keywordId, i + 1]);
     }
+    // A proven ad (7 variants): the market read and the "Đã chứng minh" chip.
+    await q(`update ads set collation_count = 7 where ad_archive_id = 'e2e_mug_3'`);
     // An out-of-top ad: its pair was searched after it was last seen and stopped at the cap.
     await q(
       `insert into ads (ad_archive_id, caption, page_name, landing_domain, media_type, start_date, end_date, seen_days, first_seen_date, last_seen_date, parsed)

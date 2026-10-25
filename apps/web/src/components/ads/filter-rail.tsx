@@ -59,6 +59,10 @@ export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords:
         <Checkbox id="f-dedupe" name="dedupe" value="1" defaultChecked={f.dedupe} className="size-6" />
         <Label htmlFor="f-dedupe">{t.ads.dedupe}</Label>
       </div>
+      <div className="flex items-center gap-2">
+        <Checkbox id="f-proven" name="proven" value="1" defaultChecked={f.proven} className="size-6" />
+        <Label htmlFor="f-proven">{t.ads.provenOnly}</Label>
+      </div>
       <div className="grid gap-1">
         <Label htmlFor="f-sort">{t.ads.sort}</Label>
         <select id="f-sort" name="sort" defaultValue={f.sort ?? 'score'} className={selectClass}>

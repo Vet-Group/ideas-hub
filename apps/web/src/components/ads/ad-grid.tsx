@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { type KeyboardEvent, useRef } from 'react';
 import { SaveButton, type SaveHandle, type SaveTarget } from '@/components/save/save-button';
 import { AdStatusChip } from '@/components/states/ad-status-chip';
+import { ProvenChip } from '@/components/states/proven-chip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ export interface AdCardData {
   countries: string[];
   daysActive: number | null;
   trendScore: number | null;
+  proven: boolean;
   status: AdStatus;
   /** Near-duplicate creatives grouped under this card ("Gộp mẫu trùng"); 1 when not grouped. */
   duplicates: number;
@@ -120,8 +122,11 @@ export function AdGrid({
               {[a.landingDomain, a.countries.join(', '), a.daysActive === null ? null : t.ads.days(a.daysActive)].filter(Boolean).join(' · ')}
             </p>
             {a.duplicates > 1 ? <p className="text-fg-2 text-xs">{t.ads.duplicates(a.duplicates)}</p> : null}
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <AdStatusChip status={a.status} />
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+              <span className="flex flex-wrap gap-1">
+                <AdStatusChip status={a.status} />
+                {a.proven ? <ProvenChip /> : null}
+              </span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="relative z-10 min-h-6 rounded-sm text-xs">
