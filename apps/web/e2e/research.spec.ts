@@ -163,6 +163,14 @@ test('the keyword report: chart with a gap and the table toggle, "Less than 7 da
 
 // dog mom mug: 6 running ads on one shop, 2 started on 19/10 (within 7 days of the crawl day 20/10), one
 // proven (e2e_mug_3, 7 variants; the others 20 days in 1 country), all images. 2 / 6 new is over 15%: "Mới nổi".
+// Beside the sidebar on a small laptop window the 7 columns do not fit: the table scrolls in its own frame.
+test('the keywords table never makes the page scroll sideways at 850 px', async ({ page }) => {
+  await page.setViewportSize({ width: 850, height: 700 });
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/keywords')}`);
+  await expect(page.getByRole('table')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+});
+
 test('keywords read as markets: stage filter, market columns, phone cards; the report has the market read @phone', async ({ page }, info) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/keywords')}`);
   const stages = page.getByRole('navigation', { name: 'Lọc theo giai đoạn' });
