@@ -223,6 +223,24 @@ test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane 
   await expect(card(page, 'Best dog mom mug gift 1').getByRole('button', { name: 'Đã chứng minh' })).toHaveCount(0);
 });
 
+test('below lg the ads filters fold behind a toggle with the active count, so the first ad is on the first screen @phone', async ({ page }, info) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?proven=1&kw=kw_e2e_mug')}`);
+  const proven = page.getByRole('checkbox', { name: 'Chỉ ads đã chứng minh' });
+  const toggle = page.locator('label[for="f-toggle"]');
+  if (info.project.name === 'desktop') {
+    await expect(toggle).toBeHidden();
+    await expect(proven).toBeVisible();
+    return;
+  }
+  await expect(toggle).toHaveText('Bộ lọc · 2');
+  await expect(proven).toBeHidden();
+  const first = await page.getByRole('link', { name: /^Best dog mom mug gift/ }).first().boundingBox();
+  expect(first!.y + first!.height).toBeLessThan(844);
+  await toggle.click();
+  await expect(proven).toBeVisible();
+  await expect(proven).toBeChecked();
+});
+
 // Two shops put "sea glass" in their ad titles: 2 mug ads of dogmom.example and a copy of one on seaglass.example.
 test('the keyword report lists the title phrases of 2+ shops, and a phrase opens the ads that have it', async ({ page }) => {
   const pool = e2ePool();
