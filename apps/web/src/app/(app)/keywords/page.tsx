@@ -102,7 +102,8 @@ export default async function KeywordsPage({ searchParams }: { searchParams: Pro
               );
             })}
           </ul>
-          <div className="hidden md:block">
+          {/* min-w-0: as a grid item it would widen to the table and scroll the page instead of the table frame. */}
+          <div className="hidden min-w-0 md:block">
             <Table>
               <TableHeader>
                 <TableRow>
