@@ -14,6 +14,13 @@ const TONE: Record<MarketStage, string> = {
 
 export const pct = (part: number, whole: number) => (whole ? `${Math.round((part * 100) / whole)}%` : t.common.none);
 
+/** In a table cell: the share leads (it compares rows); the count follows, muted. */
+export const Share = ({ part, whole }: { part: number; whole: number }) => (
+  <>
+    {pct(part, whole)} <span className="text-fg-muted">({part})</span>
+  </>
+);
+
 /** The market stage chip with a tooltip that states its rule (spec §6 "Market read"). */
 export function MarketStageChip({ stage }: { stage: MarketStage }) {
   return (
@@ -29,7 +36,7 @@ export function MarketStageChip({ stage }: { stage: MarketStage }) {
 }
 
 // The space keeps the number and its line apart in the accessible text; the line is a block, so it never shows.
-const Sub = ({ children }: { children: React.ReactNode }) => (
+export const Sub = ({ children }: { children: React.ReactNode }) => (
   <>
     {' '}
     <span className="text-fg-2 block font-sans text-xs">{children}</span>

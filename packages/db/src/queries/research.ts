@@ -277,6 +277,46 @@ export async function listShops(db: Db, f: ShopFilters = {}): Promise<{ items: S
   };
 }
 
+export interface ShopRead {
+  /** Running ads with this landing domain (ad status, not the shops table's snapshot count). */
+  ads: number;
+  /** Started in the last MARKET.newDays days. */
+  newAds: number;
+  proven: number;
+  /** Keywords its running ads were found under. */
+  keywords: number;
+}
+
+/** The market read of some shops' running ads (spec §6 "Market read"), keyed by landing domain. */
+export async function shopReads(db: Db, o: StatusOptions, domains: readonly string[]): Promise<Map<string, ShopRead>> {
+  if (domains.length === 0) return new Map();
+  const { rows } = await db.transaction(async (tx) => {
+    // As in marketReads: JIT compiling would cost more than the query.
+    await tx.execute(sql`set local jit = off`);
+    return tx.execute<{ landing_domain: string; ads: number; new_ads: number; proven: number; keywords: number }>(sql`
+    with r as (
+      select a.ad_archive_id, a.landing_domain, a.start_date, ${DAYS} as days_active, a.collation_count
+      from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id and st.status = 'running'
+      where a.landing_domain = any(${sql.param([...domains])}::text[])
+    ),
+    c as (
+      select s.ad_archive_id, count(distinct s.country)::int as n from ad_sightings s
+      where s.ad_archive_id in (select ad_archive_id from r) group by 1
+    ),
+    k as (
+      select r.landing_domain, count(distinct s.keyword_id)::int as keywords from r join ad_sightings s on s.ad_archive_id = r.ad_archive_id
+      group by r.landing_domain
+    )
+    select r.landing_domain, count(*)::int as ads,
+      (count(*) filter (where r.start_date > ${o.today}::date - ${MARKET.newDays}::int))::int as new_ads,
+      (count(*) filter (where ${provenSql(sql`r.collation_count`, sql`r.days_active`, sql`c.n`)}))::int as proven,
+      coalesce(max(k.keywords), 0) as keywords
+    from r left join c on c.ad_archive_id = r.ad_archive_id left join k on k.landing_domain = r.landing_domain
+    group by r.landing_domain`);
+  });
+  return new Map(rows.map((r) => [r.landing_domain, { ads: r.ads, newAds: r.new_ads, proven: r.proven, keywords: r.keywords }]));
+}
+
 export async function getShop(db: Db, domain: string): Promise<ShopRow | null> {
   const { rows } = await db.execute<{ landing_domain: string; page_count: number; first_seen_date: string; last_seen_date: string; running_ads: number }>(sql`
     select landing_domain, cardinality(page_ids) as page_count, first_seen_date::text, last_seen_date::text, running_ads from shops where landing_domain = ${domain}`);

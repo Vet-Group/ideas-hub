@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, getAd, listAds, listKeywords, listShops, marketReads } from './research';
+import { daySeries, getAd, listAds, listKeywords, listShops, marketReads, shopReads } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -245,5 +245,14 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     ]);
     expect(await ids({ keywordId: 'kw_m', sort: 'started' })).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
     expect((await getAd(db, O, 'm_before'))).toMatchObject({ variants: null, proven: false });
+  });
+
+  it('reads shops: running ads, new and proven ones, and the keywords they were found under', async () => {
+    const reads = await shopReads(db, O, ['shop1.com', 'shop2.com', 'teeshop.com', 'none.com']);
+    expect(reads.get('shop1.com')).toEqual({ ads: 2, newAds: 1, proven: 1, keywords: 1 });
+    expect(reads.get('shop2.com')).toEqual({ ads: 1, newAds: 0, proven: 1, keywords: 1 });
+    expect(reads.get('teeshop.com')).toMatchObject({ ads: 1, keywords: 1 });
+    expect(reads.has('none.com')).toBe(false);
+    expect((await shopReads(db, O, [])).size).toBe(0);
   });
 });

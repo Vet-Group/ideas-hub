@@ -542,6 +542,9 @@ with no new crawling (`marketReads`, packages/db; `isProven` and `marketStage`, 
 - Ads: a proven ad carries a "Đã chứng minh" chip (tooltip states the rule) on its card and in the
   detail pane, which also shows its variants ("Biến thể"). The filter rail has "Chỉ ads đã chứng minh"
   (`proven=1`) and the sort "Mới bắt đầu chạy" (start date, newest first, `sort=started`).
+- Shops (`shopReads`): the table adds new ads and proven ads (share, then count) and the number of
+  keywords the shop's running ads were found under, for the shops on the page; the shop page shows the
+  same 3 as tiles above its chart.
 - Saves are unchanged: the market read has no "Lưu", so AC 6 is measured as before.
 
 ### Special states

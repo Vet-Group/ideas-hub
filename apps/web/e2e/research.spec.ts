@@ -330,7 +330,7 @@ test('shops: total shown, non-shop domains left out, the domain looks like a lin
   const row = page.getByRole('row', { name: new RegExp(MUG.domain) });
   const count = row.getByRole('cell').nth(1);
   expect(await count.evaluate((el) => parseFloat(getComputedStyle(el).paddingRight))).toBeGreaterThanOrEqual(24);
-  // The gap between the count's text and the date's text, measured on the text itself.
+  // The gap between the count's text and the next column's text, measured on the text itself.
   const textBox = (cell: typeof count) =>
     cell.evaluate((el) => {
       const r = document.createRange();
@@ -367,4 +367,15 @@ test('the run log shows the next 2 scheduled runs apart and lists the rest by wh
     await pool.query(`delete from crawl_runs where id = any($1)`, [future.map(([id]) => id)]);
     await pool.end();
   }
+});
+
+// dogmom.example: the 6 running mug ads, 2 new (started 19/10), 1 proven (e2e_mug_3), all under "dog mom mug".
+test('shops read as markets: new and proven ads and keywords in the table and on the shop page @phone', async ({ page }) => {
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fshops');
+  const cells = page.getByRole('row', { name: new RegExp(MUG.domain) }).getByRole('cell');
+  await expect(cells.nth(2)).toHaveText('33% (2)');
+  await expect(cells.nth(3)).toHaveText('17% (1)');
+  await expect(cells.nth(4)).toHaveText('1');
+  await page.goto(`/shops/${MUG.domain}`);
+  await expect(page.getByLabel('Đọc thị trường').locator('dd')).toHaveText(['2 33% số ads', '1 17% số ads', '1']);
 });

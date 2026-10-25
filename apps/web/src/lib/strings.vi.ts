@@ -254,6 +254,7 @@ export const t = {
     firstSeen: 'Thấy lần đầu',
     lastSeen: 'Thấy gần nhất',
     runningAds: 'Ads đang chạy',
+    keywords: 'Số keyword',
     search: 'Tìm domain',
     empty: 'Chưa có shop nào.',
     count: (shown: number, total: number) => `${shown} / ${total} shop`,
