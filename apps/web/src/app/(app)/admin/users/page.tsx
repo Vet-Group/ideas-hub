@@ -2,7 +2,7 @@ import { users } from '@ideas-hub/db';
 import { AC6_STORE_TARGET, AC6_TOTAL_TARGET, PILOT_RUN_START, storeAdoption, userAdoption } from '@ideas-hub/db/queries';
 import { asc } from 'drizzle-orm';
 import { PageHeader } from '@/components/page-header';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,7 +10,7 @@ import { db } from '@/lib/db';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { requireAdmin } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
-import { createUser, setDisabled } from './actions';
+import { createUser, setDisabled, updateLogin } from './actions';
 
 const s = t.admin.users;
 
@@ -70,7 +70,18 @@ export default async function UsersPage() {
               <TableCell>{u.disabled ? s.disabled : s.active}</TableCell>
               <TableCell>{lastActive(u.id) ? formatDateTime(lastActive(u.id)) : s.neverActive}</TableCell>
               <TableCell>{u.role === 'admin' ? t.common.none : (adoption.get(u.id)?.ideas ?? 0)}</TableCell>
-              <TableCell className="text-right">
+              <TableCell className="flex items-start justify-end gap-2">
+                <details className="text-left">
+                  <summary className={buttonVariants({ variant: 'outline', size: 'sm' })}>{s.editLogin}</summary>
+                  <form action={updateLogin} className="mt-2 grid w-64 gap-2">
+                    <input type="hidden" name="userId" value={u.id} />
+                    <Label htmlFor={`email-${u.id}`}>{s.email}</Label>
+                    <Input id={`email-${u.id}`} name="email" type="email" defaultValue={u.email} required />
+                    <Label htmlFor={`password-${u.id}`}>{s.newPassword}</Label>
+                    <Input id={`password-${u.id}`} name="password" type="password" minLength={8} autoComplete="new-password" />
+                    <Button type="submit" size="sm">{s.saveLogin}</Button>
+                  </form>
+                </details>
                 <form action={setDisabled}>
                   <input type="hidden" name="userId" value={u.id} />
                   <input type="hidden" name="disabled" value={u.disabled ? '0' : '1'} />
