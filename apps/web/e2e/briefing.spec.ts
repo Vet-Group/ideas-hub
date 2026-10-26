@@ -36,7 +36,7 @@ test('a Lark link opens the briefing it names with 0 actions on a valid session;
   await expect(page.getByText('Từ run 01:00 ngày 21/10')).toBeVisible();
   await expect(kpi(page, 'Ads đang chạy')).toContainText('4210');
   await expect(kpi(page, 'Thay đổi')).toContainText('+312 ▲ so với 13/10');
-  await expect(kpi(page, 'Search thành công')).toContainText('98.8%');
+  await expect(kpi(page, 'Search thành công')).toHaveText('98.8%');
   await expect(kpi(page, 'Ngày lễ kế tiếp')).toContainText('10 ngày nữa: Halloween');
   // The landing page after sign-in is today's briefing, the same one.
   await page.goto('/briefing');
@@ -215,6 +215,19 @@ test('a stored briefing whose thumbnail object was pruned shows the missing-thum
     await expect(row(page, 'Ads trend nhất', 'Best dog mom mug gift 2').locator('img')).toHaveJSProperty('complete', true);
   } finally {
     await setKey('e2e_mug_1_image.jpg');
+  }
+});
+
+test('a blocked source run says the page is built on earlier runs', async ({ page }) => {
+  const setOkRate = (rate: number) =>
+    sql(`update briefings set sections = jsonb_set(sections, '{kpi,okRate}', to_jsonb($1::float)) where id = $2`, [rate, BRIEFINGS.failed]);
+  await signIn(page, USERS.member.email);
+  try {
+    await setOkRate(0);
+    await page.goto('/briefing/2026-10-20');
+    await expect(kpi(page, 'Search thành công')).toHaveText('0%Run này thiếu dữ liệu; ads và gợi ý dựa trên các run trước');
+  } finally {
+    await setOkRate(158 / 160);
   }
 });
 
