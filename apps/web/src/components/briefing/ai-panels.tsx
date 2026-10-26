@@ -65,17 +65,17 @@ export function SuggestionEvidence({
 }) {
   if (!evidence.ads.length && !evidence.news.length) return null;
   return (
-    <p className="text-fg-2 flex flex-wrap gap-x-2 gap-y-3 text-xs">
-      <span>{t.briefing.evidence}:</span>
+    <p className="text-fg-2 flex flex-wrap gap-x-2 gap-y-1 text-xs">
+      <span className="py-1">{t.briefing.evidence}:</span>
       {evidence.ads.map((id, i) => (
-        <Link key={id} href={adHref(id)} scroll={false} className="max-w-64 truncate underline underline-offset-2">
+        <Link key={id} href={adHref(id)} scroll={false} className="max-w-64 truncate py-1 underline underline-offset-2">
           {adTitles?.get(id) ?? t.briefing.evidenceAd(i + 1)}
         </Link>
       ))}
       {evidence.news.map((id) => {
         const n = newsById.get(id);
         return n ? (
-          <a key={id} href={n.link} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+          <a key={id} href={n.link} target="_blank" rel="noopener noreferrer" className="py-1 underline underline-offset-2">
             {n.title}
           </a>
         ) : null;
