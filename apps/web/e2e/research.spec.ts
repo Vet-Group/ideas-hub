@@ -201,6 +201,8 @@ test('keywords read as markets: stage filter, market columns, phone cards; the r
     await expect(page).toHaveURL(/\/keywords\?stage=rising&sort=proven$/);
   }
   await page.goto(`/keywords/${MUG.keywordId}`);
+  // The date picker shows the report's day instead of an empty dd/mm/yyyy (#108).
+  await expect(page.locator('#report-date')).toHaveValue('2026-10-21');
   const market = page.getByRole('region', { name: 'Đọc thị trường' });
   await expect(market.getByRole('button', { name: 'Mới nổi' })).toBeVisible();
   await expect(market.locator('dd')).toHaveText(['2 7 ngày trước đó: 0', '1 17% số ads', '1 Top 3 shop chạy 100% số ads', '0% 0 trên 6 ads']);

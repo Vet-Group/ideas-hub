@@ -87,7 +87,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
           {runLabel ? <span>{runLabel}</span> : null}
           <form action={`/keywords/${id}`} method="get" className="flex items-center gap-2" aria-label={t.keywords.pastDate}>
             <label htmlFor="report-date">{t.keywords.pastDate}</label>
-            <input id="report-date" name="date" type="date" defaultValue={date} className={field} />
+            <input id="report-date" name="date" type="date" defaultValue={date ?? vnDay(at)} className={field} />
             <button type="submit" className={field}>
               {t.ads.apply}
             </button>
