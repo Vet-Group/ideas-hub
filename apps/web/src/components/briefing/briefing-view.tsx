@@ -10,6 +10,7 @@ import { requireUser } from '@/lib/session';
 import { statusOptions } from '@/lib/settings';
 import { saveTargets } from '@/lib/store';
 import { t } from '@/lib/strings.vi';
+import { thumbUrl } from '@/lib/thumb-url';
 import { AdRows } from './ad-rows';
 import { NewsPanel, SuggestionsPanel } from './ai-panels';
 import { CountTable } from './count-table';
@@ -93,7 +94,7 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
       </div>
       {ad ? (
         <PaneSheet closeHref={basePath} always>
-          <DetailPane ad={ad} saveStores={stores} saved={savedAds.includes(ad.adArchiveId)} via="briefing" />
+          <DetailPane ad={ad} thumbSrc={ad.thumbnailKey ? thumbUrl(ad.thumbnailKey) : null} saveStores={stores} saved={savedAds.includes(ad.adArchiveId)} via="briefing" />
         </PaneSheet>
       ) : null}
     </div>

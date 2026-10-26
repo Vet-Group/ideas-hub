@@ -11,7 +11,18 @@ import { cn } from '@/lib/utils';
  * Closing it goes back to the grid with the same filters. At 1280 px and up the page shows the sticky
  * pane instead and this renders nothing, unless `always` (the briefing has no pane column).
  */
-export function PaneSheet({ children, closeHref, always }: { children: ReactNode; closeHref: string; always?: boolean }) {
+export function PaneSheet({
+  children,
+  closeHref,
+  always,
+  onClose,
+}: {
+  children: ReactNode;
+  closeHref?: string;
+  always?: boolean;
+  /** Closes without a navigation (the ads grid); else closing goes to `closeHref`. */
+  onClose?: () => void;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<'none' | 'right' | 'bottom'>('none');
   useEffect(() => {
@@ -28,7 +39,7 @@ export function PaneSheet({ children, closeHref, always }: { children: ReactNode
   }, [always]);
   if (mode === 'none') return null;
   return (
-    <Sheet open onOpenChange={(o) => (o ? null : router.push(closeHref, { scroll: false }))}>
+    <Sheet open onOpenChange={(o) => (o ? null : onClose ? onClose() : closeHref && router.push(closeHref, { scroll: false }))}>
       <SheetContent
         side={mode}
         data-pane={mode}

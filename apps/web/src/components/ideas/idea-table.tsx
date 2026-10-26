@@ -49,7 +49,7 @@ export function IdeaTable({ ideas, canSave, onStatus, storeHasIdeas, clearHref }
           <TableBody>
             {ideas.map((i) => (
               <TableRow key={i.id}>
-                <TableCell className="max-w-80">
+                <TableCell className="max-w-80 whitespace-normal">
                   <Link href={`/ideas/${i.id}`} className="line-clamp-2 font-medium underline-offset-2 hover:underline">
                     {i.title}
                   </Link>

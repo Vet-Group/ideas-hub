@@ -2,7 +2,7 @@ import { isNonShopDomain, storeScope } from '@ideas-hub/core';
 import { daySeries, getShop, listAds, savedRefs, shopReads } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { AdGrid } from '@/components/ads/ad-grid';
+import { AdGridWithPane } from '@/components/ads/ad-pane';
 import { toCard } from '@/components/ads/cards';
 import { adQuery } from '@/components/ads/params';
 import { Tile } from '@/components/briefing/kpi-row';
@@ -63,12 +63,7 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
             {t.shops.openInAds}
           </Link>
         </div>
-        <AdGrid
-          ads={own.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))}
-          selectedId={null}
-          saveStores={stores}
-          saved={saved}
-        />
+        <AdGridWithPane ads={own.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))} saveStores={stores} saved={saved} />
       </div>
     </>
   );

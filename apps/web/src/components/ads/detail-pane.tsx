@@ -1,11 +1,11 @@
-import { type AdSighting, type AdListItem } from '@ideas-hub/db/queries';
+// A type-only import: this pane also renders on the client, which must not load the db package.
+import type { AdSighting, AdListItem } from '@ideas-hub/db/queries';
 import { ExternalLink } from 'lucide-react';
 import { SaveButton, type SaveTarget } from '@/components/save/save-button';
 import { AdStatusChip } from '@/components/states/ad-status-chip';
 import { ProvenChip } from '@/components/states/proven-chip';
 import { Button } from '@/components/ui/button';
 import { t } from '@/lib/strings.vi';
-import { thumbUrl } from '@/lib/thumb-url';
 import { adLibraryUrl } from './ad-library-url';
 import { Thumb } from './thumb';
 
@@ -14,11 +14,14 @@ const ddmm = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.
 /** The ad detail: shown in the sticky 360 px pane, or in a sheet below 1280 px. */
 export function DetailPane({
   ad,
+  thumbSrc,
   saveStores,
   saved,
   via = 'ads',
 }: {
   ad: AdListItem & { cta: string | null; sightings: AdSighting[] };
+  /** thumbUrl(ad.thumbnailKey): signed on the server, so this pane also renders on the client. */
+  thumbSrc: string | null;
   saveStores: SaveTarget[];
   saved: boolean;
   via?: 'ads' | 'briefing';
@@ -42,7 +45,7 @@ export function DetailPane({
   );
   return (
     <article className="grid gap-3" aria-label={t.ads.detail}>
-      <Thumb src={ad.thumbnailKey ? thumbUrl(ad.thumbnailKey) : null} mediaType={ad.mediaType} alt={ad.caption ?? ''} className="rounded-card" />
+      <Thumb src={thumbSrc} mediaType={ad.mediaType} alt={ad.caption ?? ''} className="rounded-card" />
       <div className="flex items-center justify-between gap-2">
         <span className="flex flex-wrap gap-1">
           <AdStatusChip status={ad.status} />
