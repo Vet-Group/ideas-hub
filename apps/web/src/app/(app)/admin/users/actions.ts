@@ -26,6 +26,25 @@ export async function createUser(form: FormData) {
   revalidatePath('/admin/users');
 }
 
+const LoginChange = z.object({
+  userId: z.string().min(1),
+  email: z.email().trim().toLowerCase(),
+  password: z.union([z.literal(''), z.string().min(8)]),
+});
+
+/** Changes a user's sign-in email and, when given, sets a new password and ends their sessions. */
+export async function updateLogin(form: FormData) {
+  await requireAdmin();
+  const { userId, email, password } = LoginChange.parse(Object.fromEntries(form));
+  const h = await headers();
+  await auth.api.adminUpdateUser({ body: { userId, data: { email } }, headers: h });
+  if (password) {
+    await auth.api.setUserPassword({ body: { userId, newPassword: password }, headers: h });
+    await auth.api.revokeUserSessions({ body: { userId }, headers: h });
+  }
+  revalidatePath('/admin/users');
+}
+
 /** Disabling bans the user in better-auth, which also deletes their sessions. */
 export async function setDisabled(form: FormData) {
   const me = await requireAdmin();

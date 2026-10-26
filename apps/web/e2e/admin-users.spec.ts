@@ -1,6 +1,7 @@
 // The admin users page shows staff adoption of the briefing (AC 6 counting); members get a 404 (auth.spec.ts).
-import { expect, test } from '@playwright/test';
-import { STORES, USERS, e2ePool } from './fixtures/seed';
+import { type Page, expect, test } from '@playwright/test';
+import { hashPassword } from 'better-auth/crypto';
+import { PASSWORD, STORES, USERS, e2ePool } from './fixtures/seed';
 import { freezeClock, signIn } from './support/session';
 
 test.beforeEach(async ({ page }) => freezeClock(page));
@@ -27,6 +28,40 @@ test('the admin sees last activity, briefing saves per member and n/10 per store
     await expect(page.getByRole('row', { name: /^Tổng/ })).toContainText('1/30');
   } finally {
     await pool.query(`delete from saved_ideas where id like 'idea_e2e_adopt_%'`);
+    await pool.end();
+  }
+});
+
+const login = async (page: Page, email: string, password: string) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Mật khẩu').fill(password);
+  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+};
+
+test('the admin changes a member sign-in email and password; the old ones stop working', async ({ page, browser }) => {
+  const pool = e2ePool();
+  const id = 'user_e2e_login_edit';
+  try {
+    await pool.query(`insert into users (id, email, name, role) values ($1, 'old-login@e2e.test', 'Login Edit E2E', 'member')`, [id]);
+    await pool.query(`insert into accounts (id, user_id, account_id, provider_id, password) values ($1, $2, $2, 'credential', $3)`, [`acct_${id}`, id, await hashPassword(PASSWORD)]);
+    await signIn(page, USERS.admin.email);
+    await page.goto('/admin/users');
+    const row = page.getByRole('row', { name: /Login Edit E2E/ });
+    await row.getByText('Sửa đăng nhập').click();
+    await row.getByLabel('Email').fill('new-login@e2e.test');
+    await row.getByLabel('Mật khẩu mới (để trống nếu giữ nguyên)').fill('new-login-pass-1');
+    await row.getByRole('button', { name: 'Lưu thay đổi' }).click();
+    await expect(page.getByRole('row', { name: /Login Edit E2E/ }).getByRole('cell').nth(1)).toHaveText('new-login@e2e.test');
+
+    const other = await browser.newPage();
+    await login(other, 'old-login@e2e.test', PASSWORD);
+    await expect(other).toHaveURL(/\/login/);
+    await login(other, 'new-login@e2e.test', 'new-login-pass-1');
+    await expect(other).not.toHaveURL(/\/login/);
+    await other.close();
+  } finally {
+    await pool.query(`delete from users where id = $1`, [id]);
     await pool.end();
   }
 });
