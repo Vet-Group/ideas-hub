@@ -74,6 +74,27 @@ test('a card opens its pane in place: same grid, same scroll, no page skeleton; 
   expect(await page.evaluate(() => (window as unknown as { grid: Element }).grid.isConnected)).toBe(true);
 });
 
+test('shop and keyword report cards open the pane in a sheet over the same page; Back closes it @phone', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(`/shops/${MUG.domain}`)}`);
+  await page.evaluate(() => ((window as unknown as { grid: Element | null }).grid = document.querySelector('main ul')));
+  await page.getByRole('link', { name: 'Best dog mom mug gift 3', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/shops/${MUG.domain}\\?ad=e2e_mug_3$`));
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Dog Mom Shop' })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { grid: Element }).grid.isConnected)).toBe(true);
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/shops/${MUG.domain}$`));
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // Two grids on the report, one sheet.
+  await page.goto(`/keywords/${MUG.keywordId}`);
+  await page.locator('section[aria-labelledby="kw-s1"] ul a').first().click();
+  await expect(page).toHaveURL(/\?ad=/);
+  await expect(page.getByRole('article', { name: 'Chi tiết ad' })).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page).not.toHaveURL(/\?ad=/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('a save with one store takes 1 action, without "Thêm store khác"; "Hoàn tác" removes the idea', async ({ page }) => {
   await signIn(page, USERS.saver.email, '/login?callbackURL=%2Fads');
   const a = new Actions(page);

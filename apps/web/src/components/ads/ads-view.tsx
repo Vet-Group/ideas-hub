@@ -8,6 +8,7 @@ import { loadSettings, statusOptions } from '@/lib/settings';
 import { saveTargets } from '@/lib/store';
 import { requireUser } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
+import { thumbUrl } from '@/lib/thumb-url';
 import { AdsLayout } from './ads-layout';
 import { toCard } from './cards';
 import { DetailPane } from './detail-pane';
@@ -31,7 +32,7 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
   const filterKeyword = f.keywordId ? keywords.find((k) => k.id === f.keywordId)?.text : undefined;
   const cards = ads.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}${qs}`, filterKeyword));
   const saved = await savedRefs(db, storeScope(user), 'ad', [...cards.map((c) => c.adArchiveId), ...(selected ? [selected.adArchiveId] : [])]);
-  const pane = selected ? <DetailPane ad={selected} saveStores={stores} saved={saved.includes(selected.adArchiveId)} /> : null;
+  const pane = selected ? <DetailPane ad={selected} thumbSrc={selected.thumbnailKey ? thumbUrl(selected.thumbnailKey) : null} saveStores={stores} saved={saved.includes(selected.adArchiveId)} /> : null;
   return (
     <>
       <PageHeader title={t.ads.title}>

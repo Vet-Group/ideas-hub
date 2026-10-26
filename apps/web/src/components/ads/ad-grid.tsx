@@ -52,7 +52,7 @@ export function AdGrid({
   saved: string[];
   via?: 'ads' | 'briefing';
   /** Opens a card in place instead of navigating; a modified click still opens a new tab. */
-  onOpen?: (href: string) => void;
+  onOpen?: (ad: AdCardData) => void;
 }) {
   const links = useRef<(HTMLAnchorElement | null)[]>([]);
   const saves = useRef<(SaveHandle | null)[]>([]);
@@ -115,7 +115,7 @@ export function AdGrid({
               onClick={(e) => {
                 if (!onOpen || e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
                 e.preventDefault();
-                onOpen(a.href);
+                onOpen(a);
               }}
               aria-current={a.adArchiveId === selectedId ? 'true' : undefined}
               onKeyDown={onKey(i)}

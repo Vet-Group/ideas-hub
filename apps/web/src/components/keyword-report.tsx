@@ -3,7 +3,7 @@ import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
-import { AdGrid } from '@/components/ads/ad-grid';
+import { AdGridWithPane } from '@/components/ads/ad-pane';
 import { NewsPanel, SuggestionsPanel } from '@/components/briefing/ai-panels';
 import { CountTable } from '@/components/briefing/count-table';
 import { toCard } from '@/components/ads/cards';
@@ -142,13 +142,13 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
               <h2 id="kw-s1" className="font-semibold">
                 {t.keywords.section1}
               </h2>
-              {top.length ? <AdGrid ads={top.map(card)} selectedId={null} saveStores={stores} saved={savedAds} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
+              {top.length ? <AdGridWithPane ads={top.map(card)} saveStores={stores} saved={savedAds} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
             </section>
             <section className="grid gap-2" aria-labelledby="kw-s2">
               <h2 id="kw-s2" className="font-semibold">
                 {t.keywords.section2}
               </h2>
-              {rising.length ? <AdGrid ads={rising.map(card)} selectedId={null} saveStores={stores} saved={savedAds} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
+              {rising.length ? <AdGridWithPane ads={rising.map(card)} saveStores={stores} saved={savedAds} sheet={!top.length} /> : <p className="text-fg-2 text-sm">{t.keywords.sectionEmpty}</p>}
             </section>
             <section className="grid gap-2" aria-labelledby="kw-s4">
               <h2 id="kw-s4" className="font-semibold">

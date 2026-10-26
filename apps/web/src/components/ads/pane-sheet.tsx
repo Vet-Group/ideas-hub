@@ -18,7 +18,7 @@ export function PaneSheet({
   onClose,
 }: {
   children: ReactNode;
-  closeHref: string;
+  closeHref?: string;
   always?: boolean;
   /** Closes without a navigation (the ads grid); else closing goes to `closeHref`. */
   onClose?: () => void;
@@ -39,7 +39,7 @@ export function PaneSheet({
   }, [always]);
   if (mode === 'none') return null;
   return (
-    <Sheet open onOpenChange={(o) => (o ? null : onClose ? onClose() : router.push(closeHref, { scroll: false }))}>
+    <Sheet open onOpenChange={(o) => (o ? null : onClose ? onClose() : closeHref && router.push(closeHref, { scroll: false }))}>
       <SheetContent
         side={mode}
         data-pane={mode}
