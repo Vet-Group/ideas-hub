@@ -13,6 +13,7 @@ import {
   ideasCsv,
   lastSaveStoreIds,
   savedRefs,
+  savedSuggestions,
   listIdeas,
   saveIdea,
   setIdeaStatus,
@@ -129,6 +130,18 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
       ]);
       // The same ref from another source is a different idea.
       expect((await saveIdea(db, both, ['store_A'], ad('dup', { source: 'suggestion', via: 'briefing' }), sec(22)))[0]?.created).toBe(true);
+    });
+
+    it('a suggestion repeated in a later briefing (new id, same title) is the idea already in the store', async () => {
+      const sug = (ref: string, title: string): IdeaSourceInput => ({ source: 'suggestion', sourceRef: ref, via: 'briefing', title, snapshot: { kind: 'keyword', text: title } });
+      const day1 = await saveIdea(db, both, ['store_A'], sug('sug_day1', 'custom canvas print'), sec(24));
+      const day2 = await saveIdea(db, both, ['store_A', 'store_B'], sug('sug_day2', 'Custom canvas print'), sec(25));
+      expect(day2).toEqual([
+        { storeId: 'store_A', ideaId: day1[0]!.ideaId, created: false },
+        { storeId: 'store_B', ideaId: expect.stringMatching(/^idea_/), created: true },
+      ]);
+      expect(await savedSuggestions(db, storeScope(saveA), [{ id: 'sug_day3', text: 'custom canvas print' }, { id: 'sug_other', text: 'custom mug' }])).toEqual(['sug_day3']);
+      expect(await savedSuggestions(db, storeScope(none), [{ id: 'sug_day3', text: 'custom canvas print' }])).toEqual([]);
     });
 
     it('never dedupes an image-only manual idea', async () => {
