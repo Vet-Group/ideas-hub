@@ -43,6 +43,7 @@ export function AdGrid({
   saveStores,
   saved,
   via = 'ads',
+  onOpen,
 }: {
   ads: AdCardData[];
   selectedId: string | null;
@@ -50,6 +51,8 @@ export function AdGrid({
   /** ad_archive_ids already saved. */
   saved: string[];
   via?: 'ads' | 'briefing';
+  /** Opens a card in place instead of navigating; a modified click still opens a new tab. */
+  onOpen?: (href: string) => void;
 }) {
   const links = useRef<(HTMLAnchorElement | null)[]>([]);
   const saves = useRef<(SaveHandle | null)[]>([]);
@@ -109,6 +112,11 @@ export function AdGrid({
               }}
               href={a.href}
               scroll={false}
+              onClick={(e) => {
+                if (!onOpen || e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                e.preventDefault();
+                onOpen(a.href);
+              }}
               aria-current={a.adArchiveId === selectedId ? 'true' : undefined}
               onKeyDown={onKey(i)}
               className="line-clamp-2 rounded-sm font-medium outline-none after:absolute after:inset-0 focus:ring-[3px] focus:ring-ring/50"

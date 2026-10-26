@@ -29,6 +29,51 @@ test('opening an ad’s detail takes 1 action, and a direct link opens the pane'
   await expect(page.getByRole('complementary').getByText('Best dog mom mug gift 4')).toBeVisible();
 });
 
+test('a card opens its pane in place: same grid, same scroll, no page skeleton; Back and closing return to the grid @phone', async ({ page }, info) => {
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fads');
+  const card = page.getByRole('link', { name: 'Best dog mom mug gift 3', exact: true });
+  await card.scrollIntoViewIfNeeded();
+  await page.evaluate(() => {
+    const w = window as unknown as { grid: Element | null; skeletons: number };
+    // The page skeleton (ads/loading.tsx) is the one with card-shaped 3:4 blocks.
+    const shown = () => !!document.querySelector('[role=status][aria-busy=true] .aspect-\\[3\\/4\\]');
+    w.grid = document.querySelector('main ul');
+    w.skeletons = 0;
+    // Count it appearing, not a fallback still in the DOM from the first load's stream.
+    let was = shown();
+    new MutationObserver(() => {
+      const now = shown();
+      if (now && !was) w.skeletons++;
+      was = now;
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  const before = await page.evaluate(() => scrollY);
+  await card.click();
+  await expect(page).toHaveURL(/\/ads\/e2e_mug_3$/);
+  const pane = page.getByRole('article', { name: 'Chi tiết ad' }).first();
+  await expect(pane.getByRole('heading', { name: 'Dog Mom Shop' })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { grid: Element }).grid.isConnected)).toBe(true);
+  expect(await page.evaluate(() => (window as unknown as { skeletons: number }).skeletons)).toBe(0);
+  // On a phone the pane is a modal sheet, which hides the grid from the accessibility tree.
+  if (info.project.name === 'desktop') {
+    expect(await page.evaluate(() => scrollY)).toBe(before);
+    await expect(card).toHaveAttribute('aria-current', 'true');
+  }
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/ads$/);
+  await expect(page.getByRole('article', { name: 'Chi tiết ad' })).toHaveCount(0);
+  await page.goForward();
+  await expect(pane.getByRole('heading', { name: 'Dog Mom Shop' })).toBeVisible();
+
+  if (info.project.name === 'phone') {
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/ads$/);
+    await expect(page.getByRole('article', { name: 'Chi tiết ad' })).toHaveCount(0);
+  }
+  expect(await page.evaluate(() => (window as unknown as { grid: Element }).grid.isConnected)).toBe(true);
+});
+
 test('a save with one store takes 1 action, without "Thêm store khác"; "Hoàn tác" removes the idea', async ({ page }) => {
   await signIn(page, USERS.saver.email, '/login?callbackURL=%2Fads');
   const a = new Actions(page);
