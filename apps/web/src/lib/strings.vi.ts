@@ -96,6 +96,7 @@ export const t = {
       runningAds: 'Ads đang chạy',
       change: 'Thay đổi',
       okRate: 'Search thành công',
+      okRateLow: 'Run này thiếu dữ liệu; ads và gợi ý dựa trên các run trước',
       holiday: 'Ngày lễ kế tiếp',
       holidayIn: (days: number, name: string) => (days === 0 ? `Hôm nay: ${name}` : `${days} ngày nữa: ${name}`),
     },

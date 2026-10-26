@@ -29,7 +29,13 @@ export function KpiRow({ kpi }: { kpi: BriefingKpi | undefined }) {
           </>
         ) : null}
       </Tile>
-      <Tile label={t.briefing.kpi.okRate}>{kpi.okRate === null ? t.common.none : `${Math.round(kpi.okRate * 1000) / 10}%`}</Tile>
+      <Tile label={t.briefing.kpi.okRate}>
+        {kpi.okRate === null ? t.common.none : `${Math.round(kpi.okRate * 1000) / 10}%`}
+        {/* A blocked run reads as "0%" alone; say what the rest of the page is built on. 0.9 is AC 1's bar. */}
+        {kpi.okRate !== null && kpi.okRate < 0.9 ? (
+          <span className="text-fg-2 block font-sans text-xs">{t.briefing.kpi.okRateLow}</span>
+        ) : null}
+      </Tile>
       <Tile label={t.briefing.kpi.holiday}>
         {kpi.nextHoliday ? (
           <>
