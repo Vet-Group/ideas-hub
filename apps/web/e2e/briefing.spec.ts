@@ -167,6 +167,41 @@ test('a save from a suggestion takes 1 action with one store; a second save open
   expect(csv).toContain('Best dog mom mug gift 2');
 });
 
+test('a keyword suggestion repeated in the next briefing reads as saved and adds no second idea (#107)', async ({ page }) => {
+  const title = 'halloween dog mom shirt';
+  const ideas = () => sql<{ id: string }>(`select id from saved_ideas where store_id = $1 and title = $2`, [STORES.a.id, title]);
+  // The 20/10 briefing gets the same keyword suggestion under its own id, as a later briefing repeats one.
+  const setPrevious = (on: boolean) =>
+    on
+      ? sql(
+          `with s as (update briefings set sections = jsonb_set(sections, '{suggestions}', '{"state":"ok","count":1}') where id = $1 returning id)
+           insert into suggestions (id, briefing_id, kind, text, reason, evidence) select 'sug_e2e_keyword_prev', id, 'keyword', $2, 'Đã nóng từ hôm qua.', '{"ads":[],"news":[]}' from s`,
+          [BRIEFINGS.failed, title],
+        )
+      : sql(
+          `with d as (delete from suggestions where id = 'sug_e2e_keyword_prev')
+           update briefings set sections = jsonb_set(sections, '{suggestions}', '{"state":"failed","reason":"ai"}') where id = $1`,
+          [BRIEFINGS.failed],
+        );
+  await sql(`delete from saved_ideas where title = $1`, [title]);
+  await signIn(page, USERS.saver.email);
+  try {
+    await setPrevious(true);
+    await page.goto('/briefing/2026-10-20');
+    await panel(page, 'Gợi ý từ AI').getByRole('button', { name: `Lưu: ${title}`, exact: true }).click();
+    await expect(toast(page, 'Đã lưu vào Store A')).toBeVisible();
+
+    await page.goto('/briefing/2026-10-21');
+    const next = panel(page, 'Gợi ý từ AI').getByRole('button', { name: `Đã lưu: ${title}`, exact: true });
+    await expect(next).toBeVisible();
+    await next.click();
+    await expect(toast(page, 'Đã có sẵn')).toBeVisible();
+    expect(await ideas()).toHaveLength(1);
+  } finally {
+    await setPrevious(false);
+  }
+});
+
 test('with several stores a save from a suggestion takes 2 actions (Lưu, Enter)', async ({ page }) => {
   await signIn(page, USERS.admin.email);
   const a = new Actions(page);

@@ -1,6 +1,6 @@
 'use server';
 
-import { type IdeaStatus, IdeaAccessError, getAd, lastSaveStoreIds, saveIdea, setIdeaStatus, suggestionForViewer, updateIdea } from '@ideas-hub/db/queries';
+import { type IdeaStatus, IdeaAccessError, getAd, lastSaveStoreIds, saveIdea, setIdeaStatus, suggestionForViewer, suggestionTitle, updateIdea } from '@ideas-hub/db/queries';
 import { stores } from '@ideas-hub/db';
 import { inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -47,7 +47,7 @@ async function suggestionIdea(user: Awaited<ReturnType<typeof requireUser>>, sug
     source: 'suggestion',
     sourceRef: s.id,
     via: 'briefing',
-    title: s.text.replace(/\s+/g, ' ').trim().slice(0, 140),
+    title: suggestionTitle(s.text),
     snapshot: { kind: s.kind, text: s.text, reason: s.reason, evidence: s.evidence, keyword: s.keyword },
   };
 }

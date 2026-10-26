@@ -1,5 +1,5 @@
 import { VIETNAM, canSeeKeywordAi, nextSlotAfter, storeScope } from '@ideas-hub/core';
-import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, sourceRun, titlePhrases, topTrendingAds } from '@ideas-hub/db/queries';
+import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, savedSuggestions, sourceRun, titlePhrases, topTrendingAds } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
@@ -72,9 +72,9 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
   const kw = await keywordBriefingFor(db, user, id, date ?? vnDay(at));
   const kwBriefing = kw?.aiVisible && kw.briefing.readyAt ? kw : null;
   const scope = storeScope(user);
-  const [savedAds, savedSuggestions] = await Promise.all([
+  const [savedAds, savedSuggestionIds] = await Promise.all([
     savedRefs(db, scope, 'ad', [...top, ...rising].map((a) => a.adArchiveId)),
-    savedRefs(db, scope, 'suggestion', kwBriefing?.suggestions.map((r) => r.id) ?? []),
+    savedSuggestions(db, scope, kwBriefing?.suggestions ?? []),
   ]);
   const runLabel = run ? t.keywords.sourceRun(formatTime(run.scheduledFor), ddmm(vnDate.format(run.scheduledFor))) : null;
   const field = 'border-input bg-surface h-9 rounded-md border px-2 text-sm outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50';
@@ -170,7 +170,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
             <p className="text-fg-2 text-sm">{t.keywords.aiHidden}</p>
           ) : kwBriefing ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} ads={[...(kwBriefing.sections.topAds ?? []), ...(kwBriefing.sections.risingAds ?? [])]} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} saved={savedSuggestions} />
+              <SuggestionsPanel section={kwBriefing.sections.suggestions} rows={kwBriefing.suggestions} news={kwBriefing.sections.news} ads={[...(kwBriefing.sections.topAds ?? []), ...(kwBriefing.sections.risingAds ?? [])]} adHref={(a) => `/ads/${encodeURIComponent(a)}`} stores={stores} saved={savedSuggestionIds} />
               <NewsPanel news={kwBriefing.sections.news} />
             </div>
           ) : (

@@ -30,37 +30,60 @@ export type SaveResult = { storeId: string; ideaId: string; created: boolean }[]
 /** A chosen store is outside the viewer's `save` scope; nothing was written. */
 export class IdeaAccessError extends Error {}
 
-/** One transaction for all stores, so the rows share `created_at` (lastSaveStoreIds relies on it). */
+/** A suggestion's idea title; a later briefing repeats a suggestion under a new id with the same title. */
+export const suggestionTitle = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, 140);
+
+const sameSuggestionTitle = (titles: string[]) =>
+  and(eq(savedIdeas.source, 'suggestion'), inArray(sql`lower(${savedIdeas.title})`, titles.map((t) => t.toLowerCase())));
+
+/**
+ * One transaction for all stores, so the rows share `created_at` (lastSaveStoreIds relies on it). A suggestion
+ * whose title is already an idea in a store counts as saved there (issue #107).
+ */
 export async function saveIdea(db: Db, viewer: Viewer, storeIds: string[], input: IdeaSourceInput, at: Date): Promise<SaveResult> {
   const ids = [...new Set(storeIds)];
   if (ids.length === 0 || !ids.every((s) => can(viewer, s, 'save'))) throw new IdeaAccessError('save is not allowed on every chosen store');
   return db.transaction(async (tx) => {
-    const inserted = await tx
-      .insert(savedIdeas)
-      .values(
-        ids.map((storeId) => ({
-          storeId,
-          source: input.source,
-          sourceRef: input.sourceRef,
-          via: input.via,
-          title: input.title,
-          snapshot: input.snapshot,
-          imageKey: input.imageKeys?.[storeId] ?? null,
-          createdBy: viewer.userId,
-          createdAt: at,
-          updatedAt: at,
-        })),
-      )
-      .onConflictDoNothing({ target: [savedIdeas.storeId, savedIdeas.source, savedIdeas.sourceRef] })
-      .returning({ id: savedIdeas.id, storeId: savedIdeas.storeId });
-    const missing = ids.filter((s) => !inserted.some((r) => r.storeId === s));
-    const existing =
+    // shortcut: no unique index on the title, so two saves of one title in the same instant can both insert; add one if that shows up.
+    const sameTitle =
+      input.source === 'suggestion'
+        ? await tx
+            .selectDistinctOn([savedIdeas.storeId], { id: savedIdeas.id, storeId: savedIdeas.storeId })
+            .from(savedIdeas)
+            .where(and(inArray(savedIdeas.storeId, ids), sameSuggestionTitle([input.title])))
+            .orderBy(savedIdeas.storeId, asc(savedIdeas.createdAt))
+        : [];
+    const toInsert = ids.filter((s) => !sameTitle.some((r) => r.storeId === s));
+    const inserted =
+      toInsert.length === 0
+        ? []
+        : await tx
+            .insert(savedIdeas)
+            .values(
+              toInsert.map((storeId) => ({
+                storeId,
+                source: input.source,
+                sourceRef: input.sourceRef,
+                via: input.via,
+                title: input.title,
+                snapshot: input.snapshot,
+                imageKey: input.imageKeys?.[storeId] ?? null,
+                createdBy: viewer.userId,
+                createdAt: at,
+                updatedAt: at,
+              })),
+            )
+            .onConflictDoNothing({ target: [savedIdeas.storeId, savedIdeas.source, savedIdeas.sourceRef] })
+            .returning({ id: savedIdeas.id, storeId: savedIdeas.storeId });
+    const missing = toInsert.filter((s) => !inserted.some((r) => r.storeId === s));
+    const sameRef =
       missing.length === 0 || input.sourceRef === null
         ? []
         : await tx
             .select({ id: savedIdeas.id, storeId: savedIdeas.storeId })
             .from(savedIdeas)
             .where(and(inArray(savedIdeas.storeId, missing), eq(savedIdeas.source, input.source), eq(savedIdeas.sourceRef, input.sourceRef)));
+    const existing = [...sameTitle, ...sameRef];
     return ids.map((storeId) => {
       const made = inserted.find((r) => r.storeId === storeId);
       if (made) return { storeId, ideaId: made.id, created: true };
@@ -109,6 +132,24 @@ export async function savedRefs(db: Db, scope: StoreScope, source: IdeaSource, r
       ),
     );
   return rows.flatMap((r) => (r.ref ? [r.ref] : []));
+}
+
+/** Which suggestions are saved in `scope`: by id, or by a saved suggestion with the same title (saveIdea's rule). */
+export async function savedSuggestions(db: Db, scope: StoreScope, rows: readonly { id: string; text: string }[]): Promise<string[]> {
+  const byId = await savedRefs(db, scope, 'suggestion', rows.map((r) => r.id));
+  const rest = rows.filter((r) => !byId.includes(r.id));
+  if (rest.length === 0 || (scope.storeIds !== 'all' && scope.storeIds.length === 0)) return byId;
+  const hits = await db
+    .selectDistinct({ title: sql<string>`lower(${savedIdeas.title})` })
+    .from(savedIdeas)
+    .where(
+      and(
+        sameSuggestionTitle(rest.map((r) => suggestionTitle(r.text))),
+        scope.storeIds === 'all' ? undefined : inArray(savedIdeas.storeId, [...scope.storeIds]),
+      ),
+    );
+  const saved = new Set(hits.map((h) => h.title));
+  return [...byId, ...rest.filter((r) => saved.has(suggestionTitle(r.text).toLowerCase())).map((r) => r.id)];
 }
 
 /** The stores of the user's last save: their rows with the latest `created_at` (one save, one transaction). */

@@ -1,5 +1,5 @@
 import { storeScope } from '@ideas-hub/core';
-import { type BriefingRow, briefingSuggestions, getAd, savedRefs } from '@ideas-hub/db/queries';
+import { type BriefingRow, briefingSuggestions, getAd, savedRefs, savedSuggestions } from '@ideas-hub/db/queries';
 import { DetailPane } from '@/components/ads/detail-pane';
 import { PaneSheet } from '@/components/ads/pane-sheet';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,7 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
     adId ? getAd(db, await statusOptions(), adId) : Promise.resolve(null),
     savedRefs(db, scope, 'ad', adIds),
   ]);
-  const savedSuggestions = await savedRefs(db, scope, 'suggestion', rows.map((r) => r.id));
+  const savedSuggestionIds = await savedSuggestions(db, scope, rows);
   const adHref = (id: string) => `${basePath}?ad=${encodeURIComponent(id)}`;
   const run = s.sourceRun ? new Date(s.sourceRun.scheduledFor) : null;
   return (
@@ -70,7 +70,7 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid content-start gap-4">
           <Panel id="b-ai" title={t.briefing.suggestions}>
-            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} ads={[...(s.topAds ?? []), ...(s.risingAds ?? [])]} adHref={adHref} stores={stores} saved={savedSuggestions} />
+            <SuggestionsPanel section={s.suggestions} rows={rows} news={s.news} ads={[...(s.topAds ?? []), ...(s.risingAds ?? [])]} adHref={adHref} stores={stores} saved={savedSuggestionIds} />
           </Panel>
           <Panel id="b-top" title={t.briefing.top}>
             <AdRows ads={s.topAds ?? []} adHref={adHref} stores={stores} saved={savedAds} />
