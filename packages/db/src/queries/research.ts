@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
+import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_PHRASE, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
 import { type SQL, and, asc, eq, sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { shopFollows, stores } from '../schema';
@@ -461,9 +461,10 @@ export interface TitlePhrase {
 }
 
 /**
- * The 2-word phrases most shops put in the titles of a keyword's running ads, by shops then ads: the
+ * The 2- and 3-word phrases most shops put in the titles of a keyword's running ads, by shops then ads: the
  * products inside the keyword ("acrylic ornament", "first christmas"). Phrases with a stop word or made
- * only of the keyword's own words are left out.
+ * only of the keyword's own words are left out, and so are those on fewer ads than the noise floor
+ * (TITLE_PHRASE); a 2-word phrase that one 3-word phrase covers is a fragment of it and is left out too.
  */
 export async function titlePhrases(
   db: Db,
@@ -487,16 +488,31 @@ export async function titlePhrases(
     ),
     w as (select r.ad_archive_id, t.word, t.n from r, regexp_split_to_table(${titleWordsSql(sql`r.title`)}, ' ') with ordinality t(word, n)),
     g as (
-      select distinct w1.ad_archive_id, w1.word || ' ' || w2.word as phrase
+      select distinct w1.ad_archive_id, w1.word || ' ' || w2.word as phrase, 2 as len
       from w w1 join w w2 on w2.ad_archive_id = w1.ad_archive_id and w2.n = w1.n + 1
       where length(w1.word) > 1 and length(w2.word) > 1
         and not (w1.word = any(${stop}::text[]) or w2.word = any(${stop}::text[]))
         and not (w1.word = any(${own}::text[]) and w2.word = any(${own}::text[]))
+      union
+      select w1.ad_archive_id, w1.word || ' ' || w2.word || ' ' || w3.word, 3
+      from w w1 join w w2 on w2.ad_archive_id = w1.ad_archive_id and w2.n = w1.n + 1
+      join w w3 on w3.ad_archive_id = w1.ad_archive_id and w3.n = w1.n + 2
+      where length(w1.word) > 1 and length(w2.word) > 1 and length(w3.word) > 1
+        and not (w1.word = any(${stop}::text[]) or w2.word = any(${stop}::text[]) or w3.word = any(${stop}::text[]))
+        and not (w1.word = any(${own}::text[]) and w2.word = any(${own}::text[]) and w3.word = any(${own}::text[]))
+    ),
+    p as (
+      select g.phrase, g.len, count(*)::int as ads, (count(distinct r.landing_domain) filter (where r.is_shop))::int as shops
+      from g join r on r.ad_archive_id = g.ad_archive_id
+      group by g.phrase, g.len
+      having count(distinct r.landing_domain) filter (where r.is_shop) >= 2
+        and count(*) >= greatest(${TITLE_PHRASE.minAds}::int, ceil(${TITLE_PHRASE.minShare}::float8 * (select count(*) from r)))
     )
-    select g.phrase, count(*)::int as ads, (count(distinct r.landing_domain) filter (where r.is_shop))::int as shops
-    from g join r on r.ad_archive_id = g.ad_archive_id
-    group by g.phrase having count(distinct r.landing_domain) filter (where r.is_shop) >= 2
-    order by shops desc, ads desc, g.phrase limit ${limit}`);
+    select p.phrase, p.ads, p.shops from p
+    where not (p.len = 2 and exists (
+      select 1 from p p3 where p3.len = 3 and (p3.phrase like p.phrase || ' %' or p3.phrase like '% ' || p.phrase)
+        and p3.ads >= ${TITLE_PHRASE.fragmentCover}::float8 * p.ads))
+    order by p.shops desc, p.ads desc, p.phrase limit ${limit}`);
   });
   return rows;
 }

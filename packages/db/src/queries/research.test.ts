@@ -345,4 +345,25 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect(await followedShops(db, admin, 'st_a')).toEqual([]);
     expect(await ads(admin)).toEqual([]);
   });
+
+  // Last: it adds 200 running ads on its own keyword, N = 200, so the floor is max(3, ceil(0.02 * 200)) = 4.
+  it('counts title phrases once per ad above a noise floor and drops 2-word fragments of a 3-word phrase', async () => {
+    await db.execute(sql`insert into keywords (id, text, origin) values ('kw_t', 'pillow', 'seed')`);
+    await db.execute(sql`insert into ads (ad_archive_id, title, landing_domain, media_type, start_date, end_date, seen_days, first_seen_date, last_seen_date, parsed)
+      select 't_' || i,
+        case when i <= 10 then 'Sea glass ornament' when i <= 20 then 'Sea glass lamp' when i <= 23 then 'Rare moon'
+          when i = 24 then 'Moon rock moon rock' when i <= 27 then 'Moon rock' else 'Gift' end,
+        'shop' || (i % 10) || '.com', 'IMAGE', '2026-10-01', '2026-10-20', 2, '2026-10-01', '2026-10-20', '{}'::jsonb
+      from generate_series(1, 200) i`);
+    await db.execute(sql`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day)
+      select 't_' || i, 'run_1', 'kw_t', 'US', i, '2026-10-19' from generate_series(1, 200) i`);
+    // "glass ornament" and "glass lamp" are all inside a 3-word phrase; "sea glass" is only half inside either;
+    // "rare moon" (3 ads) is under the floor; "moon rock" has 4 ads, t_24 counted once although it says it twice.
+    expect(await titlePhrases(db, O, { id: 'kw_t', text: 'Pillow' })).toEqual([
+      { phrase: 'sea glass', ads: 20, shops: 10 },
+      { phrase: 'sea glass lamp', ads: 10, shops: 10 },
+      { phrase: 'sea glass ornament', ads: 10, shops: 10 },
+      { phrase: 'moon rock', ads: 4, shops: 4 },
+    ]);
+  });
 });

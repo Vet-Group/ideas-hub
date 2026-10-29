@@ -546,9 +546,11 @@ with no new crawling (`marketReads`, packages/db; `isProven` and `marketStage`, 
 - Shops (`shopReads`): the table adds new ads and proven ads (share, then count) and the number of
   keywords the shop's running ads were found under, for the shops on the page; the shop page shows the
   same 3 as tiles above its chart.
-- Title phrases (`titlePhrases`): under the market read, the keyword report lists up to 12 two-word
-  phrases that 2+ shops put in the titles of the keyword's running ads, by shops then ads, without stop
-  words or phrases made only of the keyword's own words. They name the products inside the keyword
+- Title phrases (`titlePhrases`): under the market read, the keyword report lists up to 12 two- and
+  three-word phrases that 2+ shops put in the titles of the keyword's running ads, by shops then ads, without
+  stop words or phrases made only of the keyword's own words. Each is counted once per ad and needs
+  `max(3, ceil(2% of the running ads with a title))` ads (`TITLE_PHRASE`, packages/core); a 2-word phrase
+  that one 3-word phrase covers on 80% or more of its ads is a fragment and is left out. They name the products inside the keyword
   (e.g. "acrylic ornament", "first christmas" under "personalized ornament"). Each links to the ads
   page with the keyword and a "Tiêu đề có" filter (`title=`), which matches those words in order as
   whole words (`titleWords`, packages/core), so the list shows the ads the phrase counted.

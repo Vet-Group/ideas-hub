@@ -149,6 +149,12 @@ export const TITLE_STOPWORDS = [
   'only', 'so', 'if', 'not', 'no', 'will', 'can', 'what', 'who', 'how', 'when', 'new',
 ] as const;
 
+/**
+ * Title phrases (titlePhrases, packages/db): a phrase needs ads >= max(minAds, ceil(minShare * running ads
+ * with a title)); a 2-word phrase is dropped when one 3-word phrase containing it covers >= fragmentCover of its ads.
+ */
+export const TITLE_PHRASE = { minAds: 3, minShare: 0.02, fragmentCover: 0.8 } as const;
+
 /** A title as lower-case words split by single spaces; titlePhrases (packages/db) splits the same way in SQL. */
 export function titleWords(title: string): string {
   return title.toLowerCase().replace(/[^\p{L}]+/gu, ' ').trim();

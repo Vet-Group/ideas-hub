@@ -102,7 +102,7 @@ New staff stumbled on these in a phone review (2026-10-25). The ad pane explains
 | "Điểm" | Days running × days seen, for ads running 5+ days with a shop domain: how long and how steadily it ran. |
 | "Đã chứng minh" | 6+ variants, or 30+ days in 3+ countries: a known winner. |
 | "Mới nổi" / "Có mẫu thắng" | Keyword stage: ≥ 15% of its ads started in the last 7 days / ≥ 35% are proven. |
-| "Cụm từ nhiều shop dùng" | Two-word phrases 2+ shops put in their ad titles: the products inside a keyword. Tap one to see those ads. |
+| "Cụm từ nhiều shop dùng" | Two- and three-word phrases 2+ shops put in their ad titles, on enough ads to not be noise: the products inside a keyword. Tap one to see those ads. |
 | "Gộp mẫu trùng" / "N mẫu trùng" | Ads with the same text from the same shop shown once, with the count. |
 
 ## Pending owner
