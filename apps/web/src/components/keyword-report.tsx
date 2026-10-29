@@ -1,5 +1,5 @@
-import { VIETNAM, canSeeKeywordAi, nextSlotAfter, storeScope } from '@ideas-hub/core';
-import { type AdRow, type SourceRun, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, savedSuggestions, sourceRun, titlePhrases, topTrendingAds } from '@ideas-hub/db/queries';
+import { VIETNAM, angleMix, canSeeKeywordAi, nextSlotAfter, storeScope } from '@ideas-hub/core';
+import { type AdRow, type SourceRun, adAngles, daySeries, keywordBriefingFor, getKeyword, hotKeywords, listAds, marketReads, risingNewAds, risingShops, savedRefs, savedSuggestions, sourceRun, titlePhrases, topTrendingAds } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RunNowButton } from '@/app/(app)/keywords/run-now-button';
@@ -62,6 +62,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
   const domains = new Set(keywordAds.map((a) => a.landingDomain));
   const ownShops = shops.filter((r) => domains.has(r.key)).slice(0, 10);
   const provenIds = new Set(keywordAds.filter((a) => a.proven).map((a) => a.adArchiveId));
+  const angles = angleMix([...(await adAngles(db, [...provenIds])).values()]);
   const next = nextSlotAfter(s.runTimes, at);
   const card = (a: AdRow) =>
     toCard(
@@ -137,6 +138,19 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
                     ))}
                   </ul>
                   <p className="text-fg-2 text-xs">{t.keywords.market.phrasesHelp}</p>
+                </div>
+              ) : null}
+              {angles.rows.length ? (
+                <div className="grid gap-2">
+                  <h3 className="text-sm font-medium">{t.keywords.market.angles}</h3>
+                  <ul className="flex flex-wrap gap-2">
+                    {angles.rows.map((a) => (
+                      <li key={a.angle} className="border-line bg-surface rounded-md border px-3 py-1 text-sm">
+                        <span className="font-medium">{t.ads.angles[a.angle]}</span> <span className="text-fg-2 text-xs tabular-nums">{t.keywords.market.angleShare(a.pct, a.ads)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-fg-2 text-xs">{t.keywords.market.anglesHelp(angles.tagged)}</p>
                 </div>
               ) : null}
             </section>

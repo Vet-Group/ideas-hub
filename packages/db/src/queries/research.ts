@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_PHRASE, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, canonicalizeUrl, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
+import { ANGLE_MAX_ATTEMPTS, type AdAngle, type AdStatus, type AngleAd, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_PHRASE, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, canonicalizeUrl, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
 import { type SQL, and, asc, eq, sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { shopFollows, stores } from '../schema';
@@ -248,14 +248,41 @@ export interface AdSighting {
   crawlDay: string;
 }
 
-export async function getAd(db: Db, o: StatusOptions, adArchiveId: string): Promise<(AdListItem & { cta: string | null; sightings: AdSighting[] }) | null> {
+export async function getAd(
+  db: Db,
+  o: StatusOptions,
+  adArchiveId: string,
+): Promise<(AdListItem & { cta: string | null; sightings: AdSighting[]; angle: AdAngle | null }) | null> {
   const [ad] = await selectAds(db, o, sql`and a.ad_archive_id = ${adArchiveId}`);
   if (!ad) return null;
   const { rows } = await db.execute<{ keyword: string; country: string; position: number; crawl_day: string; cta: string | null }>(sql`
     select k.text as keyword, s.country, s.position, s.crawl_day::text, a.cta
     from ad_sightings s join keywords k on k.id = s.keyword_id join ads a on a.ad_archive_id = s.ad_archive_id
     where s.ad_archive_id = ${adArchiveId} order by s.crawl_day desc, s.position limit 50`);
-  return { ...ad, cta: rows[0]?.cta ?? null, sightings: rows.map((r) => ({ keyword: r.keyword, country: r.country, position: r.position, crawlDay: r.crawl_day })) };
+  const angle = (await adAngles(db, [adArchiveId])).get(adArchiveId) ?? null;
+  return { ...ad, cta: rows[0]?.cta ?? null, angle, sightings: rows.map((r) => ({ keyword: r.keyword, country: r.country, position: r.position, crawlDay: r.crawl_day })) };
+}
+
+/** The stored angles of these ads (AC-A5); an ad whose call failed or that was never tagged has none. */
+export async function adAngles(db: Db, ids: readonly string[]): Promise<Map<string, AdAngle>> {
+  if (ids.length === 0) return new Map();
+  const { rows } = await db.execute<{ ad_archive_id: string; angle: AdAngle }>(sql`
+    select ad_archive_id, angle from ad_angles where tagged_at is not null and ad_archive_id = any(${sql.param([...ids])}::text[])`);
+  return new Map(rows.map((r) => [r.ad_archive_id, r.angle]));
+}
+
+/**
+ * The next batch of the angle job: proven ads (isProven) without an angle row, then those whose call of an
+ * earlier day failed (`tagged_at` null) and that were sent fewer than ANGLE_MAX_ATTEMPTS times; most recently seen first.
+ */
+export async function untaggedProvenAds(db: Db, limit: number, today: string): Promise<AngleAd[]> {
+  const { rows } = await db.execute<{ ad_archive_id: string; page_name: string | null; caption: string | null; title: string | null }>(sql`
+    select a.ad_archive_id, a.page_name, a.caption, a.title from ads a
+    left join ad_angles g on g.ad_archive_id = a.ad_archive_id
+    where (g.ad_archive_id is null or (g.tagged_at is null and g.tagged_on < ${today} and g.attempts < ${ANGLE_MAX_ATTEMPTS}))
+      and ${provenSql(sql`a.collation_count`, DAYS, sql`(select count(distinct s.country) from ad_sightings s where s.ad_archive_id = a.ad_archive_id)`)}
+    order by g.ad_archive_id is not null, a.last_seen_date desc, a.ad_archive_id limit ${limit}`);
+  return rows.map((r) => ({ adArchiveId: r.ad_archive_id, pageName: r.page_name, caption: r.caption, title: r.title }));
 }
 
 export const SHOP_SORTS = ['running_ads', 'last_seen', 'first_seen', 'domain'] as const;

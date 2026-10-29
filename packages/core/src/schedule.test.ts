@@ -124,6 +124,12 @@ describe('validateSettings', () => {
     expect(validateSettings(with_({ briefingJobExpirySeconds: 1860 }))).toEqual(['ready_before_build_ends']);
   });
 
+  it('rejects a briefing build time not before the angle job (09:00), whose gate would then wait for that build every day', () => {
+    expect(validateSettings(with_({ briefingBuildTime: '08:59', briefingReadyTime: '09:30' }))).toEqual([]);
+    expect(validateSettings(with_({ briefingBuildTime: '09:00', briefingReadyTime: '09:30' }))).toEqual(['build_not_before_angles']);
+    expect(validateSettings(with_({ briefingBuildTime: '10:00', briefingReadyTime: '10:30' }))).toEqual(['build_not_before_angles']);
+  });
+
   it('keeps the ready margin after build + expiry: 2 s pickup + 4 Lark attempts of (2 s pickup + 30 s) + 3 retry delays of 30 s = 220 s', () => {
     expect(briefingReadyMarginSeconds(S)).toBe(220);
     expect(briefingReadyMarginSeconds(with_({ larkSendTimeoutSeconds: 60 }))).toBe(340);

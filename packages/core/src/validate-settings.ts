@@ -1,5 +1,6 @@
 // Settings checks the admin page and the worker apply before a change is used (spec §1, §3; plan Step 3).
 // Returns problem codes; the UI maps them to Vietnamese text.
+import { ANGLES_TIME } from './angles';
 import { WATCHDOG_PERIOD_MINUTES, crawlJobExpirySeconds, minutesOf, morningRunTime } from './schedule';
 import { type Settings } from './settings';
 
@@ -14,6 +15,7 @@ export type SettingsProblem =
   | 'briefing_expiry_over_24h'
   | 'feed_refresh_over_job_expiry'
   | 'ready_before_build_ends'
+  | 'build_not_before_angles'
   | 'no_run_times';
 
 const DAY_MINUTES = 24 * 60;
@@ -63,5 +65,7 @@ export function validateSettings(s: Settings): SettingsProblem[] {
   if (minutesOf(s.briefingBuildTime) * 60 + s.briefingJobExpirySeconds + briefingReadyMarginSeconds(s) > minutesOf(s.briefingReadyTime) * 60) {
     problems.push('ready_before_build_ends');
   }
+  // The angle job waits while a build of the day is queued, so a build at or after it would hold it back every day.
+  if (minutesOf(s.briefingBuildTime) >= minutesOf(ANGLES_TIME)) problems.push('build_not_before_angles');
   return problems;
 }

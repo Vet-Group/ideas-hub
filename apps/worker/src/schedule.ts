@@ -1,11 +1,12 @@
 // The scheduler (plan Step 3): every minute it keeps 14 days of `schedule` rows written with their
 // deadline, planned searches and job, records run-time changes, and rewrites future rows (and re-sends
 // their jobs, cancel and send in one transaction) when settings change. It also sends the briefing
-// builds of the next build time (briefing.ts scheduleBriefings). Settings that fail validation stop all of
+// builds of the next build time (briefing.ts scheduleBriefings) and the next angle tagging job (angles.ts). Settings that fail validation stop all of
 // this and write a `settings_invalid` Alert.
 import { crawlJobExpirySeconds, plannedSearches, scheduledDeadline, slotsBetween, validateSettings } from '@ideas-hub/core';
 import { withTx } from '@ideas-hub/db/client';
 import { sql } from 'drizzle-orm';
+import { scheduleAngles } from './angles';
 import { scheduleBriefings } from './briefing';
 import { type Ctx, SOURCE, loadSettings } from './context';
 import { CRAWL, jobState, sendCrawlJob } from './queues';
@@ -92,5 +93,6 @@ export async function schedulerPass(ctx: Ctx, hooks: SchedulerHooks = {}) {
     });
   }
   const { briefingsSent, briefingsResent } = await scheduleBriefings(ctx, s, now);
-  return { problems, inserted, resent, removed, briefingsSent, briefingsResent };
+  const anglesSent = (await scheduleAngles(ctx, now)) !== null;
+  return { problems, inserted, resent, removed, briefingsSent, briefingsResent, anglesSent };
 }

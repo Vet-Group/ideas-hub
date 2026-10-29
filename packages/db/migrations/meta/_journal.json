@@ -113,6 +113,13 @@
       "when": 1793261801208,
       "tag": "0015_shop_follows",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793268458470,
+      "tag": "0016_ad_angles",
+      "breakpoints": true
     }
   ]
 }

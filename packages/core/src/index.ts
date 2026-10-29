@@ -1,4 +1,5 @@
 export * from './access';
+export * from './angles';
 export * from './csv';
 export * from './measures';
 export * from './pacing';

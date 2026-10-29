@@ -4,7 +4,7 @@ import { briefingKpi, sourceRunById } from '@ideas-hub/db/queries';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { bounded } from '../src/bounded';
-import { type BriefingDeps, buildBriefing } from '../src/briefing';
+import { type BriefingDeps, buildBriefing, spentToday } from '../src/briefing';
 import { larkHttpClient, larkSend } from '../src/lark';
 import { llmFromEnv } from '../src/llm';
 import { LARK, type LarkJob } from '../src/queues';
@@ -125,6 +125,23 @@ describe.skipIf(!testDatabaseAvailable())('briefing.build', () => {
     expect(b.sections.news).toMatchObject({ state: 'skipped', reason: 'cost_cap' });
     expect(b.sections.suggestions).toEqual({ state: 'skipped', reason: 'cost_cap' });
     expect(b.ready_at).not.toBeNull();
+  });
+
+  it('angle tagging spend of the day counts toward the cap: a briefing call that no longer fits is refused', async () => {
+    await setSettings(h, { aiDailyCostCapUsd: 0.05 });
+    await h.db.execute(sql`insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on) values ('k0-0', 'pain', 'm', 0.045, '2026-10-21')`);
+    try {
+      const { llm, deps: d } = deps(() => 'valid');
+      expect(await buildBriefing(h, GLOBAL, d)).toBe('built');
+      expect(llm.calls).toHaveLength(0);
+      expect((await row()).sections.suggestions).toEqual({ state: 'skipped', reason: 'cost_cap' });
+      expect(await spentToday(h.db, '2026-10-21')).toBe(0.045);
+      // Another day's angle spend does not.
+      await h.db.execute(sql`update ad_angles set tagged_on = '2026-10-20'`);
+      expect(await spentToday(h.db, '2026-10-21')).toBe(0);
+    } finally {
+      await h.db.execute(sql`delete from ad_angles`);
+    }
   });
 
   it('without LLM_BASE_URL/LLM_API_KEY: no call is reserved, sections 5 and 6 "failed: AI", logged once', async () => {

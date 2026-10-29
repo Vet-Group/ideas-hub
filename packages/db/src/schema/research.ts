@@ -1,7 +1,8 @@
+import { AD_ANGLES } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
-import { boolean, date, index, integer, jsonb, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, check, date, index, integer, jsonb, numeric, pgTable, primaryKey, smallint, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { stores, users } from './accounts';
-import { createdAt, id, tstz } from './columns';
+import { createdAt, id, oneOf, tstz } from './columns';
 import { crawlRuns, keywords } from './crawl';
 
 /** Deduplicated by ad_archive_id; seen counts stay when sightings are purged after 180 days. */
@@ -41,6 +42,30 @@ export const ads = pgTable(
     index('ads_landing_domain_trgm').using('gin', t.landingDomain.op('gin_trgm_ops')),
     index('ads_last_seen_idx').on(t.lastSeenDate),
   ],
+);
+
+/**
+ * One angle per proven ad (AC-A5), written by the `angles.tag` job. The row is inserted as `unclear` with its
+ * share of the call's estimate before the call, so the day's spend (`tagged_on`) counts it even if the call
+ * fails; `tagged_at` is set when the reply is stored and stays null after a failed call. Such a row is reserved
+ * again on a later day (moving `tagged_on` and `cost_usd` to it) until it has been sent `attempts` = ANGLE_MAX_ATTEMPTS times.
+ */
+export const adAngles = pgTable(
+  'ad_angles',
+  {
+    adArchiveId: text('ad_archive_id')
+      .primaryKey()
+      .references(() => ads.adArchiveId, { onDelete: 'cascade' }),
+    angle: text('angle', { enum: AD_ANGLES }).notNull(),
+    model: text('model').notNull(),
+    costUsd: numeric('cost_usd', { precision: 10, scale: 4 }).notNull(),
+    /** Asia/Ho_Chi_Minh date whose daily AI cap the cost counts against. */
+    taggedOn: date('tagged_on').notNull(),
+    taggedAt: tstz('tagged_at'),
+    /** Calls this ad was sent in. */
+    attempts: smallint('attempts').notNull().default(1),
+  },
+  (t) => [check('ad_angles_angle_check', oneOf(t.angle, AD_ANGLES)), index('ad_angles_tagged_on_idx').on(t.taggedOn)],
 );
 
 export const adSightings = pgTable(

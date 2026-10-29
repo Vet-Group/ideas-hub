@@ -1,4 +1,4 @@
-// The three pg-boss queues (plan Step 3 "Queues"; ADR 0001 "Jobs and schedule"), checked in the pinned
+// The pg-boss queues (plan Step 3 "Queues"; ADR 0001 "Jobs and schedule"), checked in the pinned
 // pg-boss 12.37.0: `singleton` is index job_i2 (one active job, any number queued), `exclusive` job_i6
 // (one queued or active per singletonKey), `standard` has none (dist/migrationStore.js).
 import { LARK_RETRY_DELAY_SECONDS, LARK_RETRY_LIMIT, type Settings, crawlJobExpirySeconds } from '@ideas-hub/core';
@@ -8,12 +8,16 @@ import { type PgBoss } from 'pg-boss';
 export const CRAWL = 'crawl.run';
 export const BRIEFING = 'briefing.build';
 export const LARK = 'lark.send';
+export const ANGLES = 'angles.tag';
+/** angles.tag stops on its signal well before this: each call is bounded by the LLM timeout. */
+export const ANGLES_EXPIRY_SECONDS = 3600;
 
 export async function createQueues(boss: PgBoss, s: Settings) {
   // retryLimit 0: the pg-boss default of 2 (dist/plans.js QUEUE_DEFAULTS) would run an expired run again.
   await boss.createQueue(CRAWL, { policy: 'singleton', retryLimit: 0, expireInSeconds: crawlJobExpirySeconds(s) });
   await boss.createQueue(BRIEFING, { policy: 'exclusive', retryLimit: 1, expireInSeconds: s.briefingJobExpirySeconds });
   await boss.createQueue(LARK, { policy: 'standard', retryLimit: LARK_RETRY_LIMIT, retryDelay: LARK_RETRY_DELAY_SECONDS });
+  await boss.createQueue(ANGLES, { policy: 'exclusive', retryLimit: 0, expireInSeconds: ANGLES_EXPIRY_SECONDS });
 }
 
 export interface CrawlJob {
