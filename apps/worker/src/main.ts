@@ -1,8 +1,9 @@
-// The worker process: crash recovery, then the three queues, the scheduler every minute and the idle
-// heartbeat timer. briefing.build and lark.send write no heartbeat; they are bounded by their timeouts
+// The worker process: crash recovery, then the queues, the scheduler every minute and the idle
+// heartbeat timer. briefing.build, lark.send and angles.tag write no heartbeat; they are bounded by their timeouts
 // and job.signal. Started by the Task Scheduler wrapper loop on Windows (Step 4), systemd on Linux.
 import { QUEUE_POLL_SECONDS } from '@ideas-hub/core';
 import { PlaywrightSession } from '@ideas-hub/fb-ad-library/playwright';
+import { runAnglesJob } from './angles';
 import { boot } from './boot';
 import { loadSettings } from './context';
 import { IdleHeartbeat, writeHeartbeat } from './heartbeat';
@@ -10,7 +11,7 @@ import { type BriefingDeps, buildBriefing } from './briefing';
 import { larkClientFor, larkConfigFromEnv, larkSend } from './lark';
 import { llmFromEnv } from './llm';
 import { refreshFeeds } from './news';
-import { BRIEFING, type BriefingJob, CRAWL, type CrawlJob, LARK, type LarkJob, createQueues } from './queues';
+import { ANGLES, BRIEFING, type BriefingJob, CRAWL, type CrawlJob, LARK, type LarkJob, createQueues } from './queues';
 import { recoverAtStartup } from './recovery';
 import { type RunDeps, runCrawl } from './run';
 import { schedulerPass } from './schedule';
@@ -56,6 +57,10 @@ const briefingDeps: BriefingDeps = {
 };
 await ctx.boss.work<BriefingJob>(BRIEFING, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {
   ctx.log('briefing', { data: job!.data, outcome: await buildBriefing(ctx, job!.data, briefingDeps, job!.signal) });
+});
+await ctx.boss.work<{ date: string }>(ANGLES, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {
+  // Errors are logged and end the job; it never retries (retryLimit 0), the next day's job picks up the rest.
+  ctx.log('angles', await runAnglesJob(ctx, briefingDeps.llm, job!.data.date, job!.signal).catch((e) => ({ outcome: 'error', error: String(e) })));
 });
 const larkClient = lark ? larkClientFor(lark) : null;
 await ctx.boss.work<LarkJob>(LARK, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: QUEUE_POLL_SECONDS }, async ([job]) => {

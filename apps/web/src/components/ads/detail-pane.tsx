@@ -1,4 +1,5 @@
-// A type-only import: this pane also renders on the client, which must not load the db package.
+// Type-only imports: this pane also renders on the client, which must not load the db package.
+import type { AdAngle } from '@ideas-hub/core';
 import type { AdSighting, AdListItem } from '@ideas-hub/db/queries';
 import { ExternalLink } from 'lucide-react';
 import { SaveButton, type SaveTarget } from '@/components/save/save-button';
@@ -20,7 +21,7 @@ export function DetailPane({
   saved,
   via = 'ads',
 }: {
-  ad: AdListItem & { cta: string | null; sightings: AdSighting[] };
+  ad: AdListItem & { cta: string | null; sightings: AdSighting[]; angle: AdAngle | null };
   /** thumbUrl(ad.thumbnailKey): signed on the server, so this pane also renders on the client. */
   thumbSrc: string | null;
   saveStores: SaveTarget[];
@@ -52,6 +53,7 @@ export function DetailPane({
           <AdStatusChip status={ad.status} />
           {ad.daysActive === null ? null : <DurationTierChip daysActive={ad.daysActive} />}
           {ad.proven ? <ProvenChip /> : null}
+          {ad.angle && ad.angle !== 'unclear' ? <span className="bg-muted text-fg-2 rounded-pill inline-flex min-h-6 items-center px-2 text-xs font-medium">{t.ads.angleChip(t.ads.angles[ad.angle]!)}</span> : null}
         </span>
         <div className="group-data-[pane=bottom]:hidden">{save}</div>
       </div>

@@ -1,6 +1,6 @@
 // Every UI string, in Vietnamese (spec §6 "Users, devices and language"). Seller terms stay English.
 // eslint.config.mjs fails on a UI string written anywhere else under apps/web/src.
-import { FEED_TIMEOUT_SECONDS, MARKET, type SettingsProblem } from '@ideas-hub/core';
+import { ANGLES_TIME, FEED_TIMEOUT_SECONDS, MARKET, type SettingsProblem } from '@ideas-hub/core';
 
 /** The one glyph for an empty value. */
 const NONE = '—';
@@ -271,6 +271,8 @@ export const t = {
     position: 'Vị trí',
     keyHelp: 'Mũi tên để chọn, Enter để xem, S để lưu, O để mở Ad Library.',
     shop: 'Shop',
+    angleChip: (angle: string) => `Góc: ${angle}`,
+    angles: { pain: 'Nỗi đau', desire: 'Mong muốn', proof: 'Bằng chứng', curiosity: 'Tò mò', urgency: 'Thúc giục', identity: 'Nhóm người', unclear: 'Chưa rõ' } as Record<string, string>,
   },
   shops: {
     title: 'Shop',
@@ -351,6 +353,9 @@ export const t = {
       phrases: 'Cụm từ nhiều shop dùng trong tiêu đề ads',
       phraseCount: (shops: number, ads: number) => `${shops} shop · ${ads} ads`,
       phrasesHelp: 'Cụm 2-3 từ có trong tiêu đề ads đang chạy của từ 2 shop trở lên và đủ nhiều ads (không phải nhiễu), xếp theo số shop: các sản phẩm con trong keyword. Bấm để xem các ads đó.',
+      angles: 'Góc tiếp cận của ads đã chứng minh',
+      angleShare: (pct: number, ads: number) => `${pct}% · ${ads} ads`,
+      anglesHelp: (n: number) => `AI gắn mỗi ad đã chứng minh một góc tiếp cận, mỗi ngày lúc 9:00. Tỷ lệ trên ${n} ads đang chạy đã gắn, không tính ads chưa rõ góc.`,
     },
     etsy: {
       title: 'Thị trường Etsy',
@@ -572,6 +577,7 @@ export const t = {
         briefing_expiry_over_24h: 'Hạn job briefing vượt 24 giờ.',
         feed_refresh_over_job_expiry: `Làm mới RSS (${FEED_TIMEOUT_SECONDS} giây) cộng hai lần gọi LLM dài hơn hạn job briefing.`,
         ready_before_build_ends: 'Giờ briefing sẵn sàng phải sau giờ dựng briefing cộng hạn job briefing và thời gian dự phòng để gửi Lark.',
+        build_not_before_angles: `Giờ dựng briefing phải trước giờ gắn angle quảng cáo (${ANGLES_TIME}).`,
         no_run_times: 'Cần ít nhất một giờ chạy.',
       } satisfies Record<SettingsProblem, string> as Record<string, string>,
       labels: {

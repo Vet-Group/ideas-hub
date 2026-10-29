@@ -296,6 +296,24 @@ test('keywords read as markets: stage filter, market columns, phone cards; the r
   await expect(page.getByRole('region', { name: 'Thị trường Etsy' })).toHaveCount(0);
 });
 
+test('the keyword report shows the angle mix of its proven ads, and the pane the ad’s angle', async ({ page }) => {
+  const pool = e2ePool();
+  // e2e_mug_3 is the proven ad; e2e_mug_1 is not, so its angle stays out of the mix.
+  await pool.query(`insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on, tagged_at) values
+    ('e2e_mug_3', 'proof', 'm', 0.0005, '2026-10-21', now()), ('e2e_mug_1', 'pain', 'm', 0.0005, '2026-10-21', now())`);
+  try {
+    await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(`/keywords/${MUG.keywordId}`)}`);
+    const market = page.getByRole('region', { name: 'Đọc thị trường' });
+    await expect(market.getByRole('heading', { name: 'Góc tiếp cận của ads đã chứng minh' })).toBeVisible();
+    await expect(market.getByRole('listitem').filter({ hasText: '% ·' })).toHaveText(['Bằng chứng 100% · 1 ads']);
+    await page.goto('/ads/e2e_mug_3');
+    await expect(page.getByRole('complementary').getByText('Góc: Bằng chứng')).toBeVisible();
+  } finally {
+    await pool.query(`delete from ad_angles where ad_archive_id in ('e2e_mug_3', 'e2e_mug_1')`);
+    await pool.end();
+  }
+});
+
 test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane say so with its variants; "Mới bắt đầu chạy" sorts by start date @phone', async ({ page }) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads')}`);
   await page.goto('/ads?proven=1');

@@ -41,8 +41,8 @@ import { type Ctx, loadSettings } from './context';
 import { type LlmClient } from './llm';
 import { BRIEFING, type BriefingJob, briefingKey, sendBriefingJob, sendLarkJob } from './queues';
 
-/** Serializes the daily-cap check and the reservation of a call across briefings. */
-const COST_LOCK = 4_242_002;
+/** Serializes the daily-cap check and the reservation of a call across briefings and angle tagging. */
+export const COST_LOCK = 4_242_002;
 /** Unconfigured clients already logged, so a day of keyword briefings logs it once. */
 const unconfiguredLogged = new WeakSet<LlmClient>();
 
@@ -168,24 +168,30 @@ async function chatsOf(db: Db, job: BriefingJob, sharedChat: string | null): Pro
 
 type AiResult = { state: 'ok'; summary: string; suggestions: ReturnType<typeof keepResolved> } | AiMissing;
 
+/** The AI spend of an Asia/Ho_Chi_Minh date: all its briefings plus the angle tags of that date (one daily cap, ADR 0008). */
+export async function spentToday(db: Db, date: string): Promise<number> {
+  const { rows } = await db.execute<{ usd: string }>(sql`
+    select ((select coalesce(sum(ai_cost_usd), 0) from briefings where date = ${date}) + (select coalesce(sum(cost_usd), 0) from ad_angles where tagged_on = ${date}))::text as usd`);
+  return Number(rows[0]!.usd);
+}
+
 /**
- * Reserves one call: under the cost lock, refuses past MAX_LLM_CALLS or the daily cap (all briefings of
- * the day), else commits the count and the estimate before the call is made.
+ * Reserves one call: under the cost lock, refuses past MAX_LLM_CALLS or the daily cap (spentToday), else
+ * commits the count and the estimate before the call is made.
  */
 async function reserveCall(ctx: Ctx, briefingId: string, date: string, estimate: number, capUsd: number): Promise<'reserved' | 'limit' | 'cap'> {
   return bounded(ctx.pool, async ({ db }) => {
     await db.execute(sql`select pg_advisory_xact_lock(${COST_LOCK})`);
     const { rows } = await db.execute<{ llm_calls: number }>(sql`select llm_calls from briefings where id = ${briefingId} for update`);
     if (rows[0]!.llm_calls >= MAX_LLM_CALLS) return 'limit';
-    const { rows: spent } = await db.execute<{ usd: string }>(sql`select coalesce(sum(ai_cost_usd), 0)::text as usd from briefings where date = ${date}`);
-    if (!fitsDailyCap(Number(spent[0]!.usd), estimate, capUsd)) return 'cap';
+    if (!fitsDailyCap(await spentToday(db, date), estimate, capUsd)) return 'cap';
     await db.execute(sql`update briefings set llm_calls = llm_calls + 1, ai_cost_usd = ai_cost_usd + ${estimate} where id = ${briefingId}`);
     return 'reserved';
   });
 }
 
 /** One call bounded by the LLM timeout and the job's signal, even if the client ignores the signal. */
-function callLlm(llm: LlmClient, req: Omit<Parameters<LlmClient['complete']>[0], 'signal'>, timeoutSeconds: number, jobSignal: AbortSignal): Promise<string> {
+export function callLlm(llm: LlmClient, req: Omit<Parameters<LlmClient['complete']>[0], 'signal'>, timeoutSeconds: number, jobSignal: AbortSignal): Promise<string> {
   const signal = AbortSignal.any([jobSignal, AbortSignal.timeout(timeoutSeconds * 1000)]);
   return new Promise<string>((resolve, reject) => {
     const onAbort = () => reject(signal.reason instanceof Error ? signal.reason : new Error('LLM call aborted'));

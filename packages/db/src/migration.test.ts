@@ -119,4 +119,17 @@ describe.skipIf(!url)('first migration', () => {
       await refused(['tok_none', 'h4', [], '2026-11-23T00:00:00Z'], /api_tokens_scopes_check/);
       await refused(['tok_bad', 'h5', ['ideas:write'], '2026-11-23T00:00:00Z'], /api_tokens_scopes_check/);
     }));
+
+  it('0016 keeps one known angle per ad and drops it with the ad', () =>
+    rolledBack(async () => {
+      await client.query(`insert into ads (ad_archive_id, first_seen_date, last_seen_date, parsed) values ('ang_1', '2026-10-01', '2026-10-01', '{}')`);
+      const insert = `insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on) values ('ang_1', $1, 'm', 0.0004, '2026-11-06')`;
+      await client.query('savepoint refused');
+      await expect(client.query(insert, ['fear'])).rejects.toThrow(/ad_angles_angle_check/);
+      await client.query('rollback to savepoint refused');
+      await client.query(insert, ['pain']);
+      expect((await client.query(`select attempts from ad_angles where ad_archive_id = 'ang_1'`)).rows).toEqual([{ attempts: 1 }]);
+      await client.query(`delete from ads where ad_archive_id = 'ang_1'`);
+      expect((await client.query(`select 1 from ad_angles where ad_archive_id = 'ang_1'`)).rowCount).toBe(0);
+    }));
 });

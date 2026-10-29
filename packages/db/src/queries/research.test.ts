@@ -1,10 +1,10 @@
-import { DEFAULT_SETTINGS, type Viewer, momentumScore } from '@ideas-hub/core';
+import { ANGLE_MAX_ATTEMPTS, DEFAULT_SETTINGS, type Viewer, momentumScore } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, lowYieldKeywords, marketReads, shopProductPages, shopReads, titlePhrases, unfollowShop } from './research';
+import { adAngles, daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, lowYieldKeywords, marketReads, shopProductPages, shopReads, titlePhrases, unfollowShop, untaggedProvenAds } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -271,6 +271,32 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     ]);
     expect(await ids({ keywordId: 'kw_m', sort: 'started' })).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
     expect((await getAd(db, O, 'm_before'))).toMatchObject({ variants: null, proven: false });
+  });
+
+  // Uses the kw_m ads above: m_long and m_new are the proven ones.
+  it('the angle job picks untagged proven ads only; an angle shows once its reply is stored', async () => {
+    expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId).sort()).toEqual(['m_long', 'm_new']);
+    expect(await untaggedProvenAds(db, 1, O.today)).toHaveLength(1);
+    await db.execute(sql`insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on, tagged_at) values
+      ('m_new', 'proof', 'm', 0.0004, '2026-10-20', now()), ('m_long', 'unclear', 'm', 0.0004, '2026-10-20', null)`);
+    // m_long's call has not ended (or failed) today: not sent again the same day.
+    expect(await untaggedProvenAds(db, 25, O.today)).toEqual([]);
+    expect(await adAngles(db, ['m_new', 'm_long', 'a_hi'])).toEqual(new Map([['m_new', 'proof']]));
+    expect(await getAd(db, O, 'm_new')).toMatchObject({ angle: 'proof' });
+    expect(await getAd(db, O, 'm_long')).toMatchObject({ angle: null });
+    await db.execute(sql`delete from ad_angles`);
+  });
+
+  it('the angle job retries a reservation of an earlier day whose call failed, after the new ads, up to the attempts cap', async () => {
+    await db.execute(sql`insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on, tagged_at) values ('m_long', 'unclear', 'm', 0.0004, '2026-10-19', null)`);
+    // Both are seen on 10-20 and m_long sorts first by id, but the never-tried m_new comes before the retry.
+    expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new', 'm_long']);
+    expect((await untaggedProvenAds(db, 1, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new']);
+    await db.execute(sql`update ad_angles set attempts = ${ANGLE_MAX_ATTEMPTS - 1}`);
+    expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new', 'm_long']);
+    await db.execute(sql`update ad_angles set attempts = ${ANGLE_MAX_ATTEMPTS}`);
+    expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new']);
+    await db.execute(sql`delete from ad_angles`);
   });
 
   it('reads shops: running ads, new and proven ones, and the keywords they were found under', async () => {
