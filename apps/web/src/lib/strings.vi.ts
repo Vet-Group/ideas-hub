@@ -116,6 +116,7 @@ export const t = {
     aiSkipped: 'Bỏ qua: đã hết hạn mức AI hôm nay',
     aiFailed: 'Chưa tạo được phần AI hôm nay',
     sightings: (n: number) => `${n} lần thấy`,
+    followedAll: 'Xem tất cả ads mới của shop đang theo dõi',
   },
   account: {
     title: 'Tài khoản',
