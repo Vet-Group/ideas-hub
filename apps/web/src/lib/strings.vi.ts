@@ -1,6 +1,6 @@
 // Every UI string, in Vietnamese (spec §6 "Users, devices and language"). Seller terms stay English.
 // eslint.config.mjs fails on a UI string written anywhere else under apps/web/src.
-import { FEED_TIMEOUT_SECONDS, type SettingsProblem } from '@ideas-hub/core';
+import { FEED_TIMEOUT_SECONDS, MARKET, type SettingsProblem } from '@ideas-hub/core';
 
 /** The one glyph for an empty value. */
 const NONE = '—';
@@ -271,6 +271,16 @@ export const t = {
     ads: 'Ads của shop',
     openInAds: 'Lọc trong trang Ads',
     sortBy: (label: string) => `Sắp xếp theo ${label}`,
+    follow: (store: string) => `Theo dõi shop cho ${store}`,
+    unfollow: (store: string) => `Bỏ theo dõi cho ${store}`,
+    views: 'Xem shop',
+    all: 'Tất cả shop',
+    followed: 'Shop đang theo dõi',
+    followedOf: (store: string) => `Shop ${store} đang theo dõi`,
+    followedEmpty: 'Store này chưa theo dõi shop nào. Mở một shop rồi bấm "Theo dõi shop".',
+    followedAds: `Ads mới ${MARKET.newDays} ngày của các shop này`,
+    followedAdsEmpty: `Các shop này chưa có ads mới trong ${MARKET.newDays} ngày.`,
+    followedAdsMore: (shown: number, total: number) => `Đang hiện ${shown} / ${total} ads mới. Mở từng shop để xem thêm.`,
   },
   keywords: {
     title: 'Keyword',

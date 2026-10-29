@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { boolean, date, index, integer, jsonb, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { stores, users } from './accounts';
 import { createdAt, id, tstz } from './columns';
 import { crawlRuns, keywords } from './crawl';
 
@@ -86,6 +87,22 @@ export const shops = pgTable('shops', {
   /** Ads whose status is "running". */
   runningAds: integer('running_ads').notNull().default(0),
 });
+
+/** A store's shop watchlist (AC-A6): staff with `save` follow a landing domain; no foreign key to shops, as rows there can be pruned. */
+export const shopFollows = pgTable(
+  'shop_follows',
+  {
+    storeId: text('store_id')
+      .notNull()
+      .references(() => stores.id, { onDelete: 'cascade' }),
+    landingDomain: text('landing_domain').notNull(),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.storeId, t.landingDomain] })],
+);
 
 export const newsFeeds = pgTable('news_feeds', {
   id: id('feed'),

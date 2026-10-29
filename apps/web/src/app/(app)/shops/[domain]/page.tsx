@@ -1,5 +1,5 @@
-import { isNonShopDomain, storeScope } from '@ideas-hub/core';
-import { daySeries, getShop, listAds, savedRefs, shopReads } from '@ideas-hub/db/queries';
+import { can, isNonShopDomain, storeScope } from '@ideas-hub/core';
+import { daySeries, followedShops, getShop, listAds, savedRefs, shopReads } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdGridWithPane } from '@/components/ads/ad-pane';
@@ -9,26 +9,31 @@ import { Tile } from '@/components/briefing/kpi-row';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { Sub, pct } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
 import { db } from '@/lib/db';
 import { loadSettings, statusOptions } from '@/lib/settings';
-import { saveTargets } from '@/lib/store';
+import { saveTargets, userStores } from '@/lib/store';
 import { requireUser } from '@/lib/session';
 import { t } from '@/lib/strings.vi';
+import { toggleShopFollow } from '../actions';
 
-/** A shop: its chart from ShopDay and its running ads. */
+/** A shop: its chart from ShopDay and its running ads; staff with `save` on the selected store follow it there. */
 export default async function ShopPage({ params }: { params: Promise<{ domain: string }> }) {
   const user = await requireUser();
   const domain = decodeURIComponent((await params).domain);
   const [shop, settings] = await Promise.all([getShop(db, domain), loadSettings()]);
   if (!shop || isNonShopDomain(domain, settings.nonShopDomains)) notFound();
   const o = await statusOptions(settings);
-  const [series, ads, stores, read] = await Promise.all([
+  const [series, ads, stores, read, mine] = await Promise.all([
     daySeries(db, 'shop', domain),
     // Grouped like "Gộp mẫu trùng": one shop runs the same creative many times.
     listAds(db, o, { domain, dedupe: true }),
     saveTargets(user),
     shopReads(db, o, [domain]).then((r) => r.get(domain)),
+    userStores(user),
   ]);
+  const store = mine.stores.find((s) => s.id === mine.selectedId);
+  const followed = store && can(user, store.id, 'save') ? (await followedShops(db, user, store.id)).includes(domain) : null;
   const m = t.keywords.market;
   const own = ads.items.filter((a) => a.landingDomain === domain);
   const saved = await savedRefs(db, storeScope(user), 'ad', own.map((a) => a.adArchiveId));
@@ -38,6 +43,16 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
         <span className="text-fg-2 text-sm">
           {t.shops.runningAds}: <span className="font-mono">{shop.runningAds}</span>
         </span>
+        {store && followed !== null ? (
+          <form action={toggleShopFollow}>
+            <input type="hidden" name="storeId" value={store.id} />
+            <input type="hidden" name="domain" value={domain} />
+            <input type="hidden" name="follow" value={followed ? '0' : '1'} />
+            <Button type="submit" size="sm" variant={followed ? 'outline' : 'default'}>
+              {followed ? t.shops.unfollow(store.name) : t.shops.follow(store.name)}
+            </Button>
+          </form>
+        ) : null}
       </PageHeader>
       <div className="grid gap-4">
         {read ? (
