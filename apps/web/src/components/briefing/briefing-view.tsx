@@ -1,5 +1,6 @@
 import { storeScope } from '@ideas-hub/core';
 import { type BriefingRow, briefingSuggestions, getAd, savedRefs, savedSuggestions } from '@ideas-hub/db/queries';
+import { Suspense } from 'react';
 import { DetailPane } from '@/components/ads/detail-pane';
 import { PaneSheet } from '@/components/ads/pane-sheet';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { thumbUrl } from '@/lib/thumb-url';
 import { AdRows } from './ad-rows';
 import { NewsPanel, SuggestionsPanel } from './ai-panels';
 import { CountTable } from './count-table';
+import { FollowedShopsBox } from './followed-shops-box';
 import { KpiRow } from './kpi-row';
 
 /** Panel heading ids in reading order (the desktop columns stacked), for the phone's section links. */
@@ -90,6 +92,12 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
           <Panel id="b-news" title={t.briefing.news}>
             <NewsPanel news={s.news} />
           </Panel>
+          {/* Its own query, streamed after the page: it never delays or breaks the briefing (it hides on error). Today's briefing only: it reads the last 7 days from now. */}
+          {basePath === '/briefing' ? (
+            <Suspense fallback={null}>
+              <FollowedShopsBox user={user} />
+            </Suspense>
+          ) : null}
         </div>
       </div>
       {ad ? (

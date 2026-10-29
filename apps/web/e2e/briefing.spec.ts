@@ -296,3 +296,27 @@ test('keyword report AI sections: shown to a member of a tracking store and admi
   await expect(other.getByRole('region', { name: 'Ads trend nhất' })).toBeVisible();
   await ctx.close();
 });
+
+// AC-A6 on the briefing: dogmom.example's e2e_mug_1 and e2e_mug_2 started within 7 days of the crawl day.
+test('a followed shop shows in a box on the briefing; its ads open /ads/[id] and a save there records via ads', async ({ page }) => {
+  // The row save test above saved e2e_mug_2 via briefing (afterAll removes it anyway).
+  await sql(`delete from saved_ideas where source_ref = 'e2e_mug_2'`);
+  await sql(`insert into shop_follows (store_id, landing_domain, created_by) values ($1, $2, $3)`, [STORES.a.id, MUG.domain, USERS.saver.id]);
+  try {
+    await signIn(page, USERS.saver.email);
+    const box = panel(page, `Shop ${STORES.a.name} đang theo dõi`);
+    await expect(box.getByRole('link', { name: MUG.domain, exact: true })).toHaveAttribute('href', `/shops/${MUG.domain}`);
+    const links = box.getByRole('listitem').getByRole('link', { name: /^Best dog mom mug gift/ });
+    await expect(links).toHaveText(['Best dog mom mug gift 1', 'Best dog mom mug gift 2']);
+    await expect(links.first()).toHaveAttribute('href', '/ads/e2e_mug_1');
+    await links.nth(1).click();
+    await expect(page).toHaveURL(/\/ads\/e2e_mug_2$/);
+    const pane = page.getByRole('complementary').getByRole('article', { name: 'Chi tiết ad' });
+    await pane.getByRole('button', { name: 'Lưu' }).click();
+    await expect(toast(page, 'Đã lưu vào Store A')).toBeVisible();
+    expect(await savedBy('e2e_mug_2')).toEqual([{ store_id: STORES.a.id, source: 'ad', via: 'ads' }]);
+  } finally {
+    await sql(`delete from shop_follows`);
+    await sql(`delete from saved_ideas where source_ref = 'e2e_mug_2'`);
+  }
+});
