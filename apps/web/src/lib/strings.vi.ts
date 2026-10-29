@@ -335,7 +335,7 @@ export const t = {
       noRunning: 'Chưa có ads đang chạy',
       phrases: 'Cụm từ nhiều shop dùng trong tiêu đề ads',
       phraseCount: (shops: number, ads: number) => `${shops} shop · ${ads} ads`,
-      phrasesHelp: 'Cụm 2 từ có trong tiêu đề ads đang chạy của từ 2 shop trở lên, xếp theo số shop: các sản phẩm con trong keyword. Bấm để xem các ads đó.',
+      phrasesHelp: 'Cụm 2-3 từ có trong tiêu đề ads đang chạy của từ 2 shop trở lên và đủ nhiều ads (không phải nhiễu), xếp theo số shop: các sản phẩm con trong keyword. Bấm để xem các ads đó.',
     },
     etsy: {
       title: 'Thị trường Etsy',
