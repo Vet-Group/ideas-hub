@@ -3,6 +3,7 @@ export * from './measures';
 export * from './pacing';
 export * from './settings';
 export * from './schedule';
+export * from './url';
 export * from './validate-settings';
 export * from './briefing/sections';
 export * from './briefing/cost';

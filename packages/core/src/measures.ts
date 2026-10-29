@@ -52,6 +52,20 @@ export function daysActive(startDate: string, endDate: string): number {
   return daysBetween(startDate, endDate) + 1;
 }
 
+/** Duration tiers by days active (spec AC-A2): an ad belongs to the last tier whose `from` it reaches. */
+export const DURATION_TIERS = [
+  { key: 'test', from: 0 },
+  { key: 'validation', from: 7 },
+  { key: 'winner', from: 22 },
+  { key: 'evergreen', from: 180 },
+] as const;
+
+export type DurationTier = (typeof DURATION_TIERS)[number]['key'];
+
+export function durationTier(daysActive: number): DurationTier {
+  return DURATION_TIERS.findLast((tier) => daysActive >= tier.from)?.key ?? 'test';
+}
+
 /** The Pacific date on which a run started; all its sightings belong to it. */
 export function crawlDay(runStartedAt: Date): string {
   return pacificDate(runStartedAt);

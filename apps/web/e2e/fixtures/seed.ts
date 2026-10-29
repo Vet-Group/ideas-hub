@@ -114,6 +114,14 @@ export async function seedE2e(): Promise<void> {
       );
       await q(`insert into ad_sightings (ad_archive_id, run_id, keyword_id, country, position, crawl_day) values ($1, 'run_e2e_sched', $2, 'US', $3, '2026-10-20')`, [id, MUG.keywordId, i + 1]);
     }
+    // Landing pages: e2e_mug_1 and _2 are one page (tracking parameters differ), _3 another; the rest have no link.
+    await q(
+      `update ads set link = case ad_archive_id
+         when 'e2e_mug_1' then 'https://dogmom.example/products/mug?utm_source=fb&fbclid=abc'
+         when 'e2e_mug_2' then 'https://dogmom.example/products/mug/?gclid=xyz'
+         when 'e2e_mug_3' then 'https://dogmom.example/products/shirt' end
+       where ad_archive_id in ('e2e_mug_1', 'e2e_mug_2', 'e2e_mug_3')`,
+    );
     // A proven ad (7 variants): the market read and the "Đã chứng minh" chip.
     await q(`update ads set collation_count = 7 where ad_archive_id = 'e2e_mug_3'`);
     // An out-of-top ad: its pair was searched after it was last seen and stopped at the cap.

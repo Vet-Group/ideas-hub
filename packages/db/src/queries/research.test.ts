@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, lowYieldKeywords, marketReads, shopReads, titlePhrases, unfollowShop } from './research';
+import { daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, lowYieldKeywords, marketReads, shopProductPages, shopReads, titlePhrases, unfollowShop } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -285,6 +285,22 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect((await ids({ keywordId: 'kw_m', title: 'Sea glass!', sort: 'started' }))).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
     expect(await ids({ keywordId: 'kw_m', title: 'glass ornament', sort: 'started' })).toEqual(['m_new', 'm_before']);
     expect(await ids({ keywordId: 'kw_m', title: 'glass orn' })).toEqual([]);
+  });
+
+  it("groups a shop's ads by landing page without tracking parameters, counting running ads and the seen range", async () => {
+    await db.execute(sql`insert into ads (ad_archive_id, landing_domain, link, first_seen_date, last_seen_date, parsed) values
+      ('p_1', 'pages.example', 'https://pages.example/p/mug?utm_source=fb&fbclid=1', '2026-10-05', '2026-10-20', '{}'::jsonb),
+      ('p_2', 'pages.example', 'https://pages.example/p/mug/', '2026-09-20', '2026-10-01', '{}'::jsonb),
+      ('p_3', 'pages.example', 'https://pages.example/p/shirt#top', '2026-10-10', '2026-10-19', '{}'::jsonb),
+      ('p_4', 'pages.example', null, '2026-10-10', '2026-10-19', '{}'::jsonb),
+      ('p_5', 'pages.example', 'not a url', '2026-10-10', '2026-10-19', '{}'::jsonb),
+      ('p_6', 'other.example', 'https://other.example/x', '2026-10-10', '2026-10-19', '{}'::jsonb)`);
+    expect(await shopProductPages(db, O, 'pages.example')).toEqual([
+      { url: 'https://pages.example/p/mug', ads: 2, running: 1, firstSeenDate: '2026-09-20', lastSeenDate: '2026-10-20' },
+      { url: 'https://pages.example/p/shirt', ads: 1, running: 1, firstSeenDate: '2026-10-10', lastSeenDate: '2026-10-19' },
+    ]);
+    expect(await shopProductPages(db, O, 'pages.example', 1)).toHaveLength(1);
+    expect(await shopProductPages(db, O, 'none.example')).toEqual([]);
   });
 
   it('lists active keywords whose searches in the window all ended ok or no_results with no ads', async () => {
