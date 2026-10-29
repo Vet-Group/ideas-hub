@@ -4,7 +4,7 @@ import { type StoreScope, type Viewer, can } from '@ideas-hub/core';
 import { type SQL, and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { type Db } from '../client';
-import { type IDEA_SOURCES, type IDEA_VIA, IDEA_STATUSES, keywords, savedIdeas, storeKeywords, storeMembers, users } from '../schema';
+import { type IDEA_SOURCES, type IDEA_VIA, IDEA_STATUSES, keywords, savedIdeas, storeKeywords, storeMembers, stores, users } from '../schema';
 import { escapeLike } from './search';
 
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
@@ -371,19 +371,27 @@ export type IdeaFunnelWeek = {
 /**
  * Per ISO week of `created_at` (ICT, not UTC) over the last `weeks` weeks including the current one, newest
  * first, empty weeks as zeros: saved, picked (`picked_at` set), done (`done_at` set, so an idea moved back is
- * not done) and the median days from saved to done. Null without `view`.
+ * not done) and the median days from saved to done. `weeks` is clamped to 1..52. Null without `view` or when the
+ * store does not exist (an admin passes `can` for any id).
  */
 export async function ideaFunnel(db: Db, viewer: Viewer, storeId: string, weeks = 8, now = new Date()): Promise<IdeaFunnelWeek[] | null> {
   if (!can(viewer, storeId, 'view')) return null;
+  const [store] = await db.select({ id: stores.id }).from(stores).where(eq(stores.id, storeId));
+  if (!store) return null;
+  const n = Math.max(1, Math.min(Math.trunc(weeks), 52));
   const { rows } = await db.execute<{ week_start: string; saved: number; picked: number; done: number; median_days: number | null }>(sql`
+    with bounds as (
+      select date_trunc('week', ${now.toISOString()}::timestamptz at time zone 'Asia/Ho_Chi_Minh') as last_week,
+        date_trunc('week', ${now.toISOString()}::timestamptz at time zone 'Asia/Ho_Chi_Minh') - make_interval(weeks => ${n - 1}::int) as first_week
+    )
     select to_char(w.week, 'YYYY-MM-DD') as week_start,
       count(i.id)::int as saved, count(i.picked_at)::int as picked, count(i.done_at)::int as done,
       percentile_cont(0.5) within group (order by extract(epoch from i.done_at - i.created_at) / 86400) as median_days
-    from generate_series(
-      date_trunc('week', ${now.toISOString()}::timestamptz at time zone 'Asia/Ho_Chi_Minh') - make_interval(weeks => ${weeks - 1}::int),
-      date_trunc('week', ${now.toISOString()}::timestamptz at time zone 'Asia/Ho_Chi_Minh'),
-      interval '1 week') as w(week)
-    left join saved_ideas i on i.store_id = ${storeId} and date_trunc('week', i.created_at at time zone 'Asia/Ho_Chi_Minh') = w.week
+    from bounds b
+    cross join generate_series(b.first_week, b.last_week, interval '1 week') as w(week)
+    left join saved_ideas i on i.store_id = ${storeId}
+      and i.created_at >= (b.first_week at time zone 'Asia/Ho_Chi_Minh')
+      and date_trunc('week', i.created_at at time zone 'Asia/Ho_Chi_Minh') = w.week
     group by w.week order by w.week desc`);
   return rows.map((r) => ({
     weekStart: r.week_start,

@@ -398,6 +398,15 @@ describe.skipIf(!testDatabaseAvailable())('ideaFunnel', () => {
     expect(await ideaFunnel(db, stranger, 'store_F', 8, NOW)).toBeNull();
     expect(await ideaFunnel(db, admin, 'store_F', 8, NOW)).not.toBeNull();
   });
+
+  it('is null for a store that does not exist, admins included', async () => {
+    expect(await ideaFunnel(db, admin, 'store_nope', 8, NOW)).toBeNull();
+  });
+
+  it('clamps the number of weeks to 1..52', async () => {
+    expect(await ideaFunnel(db, viewF, 'store_F', 0, NOW)).toHaveLength(1);
+    expect(await ideaFunnel(db, viewF, 'store_F', 1000, NOW)).toHaveLength(52);
+  });
 });
 
 describe('ideasCsv', () => {

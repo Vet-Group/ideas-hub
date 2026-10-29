@@ -291,9 +291,13 @@ describe.skipIf(!tdb)('/api/v1', () => {
       // An admin sees any store; a store list narrows the admin too.
       const admin = await mint({ user: 'user_admin' });
       expect((await getStoreFunnel(req('/stores/store_B/funnel', admin), deps(), 'store_B')).status).toBe(200);
+      // A store that does not exist is 404 for an admin too, with the same message.
+      const missing = await getStoreFunnel(req('/stores/store_zzz/funnel', admin), deps(), 'store_zzz');
+      expect([missing.status, (await json(missing)).error.message]).toEqual([404, outsideBody.error.message]);
       const adminOnA = await mint({ user: 'user_admin', storeIds: ['store_A'] });
       expect((await getStoreFunnel(req('/stores/store_B/funnel', adminOnA), deps(), 'store_B')).status).toBe(404);
       expect((await getStoreFunnel(req('/stores/store_A/funnel', adminOnA), deps(), 'store_A')).status).toBe(200);
+      await q(`update saved_ideas set picked_at = null, done_at = null where id in ('idea_a1', 'idea_a2', 'idea_a3')`);
     });
 
     it('serves an uploaded image as a private, uncached response and 404 when there is none', async () => {
