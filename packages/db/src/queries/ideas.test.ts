@@ -84,7 +84,8 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
       const v = everyone[who];
       expect((await listIdeas(db, v, 'store_A', {}))?.map((r) => r.id).includes(ideaA) ?? null).toBe(view ? true : null);
       expect((await getIdea(db, v, ideaA))?.id ?? null).toBe(view ? ideaA : null);
-      expect(await setIdeaStatus(db, v, ideaA, 'picked', sec(1))).toBe(save);
+      const shown = (await db.select({ status: savedIdeas.status }).from(savedIdeas).where(eq(savedIdeas.id, ideaA)))[0]!.status;
+      expect(await setIdeaStatus(db, v, ideaA, 'picked', sec(1), shown)).toBe(save);
       expect(await updateIdea(db, v, ideaA, { notes: `by ${who}` }, sec(1))).toBe(save);
       const before = await count();
       if (save) {
@@ -227,10 +228,10 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
     it('sorts by updated_at desc and filters by status, tag, keyword, assignee and text', async () => {
       const list = async (f: Parameters<typeof listIdeas>[3]) => (await listIdeas(db, saveB, 'store_B', f))?.map((r) => r.id);
       expect(await list({})).toEqual([ids.three, ids.two, ids.one]);
-      expect(await setIdeaStatus(db, saveB, ids.one!, 'done', sec(600))).toBe(true);
+      expect(await setIdeaStatus(db, saveB, ids.one!, 'done', sec(600), 'new')).toBe(true);
       expect(await list({})).toEqual([ids.one, ids.three, ids.two]);
-      expect(await setIdeaStatus(db, saveB, ids.one!, 'new', sec(601))).toBe(true);
-      expect(await setIdeaStatus(db, saveB, ids.two!, 'dropped', sec(602))).toBe(true);
+      expect(await setIdeaStatus(db, saveB, ids.one!, 'new', sec(601), 'done')).toBe(true);
+      expect(await setIdeaStatus(db, saveB, ids.two!, 'dropped', sec(602), 'new')).toBe(true);
       expect(await list({ status: 'dropped' })).toEqual([ids.two]);
       expect(await updateIdea(db, saveB, ids.three!, { tags: [' gift ', 'gift', ''], notes: 'see 100%' }, sec(603))).toBe(true);
       expect((await getIdea(db, saveB, ids.three!))?.tags).toEqual(['gift']);
@@ -246,11 +247,42 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
       expect([row?.assigneeName, row?.createdByName, row?.status]).toEqual(['Both', 'Save B', 'dropped']);
     });
 
+    it('stamps picked_at and done_at, keeps the first pick, clears done_at on leaving done, and refuses a stale expected status', async () => {
+      const [idea] = await saveIdea(db, saveB, ['store_B'], ad('stamps'), sec(800));
+      const id = idea!.ideaId;
+      const stamps = async () => {
+        const [r] = await db.select({ status: savedIdeas.status, pickedAt: savedIdeas.pickedAt, doneAt: savedIdeas.doneAt }).from(savedIdeas).where(eq(savedIdeas.id, id));
+        return [r!.status, r!.pickedAt, r!.doneAt] as const;
+      };
+      expect(await stamps()).toEqual(['new', null, null]);
+      expect(await setIdeaStatus(db, saveB, id, 'picked', sec(801), 'new')).toBe(true);
+      expect(await stamps()).toEqual(['picked', sec(801), null]);
+      // A second click on the same shown status (a double click) does nothing.
+      expect(await setIdeaStatus(db, saveB, id, 'done', sec(802), 'new')).toBe(false);
+      expect(await stamps()).toEqual(['picked', sec(801), null]);
+      expect(await setIdeaStatus(db, saveB, id, 'done', sec(803), 'picked')).toBe(true);
+      expect(await stamps()).toEqual(['done', sec(801), sec(803)]);
+      expect(await setIdeaStatus(db, saveB, id, 'new', sec(804), 'done')).toBe(true);
+      expect(await stamps()).toEqual(['new', sec(801), null]);
+      // New straight to done stamps both, and a drop keeps what was recorded.
+      expect(await setIdeaStatus(db, saveB, id, 'done', sec(805), 'new')).toBe(true);
+      expect(await stamps()).toEqual(['done', sec(801), sec(805)]);
+      expect(await setIdeaStatus(db, saveB, id, 'dropped', sec(806), 'done')).toBe(true);
+      expect(await stamps()).toEqual(['dropped', sec(801), null]);
+      const [fresh] = await saveIdea(db, saveB, ['store_B'], ad('stamps2'), sec(810));
+      expect(await setIdeaStatus(db, saveB, fresh!.ideaId, 'done', sec(811), 'new')).toBe(true);
+      const [r] = await db.select({ pickedAt: savedIdeas.pickedAt, doneAt: savedIdeas.doneAt }).from(savedIdeas).where(eq(savedIdeas.id, fresh!.ideaId));
+      expect([r!.pickedAt, r!.doneAt]).toEqual([sec(811), sec(811)]);
+      // No `save` on the store: refused, nothing stamped.
+      expect(await setIdeaStatus(db, viewA, id, 'new', sec(812), 'dropped')).toBe(false);
+      expect((await stamps())[0]).toBe('dropped');
+    });
+
     it('refuses an assignee who is not a member of the store, and an unknown idea', async () => {
       expect(await updateIdea(db, saveB, ids.one!, { assigneeId: 'user_viewA' }, sec(700))).toBe(false);
       expect(await updateIdea(db, saveB, ids.one!, { assigneeId: null }, sec(700))).toBe(true);
-      expect(await setIdeaStatus(db, admin, 'idea_missing', 'done', sec(700))).toBe(false);
-      expect(await setIdeaStatus(db, saveB, ids.one!, 'archived' as never, sec(700))).toBe(false);
+      expect(await setIdeaStatus(db, admin, 'idea_missing', 'done', sec(700), 'new')).toBe(false);
+      expect(await setIdeaStatus(db, saveB, ids.one!, 'archived' as never, sec(700), 'new')).toBe(false);
       const [r] = await db.select({ status: savedIdeas.status }).from(savedIdeas).where(eq(savedIdeas.id, ids.one!));
       expect(r?.status).toBe('new');
     });

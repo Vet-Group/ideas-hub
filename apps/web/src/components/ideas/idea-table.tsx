@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDayMonth } from '@/lib/format';
 import { t } from '@/lib/strings.vi';
 import { IdeasNothing } from './ideas-empty';
-import { StatusMenu, type Status } from './status-menu';
+import { StatusButtons, StatusMenu, type Status } from './status-menu';
 import { type IdeaItem } from './types';
 
 const ddmm = (iso: string) => formatDayMonth(new Date(iso));
@@ -14,7 +14,15 @@ const sourceLabel = (i: IdeaItem) => (i.via === i.source ? t.ideaViews.sources[i
 export function IdeaTable({ ideas, canSave, onStatus, storeHasIdeas, clearHref }: { ideas: IdeaItem[]; canSave: boolean; onStatus: (id: string, s: Status) => void; storeHasIdeas: boolean; clearHref: string | null }) {
   if (ideas.length === 0) return <IdeasNothing storeHasIdeas={storeHasIdeas} clearHref={clearHref} />;
   const c = t.ideaViews.columns;
-  const status = (i: IdeaItem) => (canSave ? <StatusMenu title={i.title} status={i.status} onChange={(s) => onStatus(i.id, s)} /> : t.ideaViews.statuses[i.status]);
+  const status = (i: IdeaItem) =>
+    canSave ? (
+      <div className="flex flex-wrap items-center gap-1">
+        <StatusMenu title={i.title} status={i.status} onChange={(s) => onStatus(i.id, s)} />
+        <StatusButtons title={i.title} status={i.status} onChange={(s) => onStatus(i.id, s)} />
+      </div>
+    ) : (
+      t.ideaViews.statuses[i.status]
+    );
   return (
     <>
       <ul className="grid gap-2 min-[821px]:hidden">

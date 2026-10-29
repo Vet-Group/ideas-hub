@@ -33,6 +33,10 @@ export const savedIdeas = pgTable(
       .references(() => users.id),
     createdAt: createdAt(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
+    /** First time the idea was picked (or done); kept when it moves back. */
+    pickedAt: tstz('picked_at'),
+    /** When it became done; cleared when it leaves done. */
+    doneAt: tstz('done_at'),
   },
   (t) => [
     uniqueIndex('saved_ideas_source_key').on(t.storeId, t.source, t.sourceRef),

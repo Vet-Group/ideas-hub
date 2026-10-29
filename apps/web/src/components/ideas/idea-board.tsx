@@ -5,7 +5,7 @@ import { t } from '@/lib/strings.vi';
 import { cn } from '@/lib/utils';
 import { boardCoordinateGetter } from './board-keyboard';
 import { IdeasNothing } from './ideas-empty';
-import { STATUSES, StatusMenu, type Status } from './status-menu';
+import { STATUSES, StatusButtons, StatusMenu, type Status } from './status-menu';
 import { type IdeaItem } from './types';
 
 const COLUMN_IDS = STATUSES.map((s) => `col-${s}`);
@@ -127,6 +127,11 @@ function Card({ idea, drag, canSave, onStatus }: { idea: IdeaItem; drag: boolean
         </Link>
         {canSave ? <StatusMenu title={idea.title} status={idea.status} onChange={(s) => onStatus(idea.id, s)} /> : <span className="text-fg-2 text-xs">{t.ideaViews.statuses[idea.status]}</span>}
       </div>
+      {canSave ? (
+        <div className="flex flex-wrap items-center gap-1">
+          <StatusButtons title={idea.title} status={idea.status} onChange={(s) => onStatus(idea.id, s)} />
+        </div>
+      ) : null}
     </li>
   );
 }
