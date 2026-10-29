@@ -62,12 +62,18 @@ at or after `<run-start>` + 14 days**, when the window is exactly the run.
 ### AC 1 and the next-slot retry (AC-C1, ADR 0008)
 
 From 2026-11-06 a scheduled run first retries the failed searches of the previous finished scheduled run
-(`done` or `stopped`; manual and `cli` runs are never the previous run and never retry): its `blocked` and
+(`done` or `stopped`, started, scheduled before this slot; a slot the watchdog closed inside a cool-down
+never starts and is passed over; manual and `cli` runs are never the previous run and never retry): its `blocked` and
 `network_error` searches, plus its `skipped` ones when that run has a `block_reason`, still active, once per
 (keyword, country), at most `R = min(RETRY_PER_SLOT, searchBudget)` (`RETRY_PER_SLOT` = 40 in
 `packages/core/src/schedule.ts`). The rotation then takes `searchBudget − retries` pairs from the stored
 cursor and advances by that many; a rotation pair already retried is not replaced. Pacing, cool-downs and
 run times do not change.
+
+A pair is not retried when its search was also `blocked` or `network_error` in the started scheduled run
+before the previous one (a two-run lookback), so a pair that keeps failing is retried once and then waits
+for the rotation instead of taking a retry seat in every slot. A `skipped` search two runs back is not a
+failure here: that pair was never searched.
 
 What it does to `ac1_success_ratio` (Σ ok ÷ Σ planned over scheduled rows):
 
