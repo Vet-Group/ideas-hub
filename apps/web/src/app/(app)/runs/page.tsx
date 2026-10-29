@@ -1,4 +1,5 @@
 import { crawlRuns, users } from '@ideas-hub/db';
+import { lowYieldKeywords } from '@ideas-hub/db/queries';
 import { desc, eq, sql } from 'drizzle-orm';
 import { PageHeader } from '@/components/page-header';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -41,6 +42,7 @@ export default async function RunsPage() {
   const isUpcoming = (r: (typeof all)[number]) => r.status === 'scheduled' && !!r.scheduledFor && r.scheduledFor > at;
   const upcoming = all.filter(isUpcoming).reverse().slice(0, 2);
   const rows = all.filter((r) => !isUpcoming(r)).slice(0, 100);
+  const lowYield = isAdmin ? await lowYieldKeywords(db, new Date(at.getTime() - 7 * 86_400_000)) : [];
   return (
     <>
       <PageHeader title={t.runs.title} />
@@ -81,6 +83,36 @@ export default async function RunsPage() {
           </TableBody>
         </Table>
       )}
+      {isAdmin ? (
+        <section aria-labelledby="low-yield" className="mt-8">
+          <h2 id="low-yield" className="mb-1 text-base font-semibold">
+            {t.runs.lowYield.title}
+          </h2>
+          <p className="text-fg-2 mb-3 text-sm">{t.runs.lowYield.hint}</p>
+          {lowYield.length === 0 ? (
+            <p className="text-fg-2">{t.runs.lowYield.empty}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t.runs.lowYield.keyword}</TableHead>
+                  <TableHead className="text-right">{t.runs.lowYield.searches}</TableHead>
+                  <TableHead>{t.runs.lowYield.lastSearch}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lowYield.map((k) => (
+                  <TableRow key={k.id}>
+                    <TableCell>{k.text}</TableCell>
+                    <TableCell className="text-right font-mono">{k.searches}</TableCell>
+                    <TableCell>{formatDateTime(k.lastSearchAt)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </section>
+      ) : null}
     </>
   );
 }

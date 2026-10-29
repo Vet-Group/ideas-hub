@@ -184,6 +184,14 @@ export const t = {
     searches: 'Lượt tìm ok',
     runningAds: 'Ads đang chạy',
     triggeredBy: 'Người chạy',
+    lowYield: {
+      title: 'Keyword không ra ads trong 7 ngày',
+      hint: 'Mọi lượt tìm trong 7 ngày qua đều xong mà không có ads nào. Hệ thống không tự tạm dừng; bạn quyết định ở màn Keyword.',
+      empty: 'Không có keyword nào.',
+      keyword: 'Keyword',
+      searches: 'Lượt tìm',
+      lastSearch: 'Lượt tìm gần nhất',
+    },
     triggers: { schedule: 'lịch', manual: 'manual', cli: 'cli' } as Record<string, string>,
     statuses: {
       scheduled: 'chờ chạy',
