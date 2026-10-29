@@ -1,11 +1,12 @@
 // The ads grid's filters and sort live in the URL query, so a pasted link shows the same view (spec §6).
 import { type AdStatus } from '@ideas-hub/core';
-import { AD_SORTS, type AdFilters, type AdSort } from '@ideas-hub/db/queries';
+import { AD_FORMATS, AD_PLATFORMS, AD_SORTS, type AdFilters, type AdSort } from '@ideas-hub/db/queries';
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
 const STATUSES = ['running', 'out_of_top', 'stopped_or_unknown', 'all'] as const;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() || undefined;
+const oneOf = (v: string | undefined, list: readonly string[]) => (list.includes(v?.toUpperCase() ?? '') ? v!.toUpperCase() : undefined);
 const num = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : undefined);
 
 export function parseAdFilters(p: SearchParams): AdFilters {
@@ -20,6 +21,8 @@ export function parseAdFilters(p: SearchParams): AdFilters {
     proven: one(p.proven) === '1',
     domain: one(p.domain),
     title: one(p.title),
+    platform: oneOf(one(p.platform), AD_PLATFORMS),
+    format: oneOf(one(p.format), AD_FORMATS),
     dedupe: one(p.dedupe) === '1',
     sort: AD_SORTS.includes(sort as AdSort) ? (sort as AdSort) : 'score',
     page: num(one(p.page)) || 1,
@@ -36,6 +39,8 @@ export function adQuery(f: AdFilters): string {
   if (f.minScore !== undefined) q.set('score', String(f.minScore));
   if (f.domain) q.set('domain', f.domain);
   if (f.title) q.set('title', f.title);
+  if (f.platform) q.set('platform', f.platform);
+  if (f.format) q.set('format', f.format);
   if (f.dedupe) q.set('dedupe', '1');
   if (f.proven) q.set('proven', '1');
   if (f.sort && f.sort !== 'score') q.set('sort', f.sort);

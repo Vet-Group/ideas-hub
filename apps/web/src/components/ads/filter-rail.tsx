@@ -1,4 +1,4 @@
-import { type AdFilters } from '@ideas-hub/db/queries';
+import { AD_FORMATS, AD_PLATFORMS, type AdFilters } from '@ideas-hub/db/queries';
 import { SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -13,7 +13,7 @@ const selectClass = 'border-input bg-surface h-9 w-full rounded-md border px-2 t
 
 /** The 200 px filter rail: a GET form, so the filters land in the URL query. */
 export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords: { id: string; text: string }[]; countries: readonly string[] }) {
-  const active = [f.status && f.status !== 'running', f.keywordId, f.country, f.minDays, f.minScore, f.domain, f.title, f.dedupe, f.proven].filter(Boolean).length;
+  const active = [f.status && f.status !== 'running', f.keywordId, f.country, f.minDays, f.minScore, f.domain, f.title, f.platform, f.format, f.dedupe, f.proven].filter(Boolean).length;
   return (
     <form action="/ads" method="get" className="grid content-start gap-3" aria-label={t.ads.filters}>
       {/* Below xl the fields fold behind this toggle so the ads come first (3 columns at 1024 px); a checkbox needs no script. */}
@@ -54,6 +54,28 @@ export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords:
             {countries.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="f-platform">{t.ads.platform}</Label>
+          <select id="f-platform" name="platform" defaultValue={f.platform ?? ''} className={selectClass}>
+            <option value="">{t.ads.any}</option>
+            {AD_PLATFORMS.map((v) => (
+              <option key={v} value={v}>
+                {t.ads.platforms[v]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="f-format">{t.ads.format}</Label>
+          <select id="f-format" name="format" defaultValue={f.format ?? ''} className={selectClass}>
+            <option value="">{t.ads.any}</option>
+            {AD_FORMATS.map((v) => (
+              <option key={v} value={v}>
+                {t.ads.formats[v]}
               </option>
             ))}
           </select>

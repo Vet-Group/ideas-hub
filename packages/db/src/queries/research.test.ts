@@ -71,6 +71,24 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect(await ids({ domain: '%' })).toEqual([]);
   });
 
+  it('filters by display format (media_type) and publisher platform (parsed), and ignores unknown values', async () => {
+    await db.execute(sql`update ads set media_type = 'VIDEO', parsed = '{"publisher_platform": ["FACEBOOK", "INSTAGRAM"]}'::jsonb where ad_archive_id = 'a_hi'`);
+    await db.execute(sql`update ads set media_type = 'IMAGE', parsed = '{"publisher_platform": ["FACEBOOK"]}'::jsonb where ad_archive_id = 'a_lo'`);
+    try {
+      expect(await ids({ format: 'VIDEO' })).toEqual(['a_hi']);
+      expect(await ids({ format: 'IMAGE' })).toEqual(['a_lo']);
+      expect(await ids({ format: 'DPA' })).toEqual([]);
+      expect(await ids({ platform: 'FACEBOOK' })).toEqual(['a_hi', 'a_lo']);
+      expect(await ids({ platform: 'INSTAGRAM' })).toEqual(['a_hi']);
+      // An ad without the field (a_new: '{}') is in no platform; the filters combine with the others.
+      expect(await ids({ platform: 'THREADS' })).toEqual([]);
+      expect(await ids({ platform: 'FACEBOOK', format: 'IMAGE' })).toEqual(['a_lo']);
+      expect((await listAds(db, O, { platform: 'INSTAGRAM', limit: 1 })).total).toBe(1);
+    } finally {
+      await db.execute(sql`update ads set media_type = null, parsed = '{}'::jsonb where ad_archive_id in ('a_hi', 'a_lo')`);
+    }
+  });
+
   it('returns the total over all pages and pages with the filters kept', async () => {
     expect(await listAds(db, O, { limit: 1 })).toMatchObject({ total: 3, items: [{ adArchiveId: 'a_hi', duplicates: 1 }] });
     expect(await listAds(db, O, { limit: 1, page: 2 })).toMatchObject({ total: 3, items: [{ adArchiveId: 'a_lo' }] });
