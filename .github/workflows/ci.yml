@@ -90,11 +90,3 @@ jobs:
           S3_ENDPOINT: http://127.0.0.1:9300
           S3_ACCESS_KEY: ideashub
           S3_SECRET_KEY: ideashub-local-only
-
-      - name: TEMP upload e2e actual screenshots
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: e2e-test-results
-          path: apps/web/test-results
-          retention-days: 1
