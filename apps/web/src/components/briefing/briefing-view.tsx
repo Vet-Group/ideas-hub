@@ -92,10 +92,12 @@ export async function BriefingView({ briefing, basePath, adId }: { briefing: Bri
           <Panel id="b-news" title={t.briefing.news}>
             <NewsPanel news={s.news} />
           </Panel>
-          {/* Its own query, streamed after the page: it never delays or breaks the briefing (it hides on error). */}
-          <Suspense fallback={null}>
-            <FollowedShopsBox user={user} />
-          </Suspense>
+          {/* Its own query, streamed after the page: it never delays or breaks the briefing (it hides on error). Today's briefing only: it reads the last 7 days from now. */}
+          {basePath === '/briefing' ? (
+            <Suspense fallback={null}>
+              <FollowedShopsBox user={user} />
+            </Suspense>
+          ) : null}
         </div>
       </div>
       {ad ? (

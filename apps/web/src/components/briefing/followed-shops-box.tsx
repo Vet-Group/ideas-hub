@@ -7,6 +7,7 @@ import { userStores } from '@/lib/store';
 import { t } from '@/lib/strings.vi';
 
 const SHOWN_ADS = 5;
+const SHOWN_DOMAINS = 10;
 const link = 'text-ink rounded-sm font-medium underline underline-offset-2 hover:decoration-2';
 
 /**
@@ -21,7 +22,8 @@ export async function FollowedShopsBox({ user }: { user: CurrentUser }) {
     const { stores, selectedId } = await userStores(user);
     const store = stores.find((s) => s.id === selectedId);
     if (!store) return null;
-    const [domains, ads] = await Promise.all([followedShops(db, user, store.id), followedShopAds(db, await statusOptions(), user, store.id)]);
+    const o = await statusOptions();
+    const [domains, { items: ads }] = await Promise.all([followedShops(db, user, store.id), followedShopAds(db, o, user, store.id, undefined, SHOWN_ADS)]);
     if (domains.length === 0) return null;
     data = { store, domains, ads };
   } catch (e) {
@@ -35,7 +37,7 @@ export async function FollowedShopsBox({ user }: { user: CurrentUser }) {
         {t.shops.followedOf(store.name)}
       </h2>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        {domains.map((d) => (
+        {domains.slice(0, SHOWN_DOMAINS).map((d) => (
           <li key={d}>
             <Link href={`/shops/${encodeURIComponent(d)}`} className={link}>
               {d}
@@ -47,7 +49,7 @@ export async function FollowedShopsBox({ user }: { user: CurrentUser }) {
         <p className="text-fg-2 text-sm">{t.shops.followedAdsEmpty}</p>
       ) : (
         <ul className="divide-line grid divide-y text-sm">
-          {ads.slice(0, SHOWN_ADS).map((a) => (
+          {ads.map((a) => (
             <li key={a.adArchiveId} className="grid min-h-11 content-center gap-0.5 py-2">
               <Link href={`/ads/${encodeURIComponent(a.adArchiveId)}`} className="truncate rounded-sm font-medium">
                 {a.caption || a.pageName || a.adArchiveId}
