@@ -644,3 +644,41 @@ test('staff with save follow a shop for their store and list its new ads; view-o
     await pool.end();
   }
 });
+
+test('CSV exports of /ads, /shops and /keywords keep the active filters; signed out they go to the sign-in page (AC-A4)', async ({ page, browser }) => {
+  const anon = await browser.newContext();
+  for (const path of ['/ads/csv', '/shops/csv', '/keywords/csv']) {
+    const r = await anon.request.get(path, { maxRedirects: 0 });
+    expect(r.status(), path).toBe(307);
+    expect(r.headers().location, path).toContain('/login');
+  }
+  await anon.close();
+
+  await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fads%3Fproven%3D1');
+  // The button carries the filters of the view (the ads page has no page param to drop here).
+  await expect(page.getByRole('link', { name: 'Xuất CSV' })).toHaveAttribute('href', '/ads/csv?proven=1');
+  const csv = async (path: string) => {
+    const r = await page.request.get(path);
+    expect(r.status(), path).toBe(200);
+    expect(r.headers()['content-type']).toBe('text/csv; charset=utf-8');
+    expect(r.headers()['content-disposition']).toBe(`attachment; filename="${path.split('/')[1]}-2026-10-21.csv"`);
+    return Buffer.from(await r.body()).toString('utf8').split('\r\n');
+  };
+
+  const proven = await csv('/ads/csv?proven=1');
+  expect(proven).toHaveLength(3);
+  expect(proven[0]).toMatch(/^\uFEFFad_archive_id,page_name,caption,/);
+  expect(proven[1]).toContain('e2e_mug_3,Dog Mom Shop,Best dog mom mug gift 3,');
+  expect((await csv('/ads/csv')).length).toBeGreaterThan(proven.length);
+
+  const shops = await csv('/shops/csv');
+  expect(shops[0]).toBe('\uFEFFdomain,running_ads,new_ads,proven,keywords,first_seen_date,last_seen_date');
+  expect(shops.filter((l) => l.startsWith(MUG.domain))).toHaveLength(1);
+  expect(shops.join('\n')).not.toContain(NON_SHOP_DOMAIN);
+  expect(await csv('/shops/csv?q=nothing-like-this')).toHaveLength(2);
+
+  const keywords = await csv('/keywords/csv?stage=rising');
+  expect(keywords[0]).toBe('\uFEFFkeyword,origin,active,stage,running_ads,ads,new_ads,proven,shops,top3_share_pct');
+  expect(keywords.slice(1, -1)).toEqual([expect.stringMatching(new RegExp(`^${MUG.keyword},store,1,rising,17,`))]);
+  expect((await csv('/keywords/csv')).length).toBe(5);
+});

@@ -3,6 +3,7 @@ import { AD_PAGE_SIZE, getAd, listAds, listKeywords, savedRefs } from '@ideas-hu
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Pager } from '@/components/pager';
+import { Button } from '@/components/ui/button';
 import { db } from '@/lib/db';
 import { loadSettings, statusOptions } from '@/lib/settings';
 import { saveTargets } from '@/lib/store';
@@ -37,6 +38,11 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
     <>
       <PageHeader title={t.ads.title}>
         <span className="text-fg-2 text-sm">{t.ads.count(ads.length, total)}</span>
+        <Button asChild size="sm" variant="outline">
+          <a href={`/ads/csv${adQuery({ ...f, page: 1 })}`} download>
+            {t.common.csv}
+          </a>
+        </Button>
       </PageHeader>
       <p id="ads-key-help" className="sr-only">
         {t.ads.keyHelp}

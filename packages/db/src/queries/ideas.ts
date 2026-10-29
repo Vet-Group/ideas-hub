@@ -1,6 +1,6 @@
 // Saved ideas (spec §4 "Save-idea flow", plan Step 6): save with dedupe, undo within 15 s, list, status,
 // notes/tags/assignee and CSV. Every read and write checks the viewer's ticks on the idea's store.
-import { type StoreScope, type Viewer, can } from '@ideas-hub/core';
+import { type StoreScope, type Viewer, can, csvDocument } from '@ideas-hub/core';
 import { type SQL, and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { type Db } from '../client';
@@ -311,16 +311,9 @@ const CSV_COLUMNS: [string, (r: IdeaRow) => string][] = [
   ['updated_at', (r) => r.updatedAt.toISOString()],
 ];
 
-/** A spreadsheet would run a cell starting with = + - @ (or tab/CR) as a formula; a leading ' keeps it text. */
-function csvCell(value: string): string {
-  const v = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
-  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-}
-
-/** RFC 4180 (CRLF, quoted where needed) with a UTF-8 BOM so Excel reads Vietnamese text correctly. */
+/** The ideas list as CSV; see csvDocument. */
 export function ideasCsv(rows: IdeaRow[]): string {
-  const lines = [CSV_COLUMNS.map(([h]) => h), ...rows.map((r) => CSV_COLUMNS.map(([, get]) => get(r)))];
-  return `\uFEFF${lines.map((cells) => cells.map(csvCell).join(',')).join('\r\n')}\r\n`;
+  return csvDocument([CSV_COLUMNS.map(([h]) => h), ...rows.map((r) => CSV_COLUMNS.map(([, get]) => get(r)))]);
 }
 
 /** The keywords the store tracks; null without `view`. */

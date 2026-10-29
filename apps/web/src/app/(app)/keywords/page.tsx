@@ -1,30 +1,16 @@
-import { type MarketRead, type MarketStage, marketStage } from '@ideas-hub/core';
-import { KEYWORD_SORTS, type KeywordRow, type KeywordSort, listKeywords, marketReads } from '@ideas-hub/db/queries';
+import { type MarketStage } from '@ideas-hub/core';
+import { type KeywordRow } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { MarketStageChip, Share, pct } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { SortHead } from '@/components/sort-head';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { db } from '@/lib/db';
+import { STAGES, loadKeywordMarket, parseKeywordParams } from '@/lib/keyword-list';
 import { requireUser } from '@/lib/session';
-import { loadSettings, statusOptions } from '@/lib/settings';
 import { t } from '@/lib/strings.vi';
 
 const m = t.keywords.market;
-/** Sorts on the market read, done here on the 41-odd keywords; the others sort in SQL. */
-const MARKET_SORTS = ['new_ads', 'proven', 'shops'] as const;
-type Sort = KeywordSort | (typeof MARKET_SORTS)[number];
-const SORTS: readonly string[] = [...KEYWORD_SORTS, ...MARKET_SORTS];
-const STAGES: MarketStage[] = ['rising', 'proven', 'steady'];
-
-const share = (r: MarketRead | undefined, part: (r: MarketRead) => number) => (r && r.ads ? part(r) / r.ads : -1);
-const MARKET_ORDER: Record<(typeof MARKET_SORTS)[number], (r: MarketRead | undefined) => number> = {
-  new_ads: (r) => share(r, (x) => x.newAds),
-  proven: (r) => share(r, (x) => x.proven),
-  shops: (r) => r?.shops ?? -1,
-};
-
 const Stage = ({ stage }: { stage: MarketStage | null }) => (stage ? <MarketStageChip stage={stage} /> : <span className="text-fg-muted">{t.common.none}</span>);
 
 function KeywordName({ k }: { k: KeywordRow }) {
@@ -43,28 +29,20 @@ function KeywordName({ k }: { k: KeywordRow }) {
 export default async function KeywordsPage({ searchParams }: { searchParams: Promise<{ sort?: string; stage?: string }> }) {
   await requireUser();
   const p = await searchParams;
-  const sort: Sort = SORTS.includes(p.sort ?? '') ? (p.sort as Sort) : 'running_ads';
-  const stageFilter = STAGES.includes(p.stage as MarketStage) ? (p.stage as MarketStage) : null;
-  const settings = await loadSettings();
-  const [keywords, reads] = await Promise.all([
-    listKeywords(db, (KEYWORD_SORTS as readonly string[]).includes(sort) ? (sort as KeywordSort) : 'running_ads'),
-    statusOptions(settings).then((o) => marketReads(db, o, { nonShopDomains: settings.nonShopDomains })),
-  ]);
-  // No stage without running ads to read: such a keyword shows a dash and is in no stage filter.
-  const stageOf = (k: KeywordRow) => {
-    const r = reads.get(k.id);
-    return r && r.ads ? marketStage(r) : null;
-  };
-  const counts = Object.fromEntries(STAGES.map((st) => [st, keywords.filter((k) => stageOf(k) === st).length]));
-  const order = (MARKET_SORTS as readonly string[]).includes(sort) ? MARKET_ORDER[sort as (typeof MARKET_SORTS)[number]] : null;
-  // Array.sort is stable: equal values keep the SQL order (running ads).
-  const rows = keywords.filter((k) => !stageFilter || stageOf(k) === stageFilter).sort((a, b) => (order ? order(reads.get(b.id)) - order(reads.get(a.id)) : 0));
+  const { sort, stage: stageFilter } = parseKeywordParams(p);
+  const { keywords, reads, rows, counts, stageOf } = await loadKeywordMarket(sort, stageFilter);
   const base = `/keywords${stageFilter ? `?stage=${stageFilter}` : ''}`;
   const stageHref = (st: MarketStage | null) => `/keywords?${new URLSearchParams({ ...(sort === 'running_ads' ? {} : { sort }), ...(st ? { stage: st } : {}) })}`;
 
   return (
     <>
-      <PageHeader title={t.keywords.title} />
+      <PageHeader title={t.keywords.title}>
+        <Button asChild size="sm" variant="outline">
+          <a href={`/keywords/csv?${new URLSearchParams({ sort, ...(stageFilter ? { stage: stageFilter } : {}) })}`} download>
+            {t.common.csv}
+          </a>
+        </Button>
+      </PageHeader>
       {keywords.length === 0 ? (
         <p className="text-fg-2">{t.keywords.empty}</p>
       ) : (
