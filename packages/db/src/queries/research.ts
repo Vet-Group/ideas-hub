@@ -4,7 +4,7 @@
 import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
 import { type SQL, and, asc, eq, sql } from 'drizzle-orm';
 import { type Db } from '../client';
-import { shopFollows } from '../schema';
+import { shopFollows, stores } from '../schema';
 import { adStatusQuery } from './ad-status';
 import { escapeLike } from './search';
 
@@ -35,6 +35,10 @@ export interface AdFilters {
   title?: string;
   /** Near-duplicate creatives (same caption and landing domain) as one item with their count. */
   dedupe?: boolean;
+  /** Ads of the shops this store follows. */
+  followedBy?: string;
+  /** Started in the last N days; the first crawl day when the start is unknown. */
+  newDays?: number;
   sort?: AdSort;
   /** 1-based. */
   page?: number;
@@ -168,11 +172,14 @@ export interface AdPage {
 }
 
 /** The ads grid: filters, sort, page and total in one SQL query; the score is computed again in TypeScript. */
-export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Promise<AdPage> {
+export function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Promise<AdPage> {
+  return pageAds(db, o, f, AD_ORDER[f.sort ?? 'score']);
+}
+
+async function pageAds(db: Db, o: StatusOptions, f: AdFilters, order: ReturnType<typeof sql>): Promise<AdPage> {
   const status = f.status ?? 'running';
   const limit = f.limit ?? AD_PAGE_SIZE;
   const offset = (Math.max(1, f.page ?? 1) - 1) * limit;
-  const order = AD_ORDER[f.sort ?? 'score'];
   const where = sql.join(
     [
       status === 'all' ? sql`` : sql`and st.status = ${status}`,
@@ -181,6 +188,8 @@ export async function listAds(db: Db, o: StatusOptions, f: AdFilters = {}): Prom
       f.domain ? sql`and a.landing_domain ilike ${`%${escapeLike(f.domain)}%`} escape '\\'` : sql``,
       // Whole words, so a phrase from the keyword report (titlePhrases) finds the ads it counted.
       f.title && titleWords(f.title) ? sql`and ' ' || ${titleWordsSql(sql`a.title`)} || ' ' like ${`% ${titleWords(f.title)} %`}` : sql``,
+      f.followedBy ? sql`and a.landing_domain in (select sf.landing_domain from shop_follows sf where sf.store_id = ${f.followedBy})` : sql``,
+      f.newDays === undefined ? sql`` : sql`and coalesce(a.start_date, a.first_seen_date) > ${o.today}::date - ${f.newDays}::int`,
       f.minDays === undefined ? sql`` : sql`and coalesce(${DAYS}, 0) >= ${f.minDays}`,
       f.minScore === undefined ? sql`` : sql`and coalesce(${SCORE}, 0) >= ${f.minScore}`,
       f.proven
@@ -338,9 +347,9 @@ export async function followedShops(db: Db, viewer: Viewer, storeId: string): Pr
   return rows.map((r) => r.d);
 }
 
-/** Follows a known shop for the store; needs `save` there (as setIdeaStatus). False when refused or the shop is unknown. */
+/** Follows a known shop for the store; needs `save` there (as setIdeaStatus). False when refused or the shop or store is unknown (an admin passes `can` for any id). */
 export async function followShop(db: Db, viewer: Viewer, storeId: string, domain: string, at: Date): Promise<boolean> {
-  if (!can(viewer, storeId, 'save') || !(await getShop(db, domain))) return false;
+  if (!can(viewer, storeId, 'save') || !(await getShop(db, domain)) || !(await db.select({ id: stores.id }).from(stores).where(eq(stores.id, storeId))).length) return false;
   await db.insert(shopFollows).values({ storeId, landingDomain: domain, createdBy: viewer.userId, createdAt: at }).onConflictDoNothing();
   return true;
 }
@@ -353,19 +362,13 @@ export async function unfollowShop(db: Db, viewer: Viewer, storeId: string, doma
 }
 
 /**
- * Ads of the store's followed shops that started in the last `sinceDays` days (as the market read's new ads;
- * the first crawl day when the start is unknown), newest first, with their status. Empty without `view`.
+ * Ads of the store's followed shops that started in the last `sinceDays` days (the first crawl day when the
+ * start is unknown, so it can differ from the market read's new ads), any status, newest first, creatives
+ * grouped as on the shop page; `total` counts all of them. Empty without `view`.
  */
-export async function followedShopAds(db: Db, o: StatusOptions, viewer: Viewer, storeId: string, sinceDays = 7): Promise<AdListItem[]> {
-  if (!can(viewer, storeId, 'view')) return [];
-  const ads = await selectAds(
-    db,
-    o,
-    sql`and a.landing_domain in (select f.landing_domain from shop_follows f where f.store_id = ${storeId})
-      and coalesce(a.start_date, a.first_seen_date) > ${o.today}::date - ${sinceDays}::int`,
-  );
-  const started = (a: AdListItem) => a.startDate ?? a.firstSeenDate;
-  return ads.sort((x, y) => started(y).localeCompare(started(x)) || x.adArchiveId.localeCompare(y.adArchiveId));
+export async function followedShopAds(db: Db, o: StatusOptions, viewer: Viewer, storeId: string, sinceDays: number = MARKET.newDays, limit = AD_PAGE_SIZE): Promise<AdPage> {
+  if (!can(viewer, storeId, 'view')) return { items: [], total: 0 };
+  return pageAds(db, o, { status: 'all', followedBy: storeId, newDays: sinceDays, dedupe: true, limit }, sql`coalesce(start_date, first_seen_date) desc, ad_archive_id`);
 }
 
 export const KEYWORD_SORTS = ['running_ads', 'text', 'origin'] as const;

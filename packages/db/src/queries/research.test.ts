@@ -283,18 +283,20 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     // f_edge started 7 days before today: outside the window. f_old's start is unknown, so its first crawl day counts.
     await db.execute(sql`insert into ads (ad_archive_id, caption, page_name, landing_domain, start_date, end_date, seen_days, first_seen_date, last_seen_date, parsed) values
       ('f_new', 'f new', 'Page', 'follow.example', '2026-10-18', '2026-10-20', 1, '2026-10-18', '2026-10-20', '{}'::jsonb),
+      ('f_dup', 'f new', 'Page', 'follow.example', '2026-10-17', '2026-10-20', 1, '2026-10-17', '2026-10-20', '{}'::jsonb),
       ('f_in', 'f in', 'Page', 'follow.example', '2026-10-14', '2026-10-14', 1, '2026-10-14', '2026-10-14', '{}'::jsonb),
       ('f_edge', 'f edge', 'Page', 'follow.example', '2026-10-13', '2026-10-20', 1, '2026-10-13', '2026-10-20', '{}'::jsonb),
       ('f_nostart', 'f nostart', 'Page', 'follow.example', null, null, 1, '2026-10-19', '2026-10-20', '{}'::jsonb),
       ('f_old', 'f old', 'Page', 'follow.example', null, null, 1, '2026-10-01', '2026-10-20', '{}'::jsonb),
       ('f_other', 'f other', 'Page', 'other.example', '2026-10-19', '2026-10-20', 1, '2026-10-19', '2026-10-20', '{}'::jsonb)`);
-    const ads = async (v: Viewer, storeId = 'st_a') => (await followedShopAds(db, O, v, storeId)).map((a) => a.adArchiveId);
+    const ads = async (v: Viewer, storeId = 'st_a') => (await followedShopAds(db, O, v, storeId)).items.map((a) => a.adArchiveId);
 
     // Without `save` on the store, or for an unknown shop, nothing is written.
     expect(await followShop(db, viewA, 'st_a', 'follow.example', at)).toBe(false);
     expect(await followShop(db, saveB, 'st_a', 'follow.example', at)).toBe(false);
     expect(await followShop(db, none, 'st_a', 'follow.example', at)).toBe(false);
     expect(await followShop(db, saveA, 'st_a', 'nope.example', at)).toBe(false);
+    expect(await followShop(db, admin, 'st_missing', 'follow.example', at)).toBe(false);
     expect(await followedShops(db, admin, 'st_a')).toEqual([]);
 
     expect(await followShop(db, saveA, 'st_a', 'follow.example', at)).toBe(true);
@@ -308,11 +310,16 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect(await followedShops(db, saveB, 'st_a')).toEqual([]);
 
     expect(await ads(viewA)).toEqual(['f_nostart', 'f_new', 'f_in']);
-    const list = await followedShopAds(db, O, admin, 'st_a');
+    const { items: list, total } = await followedShopAds(db, O, admin, 'st_a');
+    expect(total).toBe(3);
+    // The same creative (f_dup) is grouped under its newest ad.
+    expect(list.map((a) => a.duplicates)).toEqual([1, 2, 1]);
     expect(list.map((a) => a.status)).toEqual(['running', 'running', 'stopped_or_unknown']);
+    // The limit cuts the newest-first order; the total still counts every ad.
+    expect(await followedShopAds(db, O, admin, 'st_a', 7, 2)).toMatchObject({ total: 3, items: [{ adArchiveId: 'f_nostart' }, { adArchiveId: 'f_new' }] });
     expect(await ads(none)).toEqual([]);
     expect(await ads(admin, 'st_b')).toEqual([]);
-    expect((await followedShopAds(db, O, admin, 'st_a', 30)).map((a) => a.adArchiveId)).toEqual(['f_nostart', 'f_new', 'f_in', 'f_edge', 'f_old']);
+    expect((await followedShopAds(db, O, admin, 'st_a', 30)).items.map((a) => a.adArchiveId)).toEqual(['f_nostart', 'f_new', 'f_in', 'f_edge', 'f_old']);
 
     expect(await unfollowShop(db, viewA, 'st_a', 'follow.example')).toBe(false);
     expect(await followedShops(db, admin, 'st_a')).toEqual(['follow.example']);

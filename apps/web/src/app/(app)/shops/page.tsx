@@ -65,7 +65,7 @@ async function FollowedShops({ user }: { user: CurrentUser }) {
   }
   const o = await statusOptions(await loadSettings());
   const [domains, ads, saveStores] = await Promise.all([followedShops(db, user, store.id), followedShopAds(db, o, user, store.id), saveTargets(user)]);
-  const saved = await savedRefs(db, storeScope(user), 'ad', ads.map((a) => a.adArchiveId));
+  const saved = await savedRefs(db, storeScope(user), 'ad', ads.items.map((a) => a.adArchiveId));
   return (
     <>
       <PageHeader title={t.shops.followedOf(store.name)} />
@@ -84,12 +84,13 @@ async function FollowedShops({ user }: { user: CurrentUser }) {
             ))}
           </ul>
           <h2 className="font-semibold">{t.shops.followedAds}</h2>
-          {ads.length === 0 ? (
+          {ads.items.length === 0 ? (
             <p className="text-fg-2">{t.shops.followedAdsEmpty}</p>
           ) : (
             // Links to /ads/[id], never ?ad= on the briefing: a save here is via=ads.
-            <AdGridWithPane ads={ads.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))} saveStores={saveStores} saved={saved} />
+            <AdGridWithPane ads={ads.items.map((a) => toCard(a, `/ads/${encodeURIComponent(a.adArchiveId)}`))} saveStores={saveStores} saved={saved} />
           )}
+          {ads.total > ads.items.length ? <p className="text-fg-2 text-sm">{t.shops.followedAdsMore(ads.items.length, ads.total)}</p> : null}
         </div>
       )}
     </>
