@@ -13,6 +13,7 @@ import {
   apiIdeas,
   apiLatestGlobalBriefingId,
   apiStores,
+  ideaFunnel,
 } from '@ideas-hub/db/queries';
 import { handleIdeaImage } from '@/app/ideas/[id]/image/handler';
 import { adLibraryUrl } from '@/components/ads/ad-library-url';
@@ -262,6 +263,19 @@ export async function idea(ctx: V1Ctx, id: string) {
   const i = await apiIdea(ctx.deps.db, ctx.scope, id);
   if (!i) throw new ApiError(404, 'not_found', 'Idea not found.');
   return { data: ideaJson(ctx, i) };
+}
+
+export async function storeFunnel(ctx: V1Ctx, storeId: string) {
+  // Outside the token's stores answers like an unknown store (the viewer is already narrowed to them).
+  const weeks = await ideaFunnel(ctx.deps.db, ctx.viewer, storeId, 8, ctx.deps.now());
+  if (!weeks) throw new ApiError(404, 'not_found', 'Store not found.');
+  return {
+    data: {
+      store_id: storeId,
+      time_zone: 'Asia/Ho_Chi_Minh',
+      weeks: weeks.map((w) => ({ week_start: w.weekStart, saved: w.saved, picked: w.picked, done: w.done, median_days_to_done: w.medianDays })),
+    },
+  };
 }
 
 export async function ideaImage(ctx: V1Ctx, id: string) {

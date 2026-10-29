@@ -103,3 +103,27 @@ test('a member of one store has no store select on the Ideas page @phone', async
   await expect(page.getByRole('link', { name: 'Mug with paw print' }).filter({ visible: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Đổi store' })).toHaveCount(0);
 });
+
+test('the weekly funnel opens under the list and counts saved, picked and done with the median days', async ({ page }) => {
+  // Server time is real, not the frozen browser clock, so the ideas are stamped with the database's now().
+  const pool = e2ePool();
+  await pool.query(`insert into stores (id, name) values ('store_e2e_funnel', 'Store Funnel') on conflict do nothing`);
+  await pool.query(
+    `insert into saved_ideas (id, store_id, source, source_ref, via, title, status, created_by, created_at, updated_at, snapshot, picked_at, done_at)
+     values ('idea_e2e_funnel', 'store_e2e_funnel', 'manual', 'https://example.com/funnel', 'manual', 'Funnel idea', 'done', $1, now(), now(), '{}'::jsonb, now(), now() + interval '36 hours')`,
+    [USERS.admin.id],
+  );
+  await pool.end();
+  try {
+    await open(page, `/ideas?store=store_e2e_funnel&view=table`);
+    const funnel = page.getByTestId('idea-funnel');
+    await funnel.getByText('Phễu ý tưởng theo tuần').click();
+    await expect(funnel.getByRole('row')).toHaveCount(9);
+    await expect(funnel.getByRole('row').nth(1).getByRole('cell')).toHaveText([/^\d{2}\/\d{2}$/, '1', '1', '1', '1,5']);
+    await expectNoSeriousAxe(page);
+  } finally {
+    const p = e2ePool();
+    await p.query(`delete from stores where id = 'store_e2e_funnel'`);
+    await p.end();
+  }
+});

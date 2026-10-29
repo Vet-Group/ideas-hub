@@ -9,6 +9,7 @@ import {
   type IdeaSourceInput,
   IdeaAccessError,
   getIdea,
+  ideaFunnel,
   ideaKeywordOptions,
   ideasCsv,
   lastSaveStoreIds,
@@ -327,6 +328,84 @@ describe.skipIf(!testDatabaseAvailable())('ideas queries', () => {
       expect(await storeHasIdeas(db, admin, 'store_D')).toBe(false);
       expect(await storeHasIdeas(db, none, 'store_C')).toBeNull();
     });
+  });
+});
+
+describe.skipIf(!testDatabaseAvailable())('ideaFunnel', () => {
+  let drop: () => Promise<void>;
+  let pool: ReturnType<typeof createPool>;
+  let db: Db;
+  const viewF: Viewer = { userId: 'user_viewF', role: 'member', memberships: [tick('store_F', true, false)] };
+  const stranger: Viewer = { userId: 'user_x', role: 'member', memberships: [tick('store_G', true, false)] };
+  const admin: Viewer = { userId: 'user_admin', role: 'admin', memberships: [] };
+  // Thursday 2026-10-29 10:00 ICT; the current ISO week in Asia/Ho_Chi_Minh starts Monday 2026-10-26.
+  const NOW = new Date('2026-10-29T03:00:00Z');
+  const day = (iso: string, plusDays = 0) => new Date(new Date(iso).getTime() + plusDays * 86_400_000);
+
+  const idea = (id: string, storeId: string, createdAt: Date, o: { picked?: boolean; doneAfterDays?: number } = {}) =>
+    db.execute(sql`insert into saved_ideas (id, store_id, source, source_ref, via, title, snapshot, status, created_by, created_at, updated_at, picked_at, done_at)
+      values (${id}, ${storeId}, 'ad', ${id}, 'ads', ${id}, '{}', 'new', 'user_admin', ${createdAt.toISOString()}, ${createdAt.toISOString()},
+        ${o.picked || o.doneAfterDays !== undefined ? createdAt.toISOString() : null},
+        ${o.doneAfterDays === undefined ? null : day(createdAt.toISOString(), o.doneAfterDays).toISOString()})`);
+
+  beforeAll(async () => {
+    const t = await createTestDatabase();
+    drop = t.drop;
+    pool = createPool(t.url, 3);
+    db = createDb(pool);
+    await db.execute(sql`insert into users (id, email, name, role) values ('user_admin', 'admin@x.test', 'Admin', 'admin')`);
+    await db.execute(sql`insert into stores (id, name) values ('store_F', 'F'), ('store_G', 'G')`);
+    // Week of Mon 2026-10-26 ICT: Monday 00:00:00 ICT is Sunday 17:00:00 UTC, so it counts here and not in the UTC week.
+    await idea('f_mon', 'store_F', new Date('2026-10-25T17:00:00Z'));
+    await idea('f_picked', 'store_F', new Date('2026-10-27T01:00:00Z'), { picked: true });
+    // Sunday 23:59:59 ICT is still the week of 2026-10-19; two done ideas, 2 and 4 days: median 3.
+    await idea('f_sun', 'store_F', new Date('2026-10-25T16:59:59Z'), { doneAfterDays: 2 });
+    await idea('f_tue', 'store_F', new Date('2026-10-20T00:00:00Z'), { doneAfterDays: 4 });
+    // Week of 2026-10-12: three done ideas (1, 5, 2 days): median 2.
+    await idea('f_a', 'store_F', new Date('2026-10-12T02:00:00Z'), { doneAfterDays: 1 });
+    await idea('f_b', 'store_F', new Date('2026-10-13T02:00:00Z'), { doneAfterDays: 5 });
+    await idea('f_c', 'store_F', new Date('2026-10-14T02:00:00Z'), { doneAfterDays: 2 });
+    // Oldest of the 8 weeks starts Mon 2026-09-07 00:00 ICT; one second earlier is outside.
+    await idea('f_oldest', 'store_F', new Date('2026-09-06T17:00:00Z'));
+    await idea('f_outside', 'store_F', new Date('2026-09-06T16:59:59Z'));
+    await idea('g_other', 'store_G', new Date('2026-10-27T01:00:00Z'));
+  }, 60_000);
+  afterAll(async () => {
+    await pool?.end();
+    await drop?.();
+  });
+
+  it('counts per ISO week of created_at in Asia/Ho_Chi_Minh, newest first, with empty weeks as zeros', async () => {
+    const funnel = await ideaFunnel(db, viewF, 'store_F', 8, NOW);
+    expect(funnel?.map((w) => w.weekStart)).toEqual([
+      '2026-10-26', '2026-10-19', '2026-10-12', '2026-10-05', '2026-09-28', '2026-09-21', '2026-09-14', '2026-09-07',
+    ]);
+    const by = Object.fromEntries(funnel!.map((w) => [w.weekStart, w]));
+    expect(by['2026-10-26']).toEqual({ weekStart: '2026-10-26', saved: 2, picked: 1, done: 0, medianDays: null });
+    expect(by['2026-10-19']).toEqual({ weekStart: '2026-10-19', saved: 2, picked: 2, done: 2, medianDays: 3 });
+    expect(by['2026-10-12']).toEqual({ weekStart: '2026-10-12', saved: 3, picked: 3, done: 3, medianDays: 2 });
+    expect(by['2026-10-05']).toEqual({ weekStart: '2026-10-05', saved: 0, picked: 0, done: 0, medianDays: null });
+    expect(by['2026-09-07']).toEqual({ weekStart: '2026-09-07', saved: 1, picked: 0, done: 0, medianDays: null });
+  });
+
+  it('honours the number of weeks and leaves out other stores', async () => {
+    const two = await ideaFunnel(db, viewF, 'store_F', 2, NOW);
+    expect(two?.map((w) => [w.weekStart, w.saved])).toEqual([['2026-10-26', 2], ['2026-10-19', 2]]);
+    expect((await ideaFunnel(db, admin, 'store_G', 1, NOW))?.[0]?.saved).toBe(1);
+  });
+
+  it('needs view on the store', async () => {
+    expect(await ideaFunnel(db, stranger, 'store_F', 8, NOW)).toBeNull();
+    expect(await ideaFunnel(db, admin, 'store_F', 8, NOW)).not.toBeNull();
+  });
+
+  it('is null for a store that does not exist, admins included', async () => {
+    expect(await ideaFunnel(db, admin, 'store_nope', 8, NOW)).toBeNull();
+  });
+
+  it('clamps the number of weeks to 1..52', async () => {
+    expect(await ideaFunnel(db, viewF, 'store_F', 0, NOW)).toHaveLength(1);
+    expect(await ideaFunnel(db, viewF, 'store_F', 1000, NOW)).toHaveLength(52);
   });
 });
 
