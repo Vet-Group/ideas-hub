@@ -1,0 +1,16 @@
+{
+"hits": [
+{
+"created_at": "2026-10-28T10:00:00Z",
+"title": "Bad \u0000 byte",
+"url": "https://example.test/nul",
+"author": "a",
+"objectID": "3001"
+}
+],
+"nbHits": 1,
+"page": 0,
+"nbPages": 1,
+"hitsPerPage": 20,
+"query": "nul"
+}

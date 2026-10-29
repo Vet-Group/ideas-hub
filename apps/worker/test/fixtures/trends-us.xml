@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ht="https://trends.google.com/trending/rss" version="2.0">
+	<channel>
+		<title>Daily Search Trends</title>
+		<description>Recent searches</description>
+		<link>https://trends.google.com/trending/rss?geo=US</link>
+		<atom:link href="https://trends.google.com/trending/rss?geo=US" rel="self" type="application/rss+xml"/>
+		<item>
+			<title>maria timofeeva</title>
+			<ht:approx_traffic>100+</ht:approx_traffic>
+			<description/>
+			<link>https://trends.google.com/trending/rss?geo=US</link>
+			<pubDate>Wed, 28 Oct 2026 23:20:00 -0700</pubDate>
+			<ht:news_item>
+				<ht:news_item_title>Linette saves two set points, advances past Zakharova in Guangzhou</ht:news_item_title>
+				<ht:news_item_url>https://www.wtatennis.com/videos/4599440/linette-saves-two-set-points-advances-past-zakharova-in-guangzhou</ht:news_item_url>
+			</ht:news_item>
+		</item>
+		<item>
+			<title>halloween costumes &amp; ideas</title>
+			<ht:approx_traffic>2000+</ht:approx_traffic>
+			<description/>
+			<link>https://trends.google.com/trending/rss?geo=US</link>
+			<pubDate>Wed, 28 Oct 2026 22:10:00 -0700</pubDate>
+		</item>
+	</channel>
+</rss>

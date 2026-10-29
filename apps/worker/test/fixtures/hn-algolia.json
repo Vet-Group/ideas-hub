@@ -1,0 +1,5 @@
+{"hits":[
+{"created_at":"2026-10-28T15:30:00Z","title":"Show HN: A print-on-demand mockup tool","url":"https://example.test/mockups","author":"a","objectID":"1001"},
+{"created_at":"2026-10-28T12:00:00Z","title":"Ask HN: How do you price Etsy listings?","url":null,"author":"b","objectID":"1002"},
+{"created_at":"2026-10-28T09:00:00Z","title":null,"url":"https://example.test/untitled","author":"c","objectID":"1003"}
+],"nbHits":3,"page":0,"nbPages":1,"hitsPerPage":20,"query":"etsy"}
