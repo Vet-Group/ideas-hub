@@ -19,7 +19,7 @@ before the verdict (3 onwards).
 | 5 | **Done** (#76, 2026-10-23). `/api/v1` read API (contract `ideas-hub-v1.md` §3) | the consumers agreeing the contract | Draft exists |
 | 6 | Push a saved idea to POD Studio (contract §2) | POD Studio owner | Draft exists; review with the POD Studio owner first |
 | 7 | Sign-in with the ERP's Keycloak (draft below) | ERP owner; the ERP repo and host are frozen | Draft questions below |
-| 8 | Etsy Open API and Google Trends sources | owner: Etsy API key | New sources after the Ad Library is stable |
+| 8 | Etsy Open API and Google Trends sources; planned in [ADR 0008](../adr/0008-next-round-sequencing.md), Etsy app text in [`etsy-app.md`](../ops/etsy-app.md) | owner: Etsy Personal App (no shop needed) | New sources after the Ad Library is stable |
 | 9 | **Not worth it now** (measured 2026-10-24). Stored WebP thumbnails | a size measurement | 8,631 objects, 1.39 GB (160 KB each on average) with 157 GB free on the host and a deduplicating off-host backup; WebP would save well under 1 GB. Measure again at 10 GB |
 | 10 | Larger crawl scale (more browsers or IPs, a proxy) | owner: cost | Measured again after |
 
