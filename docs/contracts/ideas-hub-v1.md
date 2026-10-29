@@ -188,6 +188,7 @@ in v1.
 | `GET /api/v1/briefings/{id}` | `briefings:read` | One briefing with sections and suggestions |
 | `GET /api/v1/ideas` | `ideas:read` | Ideas of effective stores; filters `store_id`, `status`, `via`, `source`, `updated_since` |
 | `GET /api/v1/ideas/{id}` | `ideas:read` | One idea |
+| `GET /api/v1/stores/{id}/funnel` | `ideas:read` | The store's weekly idea funnel: `store_id`, `time_zone` (`Asia/Ho_Chi_Minh`) and `weeks`, the last 8 ISO weeks newest first, each `week_start` (Monday, `YYYY-MM-DD`), `saved`, `picked`, `done`, `median_days_to_done`; `404` for a store outside the effective stores |
 | `GET /api/v1/ideas/{id}/image` | `ideas:read` | The uploaded image of a manual idea, `Cache-Control: private, no-store`; `404` if none |
 
 Only briefings with `ready_at` set are listed or returned; a briefing still building is `404`.
@@ -414,3 +415,8 @@ Every error has the same body; `message` is English and meant for developers, no
   - `last_used_at` is written at most once a minute per token.
   - Any other path under `/api/v1` answers `404 not_found` in the error shape after the token check; methods
     other than `GET` get Next.js's plain `405`. HTTPS is the Cloudflare tunnel's job; the app does not check it.
+- 2026-10-29: additive `GET /api/v1/stores/{id}/funnel` (scope `ideas:read`; no migration). Weeks run Monday to
+  Sunday in Asia/Ho_Chi_Minh by the idea's `created_at`, and empty weeks are listed with zeros. `saved` counts the
+  ideas created that week, `picked` those with a `picked_at`, `done` those done now (`done_at`; an idea moved
+  back out of Done is not counted), and `median_days_to_done` is the median of `done_at - created_at` in days
+  (one decimal) over the done ones, `null` when none. A store outside the token's stores is `404 not_found`.

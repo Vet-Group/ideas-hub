@@ -357,3 +357,39 @@ export async function ideaKeywordOptions(db: Db, viewer: Viewer, storeId: string
   for (const text of [...tracked.map((k) => k.text), ...onIdeas.map((k) => k.text).sort()]) if (!byLower.has(text.toLowerCase())) byLower.set(text.toLowerCase(), text);
   return [...byLower.values()].sort((a, b) => a.localeCompare(b));
 }
+
+export type IdeaFunnelWeek = {
+  /** Monday of the ISO week in Asia/Ho_Chi_Minh, `YYYY-MM-DD`. */
+  weekStart: string;
+  saved: number;
+  picked: number;
+  done: number;
+  /** Median days from saved to done over the week's ideas that are done now; null when none. */
+  medianDays: number | null;
+};
+
+/**
+ * Per ISO week of `created_at` (ICT, not UTC) over the last `weeks` weeks including the current one, newest
+ * first, empty weeks as zeros: saved, picked (`picked_at` set), done (`done_at` set, so an idea moved back is
+ * not done) and the median days from saved to done. Null without `view`.
+ */
+export async function ideaFunnel(db: Db, viewer: Viewer, storeId: string, weeks = 8, now = new Date()): Promise<IdeaFunnelWeek[] | null> {
+  if (!can(viewer, storeId, 'view')) return null;
+  const { rows } = await db.execute<{ week_start: string; saved: number; picked: number; done: number; median_days: number | null }>(sql`
+    select to_char(w.week, 'YYYY-MM-DD') as week_start,
+      count(i.id)::int as saved, count(i.picked_at)::int as picked, count(i.done_at)::int as done,
+      percentile_cont(0.5) within group (order by extract(epoch from i.done_at - i.created_at) / 86400) as median_days
+    from generate_series(
+      date_trunc('week', ${now.toISOString()}::timestamptz at time zone 'Asia/Ho_Chi_Minh') - make_interval(weeks => ${weeks - 1}::int),
+      date_trunc('week', ${now.toISOString()}::timestamptz at time zone 'Asia/Ho_Chi_Minh'),
+      interval '1 week') as w(week)
+    left join saved_ideas i on i.store_id = ${storeId} and date_trunc('week', i.created_at at time zone 'Asia/Ho_Chi_Minh') = w.week
+    group by w.week order by w.week desc`);
+  return rows.map((r) => ({
+    weekStart: r.week_start,
+    saved: r.saved,
+    picked: r.picked,
+    done: r.done,
+    medianDays: r.median_days === null ? null : Math.round(r.median_days * 10) / 10,
+  }));
+}

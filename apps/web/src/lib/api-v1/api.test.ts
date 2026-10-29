@@ -3,7 +3,7 @@
 import { type Db, createDb, createPool } from '@ideas-hub/db/client';
 import { createTestDatabase, testDatabaseAvailable } from '@ideas-hub/db/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getBriefing, getBriefings, getIdea, getIdeaImage, getIdeas, getLatestBriefing, getMe, getStores, getUnknown } from './handlers';
+import { getBriefing, getBriefings, getIdea, getIdeaImage, getIdeas, getLatestBriefing, getMe, getStoreFunnel, getStores, getUnknown } from './handlers';
 import { type V1Deps } from './pipeline';
 import { type RateLimiter, createRateLimiter } from './rate-limit';
 import { generateToken, hashToken } from './token';
@@ -211,6 +211,7 @@ describe.skipIf(!tdb)('/api/v1', () => {
         [getBriefing, 'brf_g1', ideasOnly],
       ] as const;
       for (const [handler, id, token] of idRoutes) expect((await handler(req(`/x/${id}`, token), deps(), id)).status).toBe(403);
+      expect((await getStoreFunnel(req('/stores/store_A/funnel', briefingsOnly), deps(), 'store_A')).status).toBe(403);
       for (const token of [briefingsOnly, ideasOnly]) {
         expect((await getMe(req('/me', token), deps())).status).toBe(200);
         expect((await getStores(req('/stores', token), deps())).status).toBe(200);
@@ -265,6 +266,34 @@ describe.skipIf(!tdb)('/api/v1', () => {
       const adminOnA = await mint({ user: 'user_admin', storeIds: ['store_A'] });
       expect((await getIdea(req('/x', adminOnA), deps(), 'idea_b1')).status).toBe(404);
       expect((await getIdea(req('/x', adminOnA), deps(), 'idea_a1')).status).toBe(200);
+    });
+
+    it('answers the funnel of a store the token can view, and 404 for any other store as for an unknown one', async () => {
+      await q(`update saved_ideas set picked_at = created_at, done_at = created_at + interval '36 hours' where id in ('idea_a1', 'idea_a2')`);
+      await q(`update saved_ideas set picked_at = created_at where id = 'idea_a3'`);
+      const member = await mint({ user: 'user_a' });
+      const res = await getStoreFunnel(req('/stores/store_A/funnel', member), deps(), 'store_A');
+      expect(res.status).toBe(200);
+      const body = await json(res);
+      expect(body.data).toMatchObject({ store_id: 'store_A', time_zone: 'Asia/Ho_Chi_Minh' });
+      expect(body.data.weeks).toHaveLength(8);
+      expect(body.data.weeks[0]).toEqual({ week_start: '2026-10-19', saved: 5, picked: 3, done: 2, median_days_to_done: 1.5 });
+      expect(body.data.weeks[1]).toEqual({ week_start: '2026-10-12', saved: 0, picked: 0, done: 0, median_days_to_done: null });
+      const [outside, unknown, none] = [
+        await getStoreFunnel(req('/stores/store_B/funnel', member), deps(), 'store_B'),
+        await getStoreFunnel(req('/stores/store_zzz/funnel', member), deps(), 'store_zzz'),
+        await getStoreFunnel(req('/stores/store_A/funnel', await mint({ user: 'user_none' })), deps(), 'store_A'),
+      ];
+      expect([outside.status, unknown.status, none.status]).toEqual([404, 404, 404]);
+      const [outsideBody, unknownBody] = [await json(outside), await json(unknown)];
+      expect(outsideBody.error.code).toBe('not_found');
+      expect(outsideBody.error.message).toBe(unknownBody.error.message);
+      // An admin sees any store; a store list narrows the admin too.
+      const admin = await mint({ user: 'user_admin' });
+      expect((await getStoreFunnel(req('/stores/store_B/funnel', admin), deps(), 'store_B')).status).toBe(200);
+      const adminOnA = await mint({ user: 'user_admin', storeIds: ['store_A'] });
+      expect((await getStoreFunnel(req('/stores/store_B/funnel', adminOnA), deps(), 'store_B')).status).toBe(404);
+      expect((await getStoreFunnel(req('/stores/store_A/funnel', adminOnA), deps(), 'store_A')).status).toBe(200);
     });
 
     it('serves an uploaded image as a private, uncached response and 404 when there is none', async () => {

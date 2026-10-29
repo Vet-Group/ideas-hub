@@ -1,9 +1,10 @@
 import { can } from '@ideas-hub/core';
 import { IDEA_STATUSES, storeMembers, users } from '@ideas-hub/db';
-import { type IdeaStatus, ideaKeywordOptions, listIdeas, storeHasIdeas } from '@ideas-hub/db/queries';
+import { type IdeaStatus, ideaFunnel, ideaKeywordOptions, listIdeas, storeHasIdeas } from '@ideas-hub/db/queries';
 import { asc, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { IdeaFunnel } from '@/components/ideas/funnel';
 import { IdeasView } from '@/components/ideas/ideas-view';
 import { NewIdeaDialog } from '@/components/ideas/new-idea-dialog';
 import { StoreSelect } from '@/components/ideas/store-select';
@@ -43,11 +44,12 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
   if (!rows) notFound();
   const tab: IdeaStatus = IDEA_STATUSES.includes(p.status as IdeaStatus) ? (p.status as IdeaStatus) : 'new';
   const filtered = Object.values(filters).some(Boolean);
-  const [members, keywords, targets, anyIdeas] = await Promise.all([
+  const [members, keywords, targets, anyIdeas, funnel] = await Promise.all([
     db.select({ id: users.id, name: users.name }).from(storeMembers).innerJoin(users, eq(users.id, storeMembers.userId)).where(eq(storeMembers.storeId, storeId)).orderBy(asc(users.name)),
     ideaKeywordOptions(db, user, storeId),
     saveTargets(user),
     filtered ? storeHasIdeas(db, user, storeId) : rows.length > 0,
+    ideaFunnel(db, user, storeId),
   ]);
   const canSave = can(user, storeId, 'save');
   const ideas: IdeaItem[] = rows.map((r) => {
@@ -137,6 +139,7 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
         ))}
       </nav>
       <IdeasView ideas={ideas} canSave={canSave} view={view} tab={tab} storeHasIdeas={anyIdeas ?? false} clearHref={clearHref} />
+      {funnel ? <IdeaFunnel weeks={funnel} /> : null}
     </>
   );
 }
