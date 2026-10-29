@@ -1,7 +1,7 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_PHRASE, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
+import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_PHRASE, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, canonicalizeUrl, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
 import { type SQL, and, asc, eq, sql } from 'drizzle-orm';
 import { type Db } from '../client';
 import { shopFollows, stores } from '../schema';
@@ -340,6 +340,36 @@ export async function shopReads(db: Db, o: StatusOptions, domains: readonly stri
     group by r.landing_domain`);
   });
   return new Map(rows.map((r) => [r.landing_domain, { ads: r.ads, newAds: r.new_ads, proven: r.proven, keywords: r.keywords }]));
+}
+
+export interface ProductPage {
+  /** The landing URL with tracking parameters stripped (canonicalizeUrl). */
+  url: string;
+  ads: number;
+  /** Ads of the page with status running. */
+  running: number;
+  firstSeenDate: string;
+  lastSeenDate: string;
+}
+
+/** A shop's ads grouped by canonical landing URL, most ads first; ads without a valid link are left out. */
+export async function shopProductPages(db: Db, o: StatusOptions, domain: string, limit = 50): Promise<ProductPage[]> {
+  const { rows } = await db.execute<{ link: string; first_seen_date: string; last_seen_date: string; status: AdStatus }>(sql`
+    select a.link, a.first_seen_date::text, a.last_seen_date::text, st.status
+    from ads a join (${adStatusQuery(o.today, o.staleAfterDays, o.countries)}) st on st.ad_archive_id = a.ad_archive_id
+    where a.landing_domain = ${domain} and a.link is not null`);
+  const pages = new Map<string, ProductPage>();
+  for (const r of rows) {
+    const url = canonicalizeUrl(r.link);
+    if (!url) continue;
+    const p = pages.get(url) ?? { url, ads: 0, running: 0, firstSeenDate: r.first_seen_date, lastSeenDate: r.last_seen_date };
+    p.ads += 1;
+    if (r.status === 'running') p.running += 1;
+    if (r.first_seen_date < p.firstSeenDate) p.firstSeenDate = r.first_seen_date;
+    if (r.last_seen_date > p.lastSeenDate) p.lastSeenDate = r.last_seen_date;
+    pages.set(url, p);
+  }
+  return [...pages.values()].sort((a, b) => b.ads - a.ads || b.running - a.running || a.url.localeCompare(b.url)).slice(0, limit);
 }
 
 export async function getShop(db: Db, domain: string): Promise<ShopRow | null> {

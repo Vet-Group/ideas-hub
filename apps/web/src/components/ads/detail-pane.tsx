@@ -3,6 +3,7 @@ import type { AdSighting, AdListItem } from '@ideas-hub/db/queries';
 import { ExternalLink } from 'lucide-react';
 import { SaveButton, type SaveTarget } from '@/components/save/save-button';
 import { AdStatusChip } from '@/components/states/ad-status-chip';
+import { DurationTierChip } from '@/components/states/duration-tier-chip';
 import { ProvenChip } from '@/components/states/proven-chip';
 import { Button } from '@/components/ui/button';
 import { t } from '@/lib/strings.vi';
@@ -49,6 +50,7 @@ export function DetailPane({
       <div className="flex items-center justify-between gap-2">
         <span className="flex flex-wrap gap-1">
           <AdStatusChip status={ad.status} />
+          {ad.daysActive === null ? null : <DurationTierChip daysActive={ad.daysActive} />}
           {ad.proven ? <ProvenChip /> : null}
         </span>
         <div className="group-data-[pane=bottom]:hidden">{save}</div>

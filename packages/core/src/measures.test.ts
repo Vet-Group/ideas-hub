@@ -7,6 +7,7 @@ import {
   crawlDay,
   daysActive,
   deltaAt,
+  durationTier,
   isNonShopDomain,
   isProven,
   isRisingNew,
@@ -234,5 +235,20 @@ describe('deltaAt', () => {
   it('shows no change with fewer than 2 snapshots of the slot', () => {
     expect(deltaAt([latest], latest)).toBeNull();
     expect(deltaAt([at13('2026-10-11', 30), latest], latest)).toBeNull();
+  });
+});
+
+describe('durationTier', () => {
+  it.each([
+    [0, 'test'],
+    [6, 'test'],
+    [7, 'validation'],
+    [21, 'validation'],
+    [22, 'winner'],
+    [179, 'winner'],
+    [180, 'evergreen'],
+    [400, 'evergreen'],
+  ] as const)('%i days is %s', (days, tier) => {
+    expect(durationTier(days)).toBe(tier);
   });
 });

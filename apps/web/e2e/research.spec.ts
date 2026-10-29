@@ -556,6 +556,21 @@ test('shops read as markets: new and proven ads and keywords in the table and on
   await expect(page.getByLabel('Đọc thị trường').locator('dd')).toHaveText(['2 33% số ads', '1 17% số ads', '1 keyword có ads của shop']);
 });
 
+// Running ads (start 19/10 for _1 and _2): mug_1 and mug_2 share a page once utm and click ids are stripped; mug_3 is alone.
+test('the shop page lists product pages with tracking stripped, and ad cards carry a duration tier @phone', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(`/shops/${MUG.domain}`)}`);
+  const pages = page.getByRole('region', { name: 'Trang sản phẩm' });
+  await expect(pages.getByRole('row')).toHaveCount(3);
+  const mug = pages.getByRole('row', { name: /products\/mug/ }).getByRole('cell');
+  await expect(mug.nth(0)).toHaveText('https://dogmom.example/products/mug');
+  await expect(mug.nth(1)).toHaveText('2');
+  await expect(mug.nth(2)).toHaveText('2');
+  await expect(pages.getByRole('row', { name: /products\/shirt/ }).getByRole('cell').nth(1)).toHaveText('1');
+  // Ad 1 started 19/10 (2 days active): Test; ad 3 started 01/10 (20 days): Validation.
+  await expect(card(page, 'Best dog mom mug gift 1').getByRole('button', { name: 'Test', exact: true })).toBeVisible();
+  await expect(card(page, 'Best dog mom mug gift 3').getByRole('button', { name: 'Validation', exact: true })).toBeVisible();
+});
+
 test('the shop page groups a creative the shop runs twice and links to the same view in Ads; briefing ad rows label the score @phone', async ({ page }) => {
   const pool = e2ePool();
   try {

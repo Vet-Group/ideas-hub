@@ -1,5 +1,5 @@
 import { can, isNonShopDomain, storeScope } from '@ideas-hub/core';
-import { daySeries, followedShops, getShop, listAds, savedRefs, shopReads } from '@ideas-hub/db/queries';
+import { daySeries, followedShops, getShop, listAds, savedRefs, shopProductPages, shopReads } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdGridWithPane } from '@/components/ads/ad-pane';
@@ -10,7 +10,9 @@ import { TrendChart } from '@/components/charts/trend-chart';
 import { Sub, pct } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { db } from '@/lib/db';
+import { ddmm } from '@/lib/format';
 import { loadSettings, statusOptions } from '@/lib/settings';
 import { saveTargets, userStores } from '@/lib/store';
 import { requireUser } from '@/lib/session';
@@ -24,13 +26,14 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
   const [shop, settings] = await Promise.all([getShop(db, domain), loadSettings()]);
   if (!shop || isNonShopDomain(domain, settings.nonShopDomains)) notFound();
   const o = await statusOptions(settings);
-  const [series, ads, stores, read, mine] = await Promise.all([
+  const [series, ads, stores, read, mine, pages] = await Promise.all([
     daySeries(db, 'shop', domain),
     // Grouped like "Gộp mẫu trùng": one shop runs the same creative many times.
     listAds(db, o, { domain, dedupe: true }),
     saveTargets(user),
     shopReads(db, o, [domain]).then((r) => r.get(domain)),
     userStores(user),
+    shopProductPages(db, o, domain),
   ]);
   const store = mine.stores.find((s) => s.id === mine.selectedId);
   const followed = store && can(user, store.id, 'save') ? (await followedShops(db, user, store.id)).includes(domain) : null;
@@ -72,6 +75,33 @@ export default async function ShopPage({ params }: { params: Promise<{ domain: s
           </dl>
         ) : null}
         <TrendChart points={series} />
+        {pages.length > 0 ? (
+          <section className="grid gap-2" aria-label={t.shops.productPages}>
+            <h2 className="font-semibold">{t.shops.productPages}</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t.shops.productPage}</TableHead>
+                  <TableHead className="text-right">{t.shops.productAds}</TableHead>
+                  <TableHead className="text-right">{t.shops.productRunning}</TableHead>
+                  <TableHead>{t.shops.firstSeen}</TableHead>
+                  <TableHead>{t.shops.lastSeen}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pages.map((p) => (
+                  <TableRow key={p.url}>
+                    <TableCell className="max-w-96 break-all">{p.url}</TableCell>
+                    <TableCell className="text-right font-mono">{p.ads}</TableCell>
+                    <TableCell className="text-right font-mono">{p.running}</TableCell>
+                    <TableCell>{ddmm(p.firstSeenDate)}</TableCell>
+                    <TableCell>{ddmm(p.lastSeenDate)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </section>
+        ) : null}
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">{t.shops.ads}</h2>
           <Link href={`/ads${adQuery({ domain, dedupe: true })}`} className="text-sm underline underline-offset-2">

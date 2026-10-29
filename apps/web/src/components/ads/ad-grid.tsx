@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { type KeyboardEvent, useRef } from 'react';
 import { SaveButton, type SaveHandle, type SaveTarget } from '@/components/save/save-button';
 import { AdStatusChip } from '@/components/states/ad-status-chip';
+import { DurationTierChip } from '@/components/states/duration-tier-chip';
 import { ProvenChip } from '@/components/states/proven-chip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { t } from '@/lib/strings.vi';
@@ -133,6 +134,7 @@ export function AdGrid({
             <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
               <span className="flex flex-wrap gap-1">
                 <AdStatusChip status={a.status} />
+                {a.daysActive === null ? null : <DurationTierChip daysActive={a.daysActive} />}
                 {a.proven ? <ProvenChip /> : null}
               </span>
               <Tooltip>
