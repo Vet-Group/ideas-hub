@@ -244,12 +244,22 @@ async function storeOfIdea(db: Db, ideaId: string): Promise<string | null> {
   return r?.storeId ?? null;
 }
 
-/** Any status to any status (Done back to New included); needs `save` on the idea's store. */
-export async function setIdeaStatus(db: Db, viewer: Viewer, ideaId: string, status: IdeaStatus, at: Date): Promise<boolean> {
-  if (!IDEA_STATUSES.includes(status)) return false;
+/**
+ * Any status to any status (Done back to New included); needs `save` on the idea's store. Applies only while the
+ * idea is still in the status the caller was shown (`expected`), so a double click cannot jump New to Done.
+ * Picked or done records `picked_at` once; done records `done_at`, which leaving done clears.
+ */
+export async function setIdeaStatus(db: Db, viewer: Viewer, ideaId: string, status: IdeaStatus, at: Date, expected: IdeaStatus): Promise<boolean> {
+  if (!IDEA_STATUSES.includes(status) || !IDEA_STATUSES.includes(expected)) return false;
   const storeId = await storeOfIdea(db, ideaId);
   if (!storeId || !can(viewer, storeId, 'save')) return false;
-  const updated = await db.update(savedIdeas).set({ status, updatedAt: at }).where(eq(savedIdeas.id, ideaId)).returning({ id: savedIdeas.id });
+  const set = {
+    status,
+    updatedAt: at,
+    ...(status === 'picked' || status === 'done' ? { pickedAt: sql`coalesce(${savedIdeas.pickedAt}, ${at.toISOString()}::timestamptz)` } : {}),
+    doneAt: status === 'done' ? at : null,
+  };
+  const updated = await db.update(savedIdeas).set(set).where(and(eq(savedIdeas.id, ideaId), eq(savedIdeas.status, expected))).returning({ id: savedIdeas.id });
   return updated.length > 0;
 }
 

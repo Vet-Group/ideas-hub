@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { StatusMenu, type Status } from '@/components/ideas/status-menu';
+import { StatusButtons, StatusMenu, type Status } from '@/components/ideas/status-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,8 +23,22 @@ export function IdeaDetailsForm(p: {
   members: { id: string; name: string }[];
   canSave: boolean;
 }) {
+  const router = useRouter();
   const [status, setStatus] = useState(p.status);
   const [pending, start] = useTransition();
+  // A refused change refreshes the page; show the status the server holds.
+  useEffect(() => setStatus(p.status), [p.status]);
+  const changeStatus = (s: Status) =>
+    !pending &&
+    start(async () => {
+      if (await setStatusAction(p.id, s, status)) {
+        setStatus(s);
+        toast.success(t.ideaViews.moved(t.ideaViews.statuses[s]!));
+      } else {
+        toast.error(t.ideaViews.moveFailed);
+        router.refresh();
+      }
+    });
   if (!p.canSave) {
     return (
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
@@ -40,20 +55,10 @@ export function IdeaDetailsForm(p: {
   }
   return (
     <div className="grid gap-3">
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-fg-2">{t.ideaViews.columns.status}</span>
-        <StatusMenu
-          title={p.title}
-          status={status}
-          onChange={(s) =>
-            start(async () => {
-              if (await setStatusAction(p.id, s)) {
-                setStatus(s);
-                toast.success(t.ideaViews.moved(t.ideaViews.statuses[s]!));
-              } else toast.error(t.ideaViews.moveFailed);
-            })
-          }
-        />
+        <StatusMenu title={p.title} status={status} onChange={changeStatus} />
+        <StatusButtons title={p.title} status={status} onChange={changeStatus} />
       </div>
       <form
         className="grid gap-3"

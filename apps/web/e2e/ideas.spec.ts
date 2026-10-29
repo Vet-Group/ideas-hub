@@ -63,6 +63,52 @@ test('changing a status from its menu takes 2 actions in the table and on the bo
   await setStatus(IDEAS.fresh, 'new');
 });
 
+const stampsOf = async (id: string) => {
+  const pool = e2ePool();
+  try {
+    return (await pool.query<{ status: string; picked: boolean; done: boolean }>(`select status, picked_at is not null picked, done_at is not null done from saved_ideas where id = $1`, [id])).rows[0];
+  } finally {
+    await pool.end();
+  }
+};
+
+test('the next-step and drop buttons change a status in 1 click, in the table and on the board, and record when', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('table'))}`);
+  // No full reload: a marker on the window survives the change.
+  await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1));
+  const a = new Actions(page);
+  await a.click(page.getByRole('button', { name: 'Chọn làm: Mug with paw print' }));
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Đã chuyển sang Picked' })).toBeVisible();
+  expect(a.count).toBe(1);
+  expect(await stampsOf(IDEAS.fresh)).toEqual({ status: 'picked', picked: true, done: false });
+  expect(await page.evaluate(() => (window as unknown as { marker?: number }).marker)).toBe(1);
+
+  await page.goto(ideasUrl('board'));
+  const b = new Actions(page);
+  await b.click(column(page, 'Picked').getByRole('button', { name: 'Đã xong: Mug with paw print' }));
+  await expect(column(page, 'Done').getByText('Mug with paw print')).toBeVisible();
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Đã chuyển sang Done' })).toBeVisible();
+  expect(b.count).toBe(1);
+  expect(await stampsOf(IDEAS.fresh)).toEqual({ status: 'done', picked: true, done: true });
+
+  await b.click(column(page, 'Picked').getByRole('button', { name: 'Bỏ ý tưởng: Dog mom tumbler' }));
+  await expect(column(page, 'Dropped').getByText('Dog mom tumbler')).toBeVisible();
+  expect(b.count).toBe(2);
+  await expect.poll(() => statusOf(IDEAS.picked)).toBe('dropped');
+});
+
+test('a stale click is refused with a toast and the board shows the stored status', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('board'))}`);
+  const next = column(page, 'New').getByRole('button', { name: 'Chọn làm: Mug with paw print' });
+  await expect(next).toBeVisible();
+  // Another session moves the idea to Done while this page still shows New.
+  await setStatus(IDEAS.fresh, 'done');
+  await next.click();
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Không đổi được trạng thái.' })).toBeVisible();
+  await expect(column(page, 'Done').getByText('Mug with paw print')).toBeVisible();
+  expect(await statusOf(IDEAS.fresh)).toBe('done');
+});
+
 test('a drag to another column takes 1 action', async ({ page }) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('board'))}`);
   const a = new Actions(page);
@@ -99,10 +145,10 @@ test('a keyboard move takes 2 actions plus the columns crossed: Done back to New
 test('a view-only member sees no status menu in the table, and no menu and no drag on the board', async ({ page }) => {
   await signIn(page, USERS.viewer.email, `/login?callbackURL=${encodeURIComponent(ideasUrl('table'))}`);
   await expect(page.getByRole('link', { name: 'Mug with paw print' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Đổi trạng thái/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Đổi trạng thái|Chọn làm|Bỏ ý tưởng/ })).toHaveCount(0);
   await page.goto(ideasUrl('board'));
   await expect(column(page, 'New').getByText('Mug with paw print')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Đổi trạng thái/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Đổi trạng thái|Chọn làm|Bỏ ý tưởng/ })).toHaveCount(0);
   await expect(page.locator('[aria-roledescription]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Ý tưởng mới' })).toHaveCount(0);
 });

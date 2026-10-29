@@ -22,7 +22,7 @@ export function IdeasView({ ideas, canSave, view, tab, storeHasIdeas, clearHref 
   const pathname = usePathname();
   const params = useSearchParams();
   const [items, setItems] = useState(ideas);
-  const [, start] = useTransition();
+  const [pending, start] = useTransition();
   useEffect(() => setItems(ideas), [ideas]);
 
   const stored = () => {
@@ -49,13 +49,18 @@ export function IdeasView({ ideas, canSave, view, tab, storeHasIdeas, clearHref 
   };
 
   const onStatus = (id: string, s: Status) => {
+    // A click while the last change is still being stored is ignored: the next step would build on an unconfirmed status.
+    if (pending) return;
     const before = items;
+    const expected = before.find((x) => x.id === id)?.status;
+    if (!expected) return;
     setItems((xs) => xs.map((x) => (x.id === id ? { ...x, status: s, updatedAt: new Date().toISOString() } : x)));
     start(async () => {
-      if (await setStatusAction(id, s)) toast.success(t.ideaViews.moved(t.ideaViews.statuses[s]!));
+      if (await setStatusAction(id, s, expected)) toast.success(t.ideaViews.moved(t.ideaViews.statuses[s]!));
       else {
         setItems(before);
         toast.error(t.ideaViews.moveFailed);
+        router.refresh();
       }
     });
   };

@@ -88,9 +88,10 @@ export async function lastStoresAction(): Promise<string[]> {
   return lastSaveStoreIds(db, user.userId);
 }
 
-export async function setStatusAction(ideaId: string, status: IdeaStatus): Promise<boolean> {
+/** `expected` is the status the user saw; a stale click (someone else moved the idea first) is refused. */
+export async function setStatusAction(ideaId: string, status: IdeaStatus, expected: IdeaStatus): Promise<boolean> {
   const user = await requireUser();
-  const ok = await setIdeaStatus(db, user, ideaId, status, now());
+  const ok = await setIdeaStatus(db, user, ideaId, status, now(), expected);
   if (ok) revalidatePath('/ideas');
   return ok;
 }

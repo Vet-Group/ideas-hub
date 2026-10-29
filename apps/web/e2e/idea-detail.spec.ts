@@ -1,7 +1,7 @@
 // A saved AI suggestion keeps its text, reason, keyword and evidence on the idea page, and the keyword report
 // rejects dates that do not exist (frozen "today": 2026-10-21).
 import { expect, test } from '@playwright/test';
-import { MUG, STORES, SUGGESTIONS, USERS, e2ePool } from './fixtures/seed';
+import { IDEAS, MUG, STORES, SUGGESTIONS, USERS, e2ePool, resetIdeas } from './fixtures/seed';
 import { expectNoSeriousAxe } from './support/axe';
 import { freezeClock, signIn } from './support/session';
 
@@ -52,4 +52,25 @@ test('the keyword report shows the 404 page for a date that does not exist, not 
   }
   await page.goto(`/keywords/${MUG.keywordId}/2028-02-29`);
   await expect(page.getByRole('heading', { name: MUG.keyword })).toBeVisible();
+});
+
+test('the idea page moves the status with one click and no reload, and records when it was picked and done', async ({ page }) => {
+  await resetIdeas();
+  await page.goto(`/ideas/${IDEAS.fresh}`);
+  await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1));
+  const status = page.getByRole('button', { name: 'Đổi trạng thái: Mug with paw print' });
+  await expect(status).toHaveText('New');
+  await page.getByRole('button', { name: 'Chọn làm: Mug with paw print' }).click();
+  await expect(status).toHaveText('Picked');
+  await page.getByRole('button', { name: 'Đã xong: Mug with paw print' }).click();
+  await expect(status).toHaveText('Done');
+  await expect(page.getByRole('button', { name: /^(Chọn làm|Đã xong|Bỏ ý tưởng)/ })).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { marker?: number }).marker)).toBe(1);
+  const pool = e2ePool();
+  try {
+    const { rows } = await pool.query(`select status, picked_at is not null picked, done_at is not null done from saved_ideas where id = $1`, [IDEAS.fresh]);
+    expect(rows[0]).toEqual({ status: 'done', picked: true, done: true });
+  } finally {
+    await pool.end();
+  }
 });
