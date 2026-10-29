@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CACHE_MS, EtsyUnavailable, createEtsyClient, summarize } from '../src/index';
+import { CACHE_MAX_ENTRIES, CACHE_MS, EtsyUnavailable, FAILURE_CACHE_MS, MAX_WAITING, createEtsyClient, summarize } from '../src/index';
 
 const body = readFileSync(new URL('./fixtures/listings-mixed.json', import.meta.url), 'utf8');
 const ok = () => new Response(body, { status: 200, headers: { 'content-type': 'application/json' } });
@@ -9,10 +9,10 @@ const tooMany = (retryAfter: string) => new Response('{"error":"rate limited"}',
 /** A fake clock: `sleep` moves it, so pacing is checked without waiting. */
 function harness(responses: Array<() => Response>) {
   let clock = 1_000_000;
-  const calls: { url: string; at: number; headers: Headers }[] = [];
+  const calls: { url: string; at: number; headers: Headers; redirect?: RequestRedirect }[] = [];
   const sleeps: number[] = [];
   const fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-    calls.push({ url: String(input), at: clock, headers: new Headers(init?.headers) });
+    calls.push({ url: String(input), at: clock, headers: new Headers(init?.headers), redirect: init?.redirect });
     const next = responses.shift();
     if (!next) throw new Error('no more responses');
     return next();
@@ -61,6 +61,12 @@ describe('summarize', () => {
     expect(s.listings[0]).toMatchObject({ price: 22, currency: 'EUR', title: 'Hundemama Shirt' });
   });
 
+  it('drops listings whose url is not on www.etsy.com over https', () => {
+    const row = (url: string) => ({ title: 't', url, price: { amount: 100, divisor: 100, currency_code: 'USD' } });
+    const s = summarize([row('javascript:alert(1)'), row('http://www.etsy.com/listing/1'), row('https://evil.example/www.etsy.com/'), row('https://www.etsy.com/listing/2')], 4);
+    expect(s.listings.map((l) => l.url)).toEqual(['https://www.etsy.com/listing/2']);
+  });
+
   it('is empty without listings', () => {
     expect(summarize([], 0)).toEqual({ total: 0, sampled: 0, priceBands: [], topTags: [], medianFavorers: null, listings: [] });
   });
@@ -102,12 +108,62 @@ describe('etsy client', () => {
     expect(h.calls[1]!.at - h.calls[0]!.at).toBeGreaterThanOrEqual(3000);
   });
 
-  it('is unavailable after a second 429 or a long Retry-After, and does not cache the failure', async () => {
-    const h = harness([() => tooMany('1'), () => tooMany('1'), () => tooMany('3600'), ok]);
-    await expect(h.client.search('dog mom')).rejects.toBeInstanceOf(EtsyUnavailable);
-    await expect(h.client.search('dog mom')).rejects.toThrow('HTTP 429');
+  it('is unavailable after a second 429 or a long Retry-After', async () => {
+    const h = harness([() => tooMany('1'), () => tooMany('1'), () => tooMany('3600')]);
+    await expect(h.client.search('a')).rejects.toBeInstanceOf(EtsyUnavailable);
+    await expect(h.client.search('a')).rejects.toThrow('HTTP 429'); // negative cache: same failure, no new request
+    expect(h.calls).toHaveLength(2);
+    await expect(h.client.search('b')).rejects.toThrow('HTTP 429');
     expect(h.calls).toHaveLength(3);
+  });
+
+  it('remembers a failed keyword for 60 s, then asks again', async () => {
+    const h = harness([() => new Response('forbidden', { status: 403 }), ok]);
+    await expect(h.client.search('dog mom')).rejects.toThrow('HTTP 403');
+    h.advance(FAILURE_CACHE_MS - 1);
+    await expect(h.client.search('Dog Mom')).rejects.toThrow('HTTP 403');
+    expect(h.calls).toHaveLength(1);
+    h.advance(1);
     expect((await h.client.search('dog mom')).sampled).toBe(6);
+    expect(h.calls).toHaveLength(2);
+    expect(FAILURE_CACHE_MS).toBe(60_000);
+  });
+
+  it('remembers a timeout as a failure too', async () => {
+    let n = 0;
+    const clock = 1_000_000;
+    const client = createEtsyClient({ apiKey: 'k', sharedSecret: 's', now: () => clock, sleep: async () => {}, fetch: (async () => { n++; throw new DOMException('timed out', 'TimeoutError'); }) as typeof fetch });
+    await expect(client.search('x')).rejects.toThrow('timed out');
+    await expect(client.search('x')).rejects.toThrow('timed out');
+    expect(n).toBe(1);
+  });
+
+  it('answers unavailable at once when more than 5 requests are already waiting', async () => {
+    const h = harness(Array.from({ length: 8 }, () => ok));
+    const first = h.client.search('k0'); // starts right away (not waiting)
+    const queued = Array.from({ length: MAX_WAITING }, (_, i) => h.client.search(`k${i + 1}`));
+    await expect(h.client.search('overflow')).rejects.toThrow(EtsyUnavailable);
+    expect(h.calls.length).toBeLessThanOrEqual(1);
+    await Promise.all([first, ...queued]);
+    expect(h.calls).toHaveLength(MAX_WAITING + 1);
+    expect(MAX_WAITING).toBe(5);
+  });
+
+  it('never follows a redirect, so the key header stays on openapi.etsy.com', async () => {
+    const h = harness([ok]);
+    await h.client.search('dog mom');
+    expect(h.calls[0]!.redirect).toBe('error');
+  });
+
+  it('keeps at most 500 cached keywords, dropping the oldest', async () => {
+    const h = harness(Array.from({ length: CACHE_MAX_ENTRIES + 2 }, () => ok));
+    for (let i = 0; i < CACHE_MAX_ENTRIES + 1; i++) await h.client.search(`k${i}`);
+    expect(h.calls).toHaveLength(CACHE_MAX_ENTRIES + 1);
+    await h.client.search(`k${CACHE_MAX_ENTRIES}`); // newest is still cached
+    expect(h.calls).toHaveLength(CACHE_MAX_ENTRIES + 1);
+    await h.client.search('k0'); // oldest was dropped
+    expect(h.calls).toHaveLength(CACHE_MAX_ENTRIES + 2);
+    expect(CACHE_MAX_ENTRIES).toBe(500);
   });
 
   it('never puts the key in an error', async () => {
