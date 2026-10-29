@@ -81,6 +81,12 @@ export function plannedSearches(budget: number, activePairs: number): number {
   return Math.min(budget, activePairs);
 }
 
+/**
+ * Next-slot retry cap (AC-C1): a scheduled run retries at most `min(RETRY_PER_SLOT, searchBudget)` failed
+ * searches of the previous scheduled run; a quarter of the default budget, so rotation keeps most seats.
+ */
+export const RETRY_PER_SLOT = 40;
+
 export interface Pair {
   keywordId: string;
   country: string;

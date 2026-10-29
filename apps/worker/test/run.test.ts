@@ -336,6 +336,113 @@ describe.skipIf(!testDatabaseAvailable())('crawl run', () => {
     expect(pairs).toEqual(['kw_2/US', 'kw_2/GB', 'kw_0/US', 'kw_0/GB']);
   });
 
+  // Next-slot retry (AC-C1): a finished scheduled run `ago` h (default 12) before now with the given searches.
+  const previousRun = async (rows: [string, string, string][], over: { status?: string; blockReason?: string; ago?: number } = {}) => {
+    const at = h.clock.t - (over.ago ?? 12) * HOUR;
+    const id = await insertRun(h, { scheduledFor: new Date(at), deadline: new Date(at + 4 * HOUR), status: over.status ?? 'done' });
+    await h.db.execute(sql`update crawl_runs set block_reason = ${over.blockReason ?? null}, started_at = scheduled_for, finished_at = deadline where id = ${id}`);
+    for (const [kw, country, status] of rows) {
+      await h.db.execute(sql`insert into crawl_searches (id, run_id, keyword_id, country, status) values (${`srch_${kw}_${country}_${id}`}, ${id}, ${kw}, ${country}, ${status})`);
+    }
+    return id;
+  };
+  const pairsOf = async (runId: string) => (await searches(runId)).map((x) => `${x.keyword_id}/${x.country}`);
+  const cursor = async () => (await one<{ c: number | null }>(h, sql`select rotation_cursor as c from crawler_state`)).c;
+  const ok = (q: string, c: string): Script => ({ kind: 'ok', ids: [`${q}${c}`] });
+
+  it('next-slot retry: blocked and network_error searches of the last scheduled run go first, the rotation gets budget − R and stores its cursor', async () => {
+    await setSettings(h, { searchBudget: 4 });
+    const a = await scheduled();
+    await run(a, (q, c) => (q === 'k0' && c === 'GB' ? { kind: 'empty_scrolls', ids: ids('b', 30) } : q === 'k1' && c === 'US' ? { kind: 'timeout' } : ok(q, c))).outcome;
+    expect((await searches(a)).map((x) => x.status)).toEqual(['ok', 'blocked', 'network_error', 'ok']);
+    expect(await cursor()).toBe(4);
+    const b = await insertRun(h, { scheduledFor: new Date(h.clock.t + HOUR), deadline: new Date(h.clock.t + 4 * HOUR) });
+    await run(b, ok).outcome;
+    expect(await pairsOf(b)).toEqual(['kw_0/GB', 'kw_1/US', 'kw_2/US', 'kw_2/GB']);
+    expect((await runRow(b)).planned_searches).toBe(4);
+    // The rotation took budget − R = 2 pairs from cursor 4 and wrapped to 0.
+    expect(await cursor()).toBe(0);
+  });
+
+  it('next-slot retry: skipped searches are retried only when their run has a block_reason', async () => {
+    await setSettings(h, { searchBudget: 4 });
+    await previousRun([['kw_0', 'US', 'blocked'], ['kw_0', 'GB', 'blocked'], ['kw_1', 'US', 'skipped']], { status: 'stopped', blockReason: 'block_streak' });
+    const b = await scheduled();
+    await run(b, ok).outcome;
+    // R = 3; the rotation's one pair (kw_0/US) was already retried and its seat is not refilled.
+    expect(await pairsOf(b)).toEqual(['kw_0/US', 'kw_0/GB', 'kw_1/US']);
+    expect((await runRow(b)).planned_searches).toBe(3);
+    expect(await cursor()).toBe(1);
+
+    await h.db.execute(sql`truncate crawl_runs cascade`);
+    await h.db.execute(sql`update crawler_state set rotation_cursor = null`);
+    await previousRun([['kw_0', 'US', 'ok'], ['kw_2', 'GB', 'skipped']]);
+    const c = await scheduled();
+    await run(c, ok).outcome;
+    expect(await pairsOf(c)).toEqual(['kw_0/US', 'kw_0/GB', 'kw_1/US', 'kw_1/GB']);
+  });
+
+  it('next-slot retry: at most min(RETRY_PER_SLOT, searchBudget) retries, only still-active pairs, each once', async () => {
+    await setSettings(h, { searchBudget: 2 });
+    await h.db.execute(sql`update keywords set active = false where id = 'kw_0'`);
+    await h.db.execute(sql`update crawler_state set rotation_cursor = '3'::jsonb`);
+    await previousRun([['kw_0', 'US', 'network_error'], ['kw_1', 'US', 'blocked'], ['kw_1', 'GB', 'network_error'], ['kw_2', 'US', 'blocked']]);
+    const b = await scheduled();
+    await run(b, ok).outcome;
+    expect(await pairsOf(b)).toEqual(['kw_1/US', 'kw_1/GB']);
+    // R = budget: the rotation got 0 pairs, so the cursor did not move.
+    expect(await cursor()).toBe(3);
+  });
+
+  it('next-slot retry leaves manual and cli runs untouched and does not treat them as the previous run', async () => {
+    await setSettings(h, { searchBudget: 4 });
+    await h.db.execute(sql`update crawler_state set rotation_cursor = '2'::jsonb`);
+    await previousRun([['kw_0', 'US', 'blocked']]);
+    const cli = await insertRun(h, { trigger: 'cli', deadline: new Date(h.clock.t + HOUR), pairs: [{ keywordId: 'kw_2', country: 'US' }], planned: 1 });
+    await run(cli, () => ({ kind: 'timeout' })).outcome;
+    expect(await pairsOf(cli)).toEqual(['kw_2/US']);
+    expect(await cursor()).toBe(2);
+    const b = await insertRun(h, { scheduledFor: new Date(h.clock.t + HOUR), deadline: new Date(h.clock.t + 4 * HOUR) });
+    await run(b, ok).outcome;
+    expect(await pairsOf(b)).toEqual(['kw_0/US', 'kw_1/US', 'kw_1/GB', 'kw_2/US']);
+    expect(await cursor()).toBe(5);
+  });
+
+  it('next-slot retry skips a cool-down slot that never started: the blocked run is retried and the plan keeps the full budget', async () => {
+    for (let i = 3; i < 100; i++) {
+      await h.db.execute(sql`insert into keywords (id, text, origin, created_at) values (${`kw_${i}`}, ${`k${i}`}, 'seed', ${new Date(Date.UTC(2026, 0, 1, 0, 0, i))})`);
+    }
+    try {
+      await setSettings(h, { searchBudget: 160 });
+      await previousRun([['kw_90', 'US', 'blocked'], ['kw_90', 'GB', 'network_error'], ['kw_91', 'US', 'skipped']], { status: 'stopped', blockReason: 'block_streak', ago: 24 });
+      // The watchdog closed the slot in between: stopped, 'cool-down', never started, every pair skipped.
+      const cool = await insertRun(h, { scheduledFor: new Date(h.clock.t - 12 * HOUR), deadline: new Date(h.clock.t - 8 * HOUR), status: 'stopped' });
+      await h.db.execute(sql`update crawl_runs set block_reason = 'cool-down', finished_at = scheduled_for where id = ${cool}`);
+      await h.db.execute(sql`insert into crawl_searches (id, run_id, keyword_id, country, status)
+        select 'srch_cool_' || k.id || c.c, ${cool}, k.id, c.c, 'skipped' from keywords k cross join (values ('US'), ('GB')) c(c)`);
+      const b = await scheduled();
+      await run(b, ok).outcome;
+      expect((await runRow(b)).planned_searches).toBe(160);
+      expect((await pairsOf(b)).slice(0, 3)).toEqual(['kw_90/US', 'kw_90/GB', 'kw_91/US']);
+      expect(await cursor()).toBe(157);
+    } finally {
+      await h.db.execute(sql`truncate crawl_runs, ads, keyword_days cascade`);
+      await h.db.execute(sql`delete from keywords where id not in ('kw_0', 'kw_1', 'kw_2')`);
+    }
+  }, 60_000);
+
+  it('next-slot retry does not retry a pair whose search also failed in the scheduled run before the previous one', async () => {
+    await setSettings(h, { searchBudget: 4 });
+    await h.db.execute(sql`update crawler_state set rotation_cursor = '2'::jsonb`);
+    await previousRun([['kw_0', 'US', 'network_error'], ['kw_2', 'GB', 'skipped']], { status: 'stopped', blockReason: 'block_streak', ago: 24 });
+    await previousRun([['kw_0', 'US', 'network_error'], ['kw_1', 'GB', 'blocked'], ['kw_2', 'GB', 'blocked']]);
+    const b = await scheduled();
+    await run(b, ok).outcome;
+    // kw_0/US failed twice in a row: dropped. A skipped search two runs back is no failure, so kw_2/GB is retried.
+    expect(await pairsOf(b)).toEqual(['kw_1/GB', 'kw_2/GB', 'kw_1/US']);
+    expect(await cursor()).toBe(4);
+  });
+
   it('a cli run for 2 keywords × 2 countries with one keyword deactivated plans 2 searches', async () => {
     const pairs = ['kw_0', 'kw_1'].flatMap((keywordId) => ['US', 'GB'].map((country) => ({ keywordId, country })));
     const id = await insertRun(h, { trigger: 'cli', deadline: new Date(h.clock.t + HOUR), pairs, planned: 4 });

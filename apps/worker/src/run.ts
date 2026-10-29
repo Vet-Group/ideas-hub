@@ -1,6 +1,6 @@
 // The `crawl.run` job (spec §1, plan Step 3): guarded start, planned searches, the search loop with
 // backoff and cool-downs, upserts and thumbnails, then one final update with the run's snapshots.
-import { type Settings, type StopReason, createPacer, crawlDay, rotate } from '@ideas-hub/core';
+import { RETRY_PER_SLOT, type Settings, type StopReason, createPacer, crawlDay, rotate } from '@ideas-hub/core';
 import { type BrowserSession, type SearchResult, type WaitLimitHits, normalizeAd, runSearch } from '@ideas-hub/fb-ad-library';
 import { adStatusQuery, shopDomainFilter } from '@ideas-hub/db/queries';
 import { type Db, withTx } from '@ideas-hub/db/client';
@@ -189,7 +189,7 @@ export async function runCrawl(ctx: Ctx, runId: string, deps: RunDeps): Promise<
 async function plan(
   ctx: Ctx,
   runId: string,
-  run: { trigger: string; requested_pairs: { keywordId: string; country: string }[] | null },
+  run: { trigger: string; requested_pairs: { keywordId: string; country: string }[] | null; scheduled_for: Date | null },
   s: Settings,
 ): Promise<Planned[]> {
   return withTx(ctx.pool, async ({ db }) => {
@@ -198,8 +198,24 @@ async function plan(
     let chosen: ActivePair[];
     if (run.trigger === 'schedule') {
       const { rows } = await db.execute<{ rotation_cursor: number | null }>(sql`select rotation_cursor from crawler_state where id = 1 for update`);
-      const r = rotate(pairs, s.searchBudget, Number(rows[0]?.rotation_cursor ?? 0));
-      chosen = r.pairs;
+      // Next-slot retry (AC-C1): failed searches of the last finished scheduled run go first. Only runs that
+      // started count (a cool-down slot closed by the watchdog never starts); n = 2 is the run before it.
+      const { rows: failed } = await db.execute<{ keyword_id: string; country: string; n: number }>(sql`
+        select s.keyword_id, s.country, prev.n::int as n from crawl_searches s
+        join (select id, block_reason, row_number() over (order by scheduled_for desc) as n from crawl_runs
+              where trigger = 'schedule' and status in ('done', 'stopped') and started_at is not null and scheduled_for < ${run.scheduled_for}
+              order by scheduled_for desc limit 2) prev on prev.id = s.run_id
+        where s.status in ('blocked', 'network_error') or (prev.n = 1 and s.status = 'skipped' and prev.block_reason is not null)`);
+      const keys = (n: number) => new Set(failed.filter((f) => f.n === n).map((f) => `${f.keyword_id}|${f.country}`));
+      const [failedKeys, failedBefore] = [keys(1), keys(2)];
+      // A pair that also failed in the run before is not retried again, so a failing pair cannot chain forever.
+      const retries = pairs
+        .filter((p) => failedKeys.has(`${p.keywordId}|${p.country}`) && !failedBefore.has(`${p.keywordId}|${p.country}`))
+        .slice(0, Math.min(RETRY_PER_SLOT, s.searchBudget));
+      const r = rotate(pairs, s.searchBudget - retries.length, Number(rows[0]?.rotation_cursor ?? 0));
+      // A rotation pair already retried keeps its seat empty, so planned <= budget.
+      const retried = new Set(retries);
+      chosen = [...retries, ...r.pairs.filter((p) => !retried.has(p))];
       await db.execute(sql`update crawler_state set rotation_cursor = ${JSON.stringify(r.nextCursor)}::jsonb where id = 1`);
     } else {
       // The requested pairs still active, capped by the budget; never a full crawl.

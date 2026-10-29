@@ -59,6 +59,35 @@ at or after `<run-start>` + 14 days**, when the window is exactly the run.
 | 3 | `ac3_briefings`: `days`, `days_ok` (global briefing `ready_at` before 07:00, all sections stored with 5 and 6 generated, a Lark message id), `unresolved_refs`, `days_over_cap` | `days_ok` ≥ 13 of 14; `unresolved_refs` 0; `days_over_cap` 0 |
 | 6 | `ac6_ideas`: `ideas` by non-admin members with `via = briefing` in the window, per store row, `stores_with_10`, `per_store` | `ideas` ≥ 30 and `stores_with_10` ≥ 2 |
 
+### AC 1 and the next-slot retry (AC-C1, ADR 0008)
+
+From 2026-11-06 a scheduled run first retries the failed searches of the previous finished scheduled run
+(`done` or `stopped`, started, scheduled before this slot; a slot the watchdog closed inside a cool-down
+never starts and is passed over; manual and `cli` runs are never the previous run and never retry): its `blocked` and
+`network_error` searches, plus its `skipped` ones when that run has a `block_reason`, still active, once per
+(keyword, country), at most `R = min(RETRY_PER_SLOT, searchBudget)` (`RETRY_PER_SLOT` = 40 in
+`packages/core/src/schedule.ts`). The rotation then takes `searchBudget − retries` pairs from the stored
+cursor and advances by that many; a rotation pair already retried is not replaced. Pacing, cool-downs and
+run times do not change.
+
+A pair is not retried when its search was also `blocked` or `network_error` in the started scheduled run
+before the previous one (a two-run lookback), so a pair that keeps failing is retried once and then waits
+for the rotation instead of taking a retry seat in every slot. A `skipped` search two runs back is not a
+failure here: that pair was never searched.
+
+What it does to `ac1_success_ratio` (Σ ok ÷ Σ planned over scheduled rows):
+
+- A failed search stays failed in its own slot. The query does not change; no row is rewritten.
+- A retry is one planned search of the next slot, in a seat the rotation would otherwise use, so
+  `planned_searches` per slot stays at most `min(searchBudget, active pairs)`. A retry that succeeds counts
+  as ok there; one that fails again counts as a failure there, as the rotation search it replaced could.
+- So the ratio itself moves only by the difference between the retries' success rate and the rotation's.
+  The gain is coverage: the pairs a blocked slot missed are searched in the next slot (12 h later with the default run times) instead of when the rotation
+  comes back to them. Baseline: since 2026-10-23, 160 of 179 failed searches came from one blocked slot
+  (2026-10-26 01:00 ICT); the next slot would have retried 40 of those 160 (the cap), and AC 1 would still
+  have counted all 160 as failed. The ratio is raised by fewer blocks (low-yield keyword pruning, AC-C2)
+  rather than by retries; proxies stay the fallback only if AC 1 is under 0.95 for 2 weeks after AC-C1.
+
 AC 4, 5 and 7 are test results, not daily queries:
 
 | AC | How | When | Pass |
