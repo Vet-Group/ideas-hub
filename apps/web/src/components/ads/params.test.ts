@@ -25,6 +25,14 @@ describe('ads query params', () => {
     expect(adQuery(bad)).toBe('');
   });
 
+  it('sorts by trending by default; an explicit sort=score still works and stays in the query', () => {
+    expect(parseAdFilters({}).sort).toBe('trending');
+    expect(parseAdFilters({ sort: 'nope' }).sort).toBe('trending');
+    expect(parseAdFilters({ sort: 'score' }).sort).toBe('score');
+    expect(adQuery(parseAdFilters({ sort: 'score' }))).toBe('?sort=score');
+    expect(adQuery(parseAdFilters({ sort: 'trending' }))).toBe('');
+  });
+
   it('reads a missing, zero or invalid page as the first', () => {
     for (const page of [undefined, '0', '-2', 'x']) expect(parseAdFilters({ page }).page).toBe(1);
   });

@@ -46,6 +46,9 @@ export interface AdFilters {
   followedBy?: string;
   /** Started in the last N days; the first crawl day when the start is unknown. */
   newDays?: number;
+  /** Leaves out the landing domains of `nonShopDomains` (the /ads page sets it; the shop page and keyword report do not). */
+  shopsOnly?: boolean;
+  nonShopDomains?: readonly string[];
   sort?: AdSort;
   /** 1-based. */
   page?: number;
@@ -192,6 +195,8 @@ async function pageAds(db: Db, o: StatusOptions, f: AdFilters, order: ReturnType
       status === 'all' ? sql`` : sql`and st.status = ${status}`,
       f.keywordId ? sql`and exists (select 1 from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.keyword_id = ${f.keywordId})` : sql``,
       f.country ? sql`and exists (select 1 from ad_sightings s where s.ad_archive_id = a.ad_archive_id and s.country = ${f.country})` : sql``,
+      // An ad without a landing domain is not a known non-shop (the filter alone would turn null into false).
+      f.shopsOnly ? sql`and coalesce(${shopDomainFilter(sql`a.landing_domain`, f.nonShopDomains ?? [])}, true)` : sql``,
       f.domain ? sql`and a.landing_domain ilike ${`%${escapeLike(f.domain)}%`} escape '\\'` : sql``,
       // Whole words, so a phrase from the keyword report (titlePhrases) finds the ads it counted.
       f.title && titleWords(f.title) ? sql`and ' ' || ${titleWordsSql(sql`a.title`)} || ' ' like ${`% ${titleWords(f.title)} %`}` : sql``,
