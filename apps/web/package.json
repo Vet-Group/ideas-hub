@@ -19,6 +19,7 @@
     "@dnd-kit/core": "6.3.1",
     "@ideas-hub/core": "workspace:*",
     "@ideas-hub/db": "workspace:*",
+    "@ideas-hub/etsy": "workspace:*",
     "@ideas-hub/worker": "workspace:*",
     "better-auth": "1.7.7",
     "class-variance-authority": "0.7.1",

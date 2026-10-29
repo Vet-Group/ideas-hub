@@ -9,7 +9,7 @@ try {
 
 const config: NextConfig = {
   // The workspace packages ship TypeScript sources.
-  transpilePackages: ['@ideas-hub/core', '@ideas-hub/db', '@ideas-hub/worker'],
+  transpilePackages: ['@ideas-hub/core', '@ideas-hub/db', '@ideas-hub/etsy', '@ideas-hub/worker'],
   images: {
     formats: ['image/webp'],
     // Signed thumbnails only (plan Step 6); `dangerouslyAllowLocalIP` stays off.
