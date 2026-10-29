@@ -24,7 +24,7 @@ export async function AdsView({ params, selectedId }: { params: SearchParams; se
   const f = parseAdFilters(params);
   const qs = adQuery(f);
   const [{ items: ads, total }, keywords, stores, selected] = await Promise.all([
-    listAds(db, o, f),
+    listAds(db, o, { ...f, shopsOnly: true, nonShopDomains: settings.nonShopDomains }),
     listKeywords(db, 'text'),
     saveTargets(user),
     selectedId ? getAd(db, o, selectedId) : Promise.resolve(null),

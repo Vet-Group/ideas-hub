@@ -313,6 +313,13 @@ test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane 
   await expect(card(page, 'Best dog mom mug gift 1').getByRole('button', { name: 'Đã chứng minh' })).toHaveCount(0);
 });
 
+test('ads: the list sorts by "Đang lên" by default and an explicit sort=score is kept', async ({ page }) => {
+  await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads')}`);
+  await expect(page.locator('#f-sort')).toHaveValue('trending');
+  await page.goto('/ads?sort=score');
+  await expect(page.locator('#f-sort')).toHaveValue('score');
+});
+
 test('below xl the ads filters fold behind a toggle with the active count, so the first ad is on the first screen @phone', async ({ page }, info) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?proven=1&kw=kw_e2e_mug')}`);
   const proven = page.getByRole('checkbox', { name: 'Chỉ ads đã chứng minh' });

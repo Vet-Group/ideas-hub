@@ -106,7 +106,7 @@ export function FilterRail({ f, keywords, countries }: { f: AdFilters; keywords:
         </div>
         <div className="grid gap-1">
           <Label htmlFor="f-sort">{t.ads.sort}</Label>
-          <select id="f-sort" name="sort" defaultValue={f.sort ?? 'score'} className={selectClass}>
+          <select id="f-sort" name="sort" defaultValue={f.sort} className={selectClass}>
             {Object.entries(t.ads.sorts).map(([v, label]) => (
               <option key={v} value={v}>
                 {label}

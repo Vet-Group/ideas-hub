@@ -89,6 +89,14 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     }
   });
 
+  it('shopsOnly leaves out the non-shop landing domains, with the total; without it they stay (shop page, keyword report)', async () => {
+    const nonShopDomains = ['mugs.com'];
+    expect(await ids({ shopsOnly: true, nonShopDomains })).toEqual(['a_hi', 'a_new']);
+    expect(await listAds(db, O, { shopsOnly: true, nonShopDomains, limit: 1 })).toMatchObject({ total: 2, items: [{ adArchiveId: 'a_hi' }] });
+    expect(await ids({ nonShopDomains })).toEqual(['a_hi', 'a_lo', 'a_new']);
+    expect(await ids({ shopsOnly: true })).toEqual(['a_hi', 'a_lo', 'a_new']);
+  });
+
   it('returns the total over all pages and pages with the filters kept', async () => {
     expect(await listAds(db, O, { limit: 1 })).toMatchObject({ total: 3, items: [{ adArchiveId: 'a_hi', duplicates: 1 }] });
     expect(await listAds(db, O, { limit: 1, page: 2 })).toMatchObject({ total: 3, items: [{ adArchiveId: 'a_lo' }] });
