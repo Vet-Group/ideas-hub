@@ -1,5 +1,5 @@
 import { storeScope } from '@ideas-hub/core';
-import { SHOP_PAGE_SIZE, SHOP_SORTS, type ShopRead, type ShopSort, followedShopAds, followedShops, listShops, savedRefs, shopReads } from '@ideas-hub/db/queries';
+import { SHOP_PAGE_SIZE, type ShopRead, followedShopAds, followedShops, savedRefs } from '@ideas-hub/db/queries';
 import Link from 'next/link';
 import { AdGridWithPane } from '@/components/ads/ad-pane';
 import { toCard } from '@/components/ads/cards';
@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { db } from '@/lib/db';
 import { type CurrentUser, requireUser } from '@/lib/session';
 import { loadSettings, statusOptions } from '@/lib/settings';
+import { loadShops, parseShopParams } from '@/lib/shop-list';
 import { saveTargets, userStores } from '@/lib/store';
 import { t } from '@/lib/strings.vi';
 
@@ -101,19 +102,19 @@ export default async function ShopsPage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const p = await searchParams;
   if (p.followed === '1') return <FollowedShops user={user} />;
-  const sort: ShopSort = SHOP_SORTS.includes(p.sort as ShopSort) ? (p.sort as ShopSort) : 'running_ads';
-  const q = p.q?.trim() || undefined;
-  const page = p.page && /^\d+$/.test(p.page) ? Math.max(1, Number(p.page)) : 1;
-  const settings = await loadSettings();
-  const { items: shops, total } = await listShops(db, { sort, q, page, nonShopDomains: settings.nonShopDomains });
-  // The market read of this page's shops only (one query; spec §6 "Market read").
-  const reads = await shopReads(db, await statusOptions(settings), shops.map((s) => s.landingDomain));
+  const { sort, q, page } = parseShopParams(p);
+  const { shops, total, reads } = await loadShops({ sort, q, page });
   const base = q ? `/shops?q=${encodeURIComponent(q)}` : '/shops';
   const pageHref = (n: number) => `/shops?${new URLSearchParams({ ...(q ? { q } : {}), sort, page: String(n) })}`;
   return (
     <>
       <PageHeader title={t.shops.title}>
         <span className="text-fg-2 text-sm">{t.shops.count(shops.length, total)}</span>
+        <Button asChild size="sm" variant="outline">
+          <a href={`/shops/csv?${new URLSearchParams({ ...(q ? { q } : {}), sort })}`} download>
+            {t.common.csv}
+          </a>
+        </Button>
         <form action="/shops" method="get" className="flex items-end gap-2">
           <input type="hidden" name="sort" value={sort} />
           <div className="grid gap-1">

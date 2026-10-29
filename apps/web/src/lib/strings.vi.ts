@@ -10,6 +10,7 @@ export const t = {
   common: {
     close: 'Đóng',
     save: 'Lưu',
+    csv: 'Xuất CSV',
     saved: 'Đã lưu',
     cancel: 'Hủy',
     edit: 'Sửa',
