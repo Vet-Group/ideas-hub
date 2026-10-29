@@ -517,6 +517,34 @@ test('the run log shows the next 2 scheduled runs apart and lists the rest by wh
   }
 });
 
+test('the run log lists keywords with no ads for 7 days to admins only', async ({ page, browser }) => {
+  const pool = e2ePool();
+  try {
+    await pool.query(`insert into keywords (id, text, origin) values ('kw_e2e_dry', 'dry keyword', 'seed'), ('kw_e2e_wet', 'wet keyword', 'seed')`);
+    // The frozen clock is 2026-10-21T01:30Z: 2 days back is inside the 7 days.
+    for (const [id, kw, found] of [['cs_e2e_dry', 'kw_e2e_dry', 0], ['cs_e2e_wet', 'kw_e2e_wet', 4]] as const)
+      await pool.query(
+        `insert into crawl_searches (id, run_id, keyword_id, country, status, ads_found, finished_at) values ($1, 'run_e2e_sched', $2, 'US', 'ok', $3, '2026-10-19T01:00:00Z')`,
+        [id, kw, found],
+      );
+    await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fruns');
+    const section = page.getByRole('region', { name: 'Keyword không ra ads trong 7 ngày' });
+    await expect(section.getByRole('cell', { name: 'dry keyword' })).toBeVisible();
+    await expect(section.getByRole('cell', { name: 'wet keyword' })).toHaveCount(0);
+    const ctx = await browser.newContext();
+    const member = await ctx.newPage();
+    await freezeClock(member);
+    await signIn(member, USERS.member.email, '/login?callbackURL=%2Fruns');
+    await expect(member.getByRole('heading', { name: 'Run log' })).toBeVisible();
+    await expect(member.getByText('Keyword không ra ads trong 7 ngày')).toHaveCount(0);
+    await ctx.close();
+  } finally {
+    await pool.query(`delete from crawl_searches where id in ('cs_e2e_dry', 'cs_e2e_wet')`);
+    await pool.query(`delete from keywords where id in ('kw_e2e_dry', 'kw_e2e_wet')`);
+    await pool.end();
+  }
+});
+
 // dogmom.example: the 6 running mug ads, 2 new (started 19/10), 1 proven (e2e_mug_3), all under "dog mom mug".
 test('shops read as markets: new and proven ads and keywords in the table and on the shop page @phone', async ({ page }) => {
   await signIn(page, USERS.admin.email, '/login?callbackURL=%2Fshops');

@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, marketReads, shopReads, titlePhrases, unfollowShop } from './research';
+import { daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, lowYieldKeywords, marketReads, shopReads, titlePhrases, unfollowShop } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -285,6 +285,42 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect((await ids({ keywordId: 'kw_m', title: 'Sea glass!', sort: 'started' }))).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
     expect(await ids({ keywordId: 'kw_m', title: 'glass ornament', sort: 'started' })).toEqual(['m_new', 'm_before']);
     expect(await ids({ keywordId: 'kw_m', title: 'glass orn' })).toEqual([]);
+  });
+
+  it('lists active keywords whose searches in the window all ended ok or no_results with no ads', async () => {
+    await db.execute(sql`insert into keywords (id, text, origin, active) values
+      ('ly_dry', 'dry', 'seed', true), ('ly_dry2', 'a dry too', 'seed', true), ('ly_hit', 'hit', 'seed', true), ('ly_blocked', 'blocked', 'seed', true),
+      ('ly_quiet', 'quiet', 'seed', true), ('ly_paused', 'paused', 'seed', false), ('ly_old_hit', 'old hit', 'seed', true)`);
+    // [keyword, country, status, ads_found, finished_at]
+    const rows: [string, string, string, number, string][] = [
+      ['ly_dry', 'US', 'ok', 0, '2026-10-19T01:00:00Z'],
+      ['ly_dry', 'GB', 'no_results', 0, '2026-10-20T01:00:00Z'],
+      ['ly_dry2', 'US', 'no_results', 0, '2026-10-14T01:00:00Z'],
+      ['ly_hit', 'US', 'ok', 0, '2026-10-19T01:00:00Z'],
+      ['ly_hit', 'GB', 'ok', 3, '2026-10-19T01:00:00Z'],
+      ['ly_blocked', 'US', 'ok', 0, '2026-10-19T01:00:00Z'],
+      ['ly_blocked', 'GB', 'blocked', 0, '2026-10-19T01:00:00Z'],
+      ['ly_paused', 'US', 'ok', 0, '2026-10-19T01:00:00Z'],
+      // Found ads only before the window, and the one search inside it found none.
+      ['ly_old_hit', 'US', 'ok', 5, '2026-10-10T01:00:00Z'],
+      ['ly_old_hit', 'GB', 'ok', 0, '2026-10-19T01:00:00Z'],
+    ];
+    for (const [kw, country, status, found, at] of rows)
+      await db.execute(sql`insert into crawl_searches (id, run_id, keyword_id, country, status, ads_found, finished_at)
+        values (${`ly_${kw}_${country}_${at}`}, 'run_1', ${kw}, ${country}, ${status}, ${found}, ${at})`);
+    try {
+      const since = new Date('2026-10-14T00:00:00Z');
+      // ly_quiet has no search in the window: nothing to judge. ly_old_hit's 5-ad search is outside the window.
+      expect(await lowYieldKeywords(db, since)).toEqual([
+        { id: 'ly_dry2', text: 'a dry too', searches: 1, lastSearchAt: new Date('2026-10-14T01:00:00Z') },
+        { id: 'ly_dry', text: 'dry', searches: 2, lastSearchAt: new Date('2026-10-20T01:00:00Z') },
+        { id: 'ly_old_hit', text: 'old hit', searches: 1, lastSearchAt: new Date('2026-10-19T01:00:00Z') },
+      ]);
+      expect((await lowYieldKeywords(db, new Date('2026-10-15T00:00:00Z'))).map((k) => k.id)).toEqual(['ly_dry', 'ly_old_hit']);
+    } finally {
+      await db.execute(sql`delete from crawl_searches where id like 'ly_%'`);
+      await db.execute(sql`delete from keywords where id like 'ly_%'`);
+    }
   });
 
   it('follows a shop per store with `save`, lists its ads started in the last 7 days, and unfollows', async () => {

@@ -409,6 +409,29 @@ export async function listKeywords(db: Db, sort: KeywordSort = 'running_ads'): P
   return rows.map((r) => ({ id: r.id, text: r.text, origin: r.origin, active: r.active, runningAds: r.running_ads, trackedBy: r.tracked_by ?? [] }));
 }
 
+export interface LowYieldKeyword {
+  id: string;
+  text: string;
+  /** Searches since the start of the window. */
+  searches: number;
+  lastSearchAt: Date;
+}
+
+/**
+ * Active keywords with at least 1 search since `since` where every search ended ok or no_results with no
+ * ads found (AC-C2). A blocked or failed search says nothing about the keyword, so it keeps it off the list.
+ * Reporting only: a human pauses a keyword.
+ */
+export async function lowYieldKeywords(db: Db, since: Date): Promise<LowYieldKeyword[]> {
+  const { rows } = await db.execute<{ id: string; text: string; searches: number; last_search_at: string }>(sql`
+    select k.id, k.text, count(*)::int as searches, max(coalesce(cs.finished_at, cs.started_at)) as last_search_at
+    from keywords k join crawl_searches cs on cs.keyword_id = k.id
+    where k.active and coalesce(cs.finished_at, cs.started_at) >= ${since.toISOString()}::timestamptz
+    group by k.id having bool_and(cs.status in ('ok', 'no_results') and cs.ads_found = 0)
+    order by k.text`);
+  return rows.map((r) => ({ id: r.id, text: r.text, searches: r.searches, lastSearchAt: new Date(r.last_search_at) }));
+}
+
 /**
  * The market read of each keyword's running ads (spec §6 "Market read"), keyed by keyword id: shops and
  * the top 3 shops' share, ads started in the last 7 days and the 7 before, proven ads (isProven in SQL,
