@@ -248,12 +248,16 @@ export async function upcomingHolidays(db: Db, date: string, days = 60, limit = 
   return rows.map((r) => ({ date: r.date, name: r.name, days: daysBetween(date, r.date) }));
 }
 
-/** Section 5's news: items of enabled feeds from the `hours` before `at`, newest first, with their summary for the prompt. */
-export async function briefingNews(db: Db, at: Date, hours = 72, limit = 15): Promise<(BriefingNewsItem & { summary: string | null })[]> {
+/** Section 5's news: items of enabled feeds from the `hours` before `at`, newest first (at most `perFeed` per feed, so a busy feed cannot crowd out the rest), with their summary for the prompt. */
+export async function briefingNews(db: Db, at: Date, hours = 72, limit = 15, perFeed = 5): Promise<(BriefingNewsItem & { summary: string | null })[]> {
   const { rows } = await db.execute<{ id: string; title: string; link: string; published_at: string | null; url: string; summary: string | null }>(sql`
-    select n.id, n.title, n.link, n.published_at, f.url, n.summary from news_items n join news_feeds f on f.id = n.feed_id
-    where f.enabled and coalesce(n.published_at, n.created_at) > ${new Date(at.getTime() - hours * 3_600_000)} and coalesce(n.published_at, n.created_at) <= ${at}
-    order by coalesce(n.published_at, n.created_at) desc, n.id limit ${limit}`);
+    select id, title, link, published_at, url, summary from (
+      select n.id, n.title, n.link, n.published_at, f.url, n.summary, coalesce(n.published_at, n.created_at) as at,
+        row_number() over (partition by n.feed_id order by coalesce(n.published_at, n.created_at) desc, n.id) as rn
+      from news_items n join news_feeds f on f.id = n.feed_id
+      where f.enabled and coalesce(n.published_at, n.created_at) > ${new Date(at.getTime() - hours * 3_600_000)} and coalesce(n.published_at, n.created_at) <= ${at}
+    ) t where rn <= ${perFeed}
+    order by at desc, id limit ${limit}`);
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
