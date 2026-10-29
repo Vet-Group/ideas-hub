@@ -18,6 +18,9 @@ export interface StatusOptions {
 export const AD_SORTS = ['score', 'trending', 'started', 'days', 'last_seen', 'first_seen'] as const;
 export type AdSort = (typeof AD_SORTS)[number];
 export const AD_PAGE_SIZE = 120;
+/** Publisher platforms (`parsed.publisher_platform`) and display formats (`media_type`) the grid filters by; the values the Ad Library sends. */
+export const AD_PLATFORMS = ['FACEBOOK', 'INSTAGRAM', 'THREADS', 'AUDIENCE_NETWORK', 'MESSENGER', 'WHATSAPP'] as const;
+export const AD_FORMATS = ['VIDEO', 'IMAGE', 'CAROUSEL', 'DPA', 'DCO'] as const;
 
 export interface AdFilters {
   /** Default 'running'. */
@@ -33,6 +36,10 @@ export interface AdFilters {
   domain?: string;
   /** Words in the title, in this order (titleWords). */
   title?: string;
+  /** One of AD_PLATFORMS: the ad runs on it. */
+  platform?: string;
+  /** One of AD_FORMATS: the ad's media_type. */
+  format?: string;
   /** Near-duplicate creatives (same caption and landing domain) as one item with their count. */
   dedupe?: boolean;
   /** Ads of the shops this store follows. */
@@ -190,6 +197,8 @@ async function pageAds(db: Db, o: StatusOptions, f: AdFilters, order: ReturnType
       f.title && titleWords(f.title) ? sql`and ' ' || ${titleWordsSql(sql`a.title`)} || ' ' like ${`% ${titleWords(f.title)} %`}` : sql``,
       f.followedBy ? sql`and a.landing_domain in (select sf.landing_domain from shop_follows sf where sf.store_id = ${f.followedBy})` : sql``,
       f.newDays === undefined ? sql`` : sql`and coalesce(a.start_date, a.first_seen_date) > ${o.today}::date - ${f.newDays}::int`,
+      f.platform ? sql`and a.parsed->'publisher_platform' ? ${f.platform}` : sql``,
+      f.format ? sql`and a.media_type = ${f.format}` : sql``,
       f.minDays === undefined ? sql`` : sql`and coalesce(${DAYS}, 0) >= ${f.minDays}`,
       f.minScore === undefined ? sql`` : sql`and coalesce(${SCORE}, 0) >= ${f.minScore}`,
       f.proven

@@ -212,6 +212,26 @@ test('the ad status chips, with their tooltips', async ({ page }) => {
   await expect(page.getByRole('tooltip')).toContainText('giới hạn 100 ads');
 });
 
+test('ads: the "Nền tảng" and "Định dạng" filters narrow the grid and stay in the URL', async ({ page }) => {
+  const pool = e2ePool();
+  try {
+    await pool.query(`update ads set media_type = 'VIDEO', parsed = '{"publisher_platform": ["FACEBOOK", "INSTAGRAM"]}'::jsonb where ad_archive_id = 'e2e_mug_1'`);
+    await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent('/ads?domain=dogmom&platform=instagram&format=video')}`);
+    await expect(page.getByLabel('Nền tảng')).toHaveValue('INSTAGRAM');
+    await expect(page.getByLabel('Định dạng')).toHaveValue('VIDEO');
+    await expect(card(page, 'Best dog mom mug gift 1')).toBeVisible();
+    await expect(card(page, 'Best dog mom mug gift 2')).toHaveCount(0);
+    // The form submits the platform; clearing the format drops it from the filter.
+    await page.getByLabel('Định dạng').selectOption('');
+    await page.getByRole('button', { name: 'Lọc', exact: true }).click();
+    await expect(page).toHaveURL(/\/ads\?.*platform=INSTAGRAM/);
+    await expect(page).not.toHaveURL(/format=VIDEO/);
+  } finally {
+    await pool.query(`update ads set media_type = 'image', parsed = '{}'::jsonb where ad_archive_id = 'e2e_mug_1'`);
+    await pool.end();
+  }
+});
+
 test('the keyword report: chart with a gap and the table toggle, "Less than 7 days", and "No data yet"', async ({ page }) => {
   await signIn(page, USERS.admin.email, `/login?callbackURL=${encodeURIComponent(`/keywords/${MUG.keywordId}`)}`);
   await expect(page.getByText('Từ run 01:00 ngày 21/10')).toBeVisible();

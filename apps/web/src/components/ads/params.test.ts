@@ -15,6 +15,16 @@ describe('ads query params', () => {
     expect(adQuery(parseAdFilters({}))).toBe('');
   });
 
+  it('keeps the platform and the format in the query, and drops values that are not offered', () => {
+    const f = parseAdFilters({ platform: 'instagram', format: 'video' });
+    expect(f).toMatchObject({ platform: 'INSTAGRAM', format: 'VIDEO' });
+    expect(adQuery(f)).toBe('?platform=INSTAGRAM&format=VIDEO');
+    const bad = parseAdFilters({ platform: "x' or 1=1", format: 'GIF' });
+    expect(bad.platform).toBeUndefined();
+    expect(bad.format).toBeUndefined();
+    expect(adQuery(bad)).toBe('');
+  });
+
   it('reads a missing, zero or invalid page as the first', () => {
     for (const page of [undefined, '0', '-2', 'x']) expect(parseAdFilters({ page }).page).toBe(1);
   });
