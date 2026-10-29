@@ -34,6 +34,20 @@ so `restore.sh` checks 3300, 5433, 9300 and 9301 with `ss` and stops if one is t
 port and change it in every place of that row (and `APP_URL` if the web port moves), before going on.
 The e2e port 3310 is development only.
 
+## Environment
+
+`.env` (`/opt/ideas-hub/.env` on the host, `chmod 600`) holds every variable of `.env.example`. Optional keys:
+
+| Variable | Used by | Without it |
+|---|---|---|
+| `ETSY_API_KEY` | web: the Etsy app's keystring (Your Apps page) | the keyword report has no Etsy section |
+| `ETSY_SHARED_SECRET` | web: the Etsy app's shared secret; sent with the keystring as `x-api-key: <keystring>:<secret>` (Open API v3 "Authentication", read 2026-10-29) | same |
+| `ETSY_CONTACT_EMAIL` | web: the contact email shown under the Etsy data (Etsy API Terms) | same |
+
+The Etsy section shows only when all three are set, and only on today's report (Etsy data is live). It
+needs the app approved first (`docs/ops/etsy-app.md`); restart `ideashub-web` after editing `.env`. Never
+paste the values into chat, logs or the repo.
+
 ## Display: Xvfb, not the user's graphical session
 
 The worker drives real headed Chrome (ADR 0003: off-screen mode). Chosen: a virtual display, Xvfb on

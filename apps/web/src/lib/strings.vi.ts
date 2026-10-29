@@ -322,6 +322,23 @@ export const t = {
       phraseCount: (shops: number, ads: number) => `${shops} shop · ${ads} ads`,
       phrasesHelp: 'Cụm 2 từ có trong tiêu đề ads đang chạy của từ 2 shop trở lên, xếp theo số shop: các sản phẩm con trong keyword. Bấm để xem các ads đó.',
     },
+    etsy: {
+      title: 'Thị trường Etsy',
+      sample: (sampled: number, total: number) => `Từ ${sampled} listing đầu trong ${total} listing đang bán khớp keyword.`,
+      priceBand: 'Khoảng giá (25%–75%)',
+      priceBandHelp: 'Mỗi loại tiền tính riêng, không quy đổi.',
+      listingCount: (n: number) => `${n} listing`,
+      medianFavorers: 'Favorers trung vị',
+      topTags: 'Tag phổ biến',
+      topListings: 'Listing nhiều favorers nhất',
+      favorers: (n: number) => `${n} favorers`,
+      none: 'Etsy không có listing nào khớp keyword này.',
+      unavailable: 'Tạm thời không lấy được dữ liệu Etsy. Thử lại sau.',
+      source: (time: string) => `Dữ liệu từ Etsy, lấy lúc ${time}.`,
+      contact: 'Liên hệ',
+      // Wording required by the Etsy API Terms; kept in English.
+      notice: 'The term "Etsy" is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.',
+    },
   },
   storeKeywords: {
     title: (store: string) => `Keyword của ${store}`,

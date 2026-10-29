@@ -214,6 +214,9 @@ importers:
       '@ideas-hub/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@ideas-hub/etsy':
+        specifier: workspace:*
+        version: link:../../packages/sources/etsy
       '@ideas-hub/worker':
         specifier: workspace:*
         version: link:../worker
@@ -388,6 +391,8 @@ importers:
       tsx:
         specifier: 4.23.15
         version: 4.23.15
+
+  packages/sources/etsy: {}
 
   packages/sources/fb-ad-library:
     dependencies:

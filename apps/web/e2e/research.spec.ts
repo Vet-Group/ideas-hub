@@ -272,6 +272,8 @@ test('keywords read as markets: stage filter, market columns, phone cards; the r
   const market = page.getByRole('region', { name: 'Đọc thị trường' });
   await expect(market.getByRole('button', { name: 'Mới nổi' })).toBeVisible();
   await expect(market.locator('dd')).toHaveText(['2 7 ngày trước đó: 0', '1 17% số ads', '1 Top 3 shop chạy 100% số ads', '0% 0 trên 6 ads']);
+  // No Etsy env in e2e: no Etsy section at all (AC-S2).
+  await expect(page.getByRole('region', { name: 'Thị trường Etsy' })).toHaveCount(0);
 });
 
 test('ads: "Chỉ ads đã chứng minh" keeps the proven ad, its card and pane say so with its variants; "Mới bắt đầu chạy" sorts by start date @phone', async ({ page }) => {

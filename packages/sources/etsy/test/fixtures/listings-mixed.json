@@ -1,0 +1,60 @@
+{
+  "count": 1234,
+  "results": [
+    {
+      "listing_id": 1001,
+      "title": "Dog Mom Shirt, Funny Dog Lover Tee",
+      "url": "https://www.etsy.com/listing/1001/dog-mom-shirt",
+      "tags": ["dog mom", "dog lover", "Dog Mom", "gift for her"],
+      "num_favorers": 120,
+      "price": { "amount": 1999, "divisor": 100, "currency_code": "USD" }
+    },
+    {
+      "listing_id": 1002,
+      "title": "Dog Mama Sweatshirt",
+      "url": "https://www.etsy.com/listing/1002/dog-mama-sweatshirt",
+      "tags": ["dog mom", "sweatshirt", "dog lover"],
+      "num_favorers": 45,
+      "price": { "amount": 2499, "divisor": 100, "currency_code": "USD" }
+    },
+    {
+      "listing_id": 1003,
+      "title": "Dog Mom Tee",
+      "url": "https://www.etsy.com/listing/1003/dog-mom-tee",
+      "tags": ["dog mom", "gift for her"],
+      "num_favorers": 10,
+      "price": { "amount": 1500, "divisor": 100, "currency_code": "USD" }
+    },
+    {
+      "listing_id": 1004,
+      "title": "Hundemama Shirt",
+      "url": "https://www.etsy.com/listing/1004/hundemama-shirt",
+      "tags": ["dog mom", "hundemama"],
+      "num_favorers": 300,
+      "price": { "amount": 2200, "divisor": 100, "currency_code": "EUR" }
+    },
+    {
+      "listing_id": 1005,
+      "title": "Dog Mum T-shirt",
+      "url": "https://www.etsy.com/listing/1005/dog-mum-t-shirt",
+      "tags": ["dog mum"],
+      "num_favorers": 7,
+      "price": { "amount": 1800, "divisor": 100, "currency_code": "GBP" }
+    },
+    {
+      "listing_id": 1006,
+      "title": "Dog Mom Hoodie",
+      "url": "https://www.etsy.com/listing/1006/dog-mom-hoodie",
+      "tags": ["dog mom", "hoodie"],
+      "num_favorers": 60,
+      "price": { "amount": 3999, "divisor": 100, "currency_code": "USD" }
+    },
+    {
+      "listing_id": 1007,
+      "title": "Listing without a price is skipped",
+      "url": "https://www.etsy.com/listing/1007/no-price",
+      "tags": ["dog mom"],
+      "num_favorers": 999
+    }
+  ]
+}

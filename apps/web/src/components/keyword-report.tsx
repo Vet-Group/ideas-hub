@@ -9,6 +9,7 @@ import { CountTable } from '@/components/briefing/count-table';
 import { toCard } from '@/components/ads/cards';
 import { adQuery } from '@/components/ads/params';
 import { TrendChart } from '@/components/charts/trend-chart';
+import { EtsyMarketSection } from '@/components/etsy-market';
 import { MarketReadPanel } from '@/components/market-read';
 import { PageHeader } from '@/components/page-header';
 import { DeltaLabel } from '@/components/states/delta-label';
@@ -16,6 +17,7 @@ import { NoData } from '@/components/states/no-data';
 import { vnDay } from '@/lib/briefing';
 import { db } from '@/lib/db';
 import { isRealDate } from '@/lib/day';
+import { etsyContactEmail } from '@/lib/etsy';
 import { formatTime } from '@/lib/format';
 import { now } from '@/lib/now';
 import { mayRunNow, runNowBlocker } from '@/lib/run-now';
@@ -77,6 +79,8 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
     savedSuggestions(db, scope, kwBriefing?.suggestions ?? []),
   ]);
   const runLabel = run ? t.keywords.sourceRun(formatTime(run.scheduledFor), ddmm(vnDate.format(run.scheduledFor))) : null;
+  // Etsy data is live, so only today's report shows it; hidden entirely without the Etsy env.
+  const etsyContact = date ? null : etsyContactEmail();
   const field = 'border-input bg-surface h-9 rounded-md border px-2 text-sm outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50';
 
   return (
@@ -162,6 +166,7 @@ export async function KeywordReport({ id, date }: { id: string; date?: string })
             </section>
           </>
         ) : null}
+        {etsyContact ? <EtsyMarketSection keyword={keyword.text} contactEmail={etsyContact} /> : null}
         <section className="grid gap-2" aria-labelledby="kw-ai">
           <h2 id="kw-ai" className="font-semibold">
             {t.keywords.ai}

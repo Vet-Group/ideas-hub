@@ -1,7 +1,36 @@
 # Etsy Personal App application (phase 3 item 8)
 
-Status: text ready 2026-10-29. The owner registers the app; the Etsy key then goes into the host's
-environment (never into the repo), and the Etsy section of the keyword report switches on.
+Status: **registered 2026-10-29, Pending Personal Approval.** When Etsy approves it, the key goes into
+the host's environment (never into the repo), and the Etsy section of the keyword report switches on.
+
+## Registration (2026-10-29)
+
+| Field | Value |
+|---|---|
+| App name | `vet-ideas-market-research` |
+| Status | Pending Personal Approval; check it at <https://www.etsy.com/developers/your-apps> |
+| Quota | 5 requests a second, 5,000 requests a day |
+| Category | Seller Tools |
+| Who will use it | "Just myself or colleagues" |
+| Commercial | No |
+| Scopes | None: no listing, sales or email scopes (public listing data needs only the API key) |
+
+The form's description field takes at most 500 characters, so this shorter text was used instead of the
+long draft under "Fields to paste" (468 characters):
+
+> Internal research tool for our small print-on-demand team (under 10 staff). For keywords we already track (e.g. "dog mom shirt"), it searches public active listings and shows a summary: price range, common tags and median favorers. Read-only: it never lists, edits or buys anything and uses no private member data. Low volume: a few hundred requests a day at 1 request/second with backoff on 429. Results are cached at most 24 hours; no scraping. Not endorsed by Etsy.
+
+## Etsy API Terms that shape the code
+
+Read in the accept dialog at registration, 2026-10-29:
+
+- **6 hours:** item content and product information shown must be at most 6 hours older than on Etsy (other
+  Etsy content: 24 hours). The description above says 24 hours; the code keeps listing data at most 6 hours
+  (`CACHE_MS` in `packages/sources/etsy/src/index.ts`), in memory only, never in Postgres.
+- Cache only for reasonable periods; no scraping.
+- Link back to the listing on Etsy: every listing shown links to its Etsy `url`.
+- Show a contact email: `ETSY_CONTACT_EMAIL`, shown under the data with "Dữ liệu từ Etsy" and the Etsy
+  trademark notice.
 
 ## Which access
 
@@ -16,7 +45,8 @@ read 2026-10-29.
 1. Sign in at <https://www.etsy.com/developers/register> with the company's Etsy account.
 2. Choose **Create a personal app** and paste the fields below.
 3. When the app is approved, put the keystring and shared secret in the host's Ideas Hub environment as
-   `ETSY_API_KEY` and `ETSY_SHARED_SECRET` (see `docs/ops/production.md`), and tell the developer.
+   `ETSY_API_KEY` and `ETSY_SHARED_SECRET`, plus `ETSY_CONTACT_EMAIL` (see `docs/ops/production.md`
+   "Environment"), recheck the live API Terms, and tell the developer.
 
 ## Fields to paste
 
@@ -40,6 +70,8 @@ read 2026-10-29.
 
 ## What the app will use
 
-- `GET /v3/application/listings/active` with `keywords`, `limit` (100) and `offset`, sorted by score.
+- `GET /v3/application/listings/active` with `keywords`, `limit` (100), `offset` (0: one page per keyword)
+  and `sort_on=score`, header `x-api-key: <keystring>:<shared secret>`, 1 request a second, one retry
+  after `Retry-After` on 429 (up to 10 s), otherwise "unavailable".
 - From each listing: `price` and `currency_code`, `tags`, `num_favorers`, `title`, `url`.
 - Price bands are computed per currency, never across currencies.
