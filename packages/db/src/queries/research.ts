@@ -1,9 +1,10 @@
 // The research views (plan Step 6, spec §6): the ads grid and detail, shops, keywords and the per-day
 // series behind their charts. Ad status is the SQL form of adStatus (ad-status.ts); the trend score is
 // computed in TypeScript, as in the briefing, and in SQL (SCORE) for the grid's filter and sort.
-import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_STOPWORDS, VIETNAM, addDays, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
-import { type SQL, sql } from 'drizzle-orm';
+import { type AdStatus, MARKET, MOMENTUM_WINDOW_DAYS, type MarketRead, PROVEN, TITLE_STOPWORDS, VIETNAM, type Viewer, addDays, can, daysActive, isProven, nonShopPattern, titleWords, trendScore } from '@ideas-hub/core';
+import { type SQL, and, asc, eq, sql } from 'drizzle-orm';
 import { type Db } from '../client';
+import { shopFollows } from '../schema';
 import { adStatusQuery } from './ad-status';
 import { escapeLike } from './search';
 
@@ -328,6 +329,43 @@ export async function getShop(db: Db, domain: string): Promise<ShopRow | null> {
     select landing_domain, cardinality(page_ids) as page_count, first_seen_date::text, last_seen_date::text, running_ads from shops where landing_domain = ${domain}`);
   const r = rows[0];
   return r ? { landingDomain: r.landing_domain, pageCount: r.page_count, firstSeenDate: r.first_seen_date, lastSeenDate: r.last_seen_date, runningAds: r.running_ads } : null;
+}
+
+/** The landing domains the store follows, by domain; empty without `view` on the store. */
+export async function followedShops(db: Db, viewer: Viewer, storeId: string): Promise<string[]> {
+  if (!can(viewer, storeId, 'view')) return [];
+  const rows = await db.select({ d: shopFollows.landingDomain }).from(shopFollows).where(eq(shopFollows.storeId, storeId)).orderBy(asc(shopFollows.landingDomain));
+  return rows.map((r) => r.d);
+}
+
+/** Follows a known shop for the store; needs `save` there (as setIdeaStatus). False when refused or the shop is unknown. */
+export async function followShop(db: Db, viewer: Viewer, storeId: string, domain: string, at: Date): Promise<boolean> {
+  if (!can(viewer, storeId, 'save') || !(await getShop(db, domain))) return false;
+  await db.insert(shopFollows).values({ storeId, landingDomain: domain, createdBy: viewer.userId, createdAt: at }).onConflictDoNothing();
+  return true;
+}
+
+/** Needs `save` on the store; unfollowing a shop that was not followed is a no-op. */
+export async function unfollowShop(db: Db, viewer: Viewer, storeId: string, domain: string): Promise<boolean> {
+  if (!can(viewer, storeId, 'save')) return false;
+  await db.delete(shopFollows).where(and(eq(shopFollows.storeId, storeId), eq(shopFollows.landingDomain, domain)));
+  return true;
+}
+
+/**
+ * Ads of the store's followed shops that started in the last `sinceDays` days (as the market read's new ads;
+ * the first crawl day when the start is unknown), newest first, with their status. Empty without `view`.
+ */
+export async function followedShopAds(db: Db, o: StatusOptions, viewer: Viewer, storeId: string, sinceDays = 7): Promise<AdListItem[]> {
+  if (!can(viewer, storeId, 'view')) return [];
+  const ads = await selectAds(
+    db,
+    o,
+    sql`and a.landing_domain in (select f.landing_domain from shop_follows f where f.store_id = ${storeId})
+      and coalesce(a.start_date, a.first_seen_date) > ${o.today}::date - ${sinceDays}::int`,
+  );
+  const started = (a: AdListItem) => a.startDate ?? a.firstSeenDate;
+  return ads.sort((x, y) => started(y).localeCompare(started(x)) || x.adArchiveId.localeCompare(y.adArchiveId));
 }
 
 export const KEYWORD_SORTS = ['running_ads', 'text', 'origin'] as const;

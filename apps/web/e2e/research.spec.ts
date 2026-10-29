@@ -534,3 +534,48 @@ test('a new member reads the page: labelled save on cards, a glossary in the ad 
   const chart = await page.getByRole('heading', { name: 'Ads đang chạy theo ngày' }).boundingBox();
   expect(market!.y).toBeLessThan(chart!.y);
 });
+
+// AC-A6: dogmom.example's e2e_mug_1 and e2e_mug_2 started on 19/10, within 7 days of the crawl day 20/10; the rest on 1/10.
+test('staff with save follow a shop for their store and list its new ads; view-only staff get no follow button', async ({ page }) => {
+  const pool = e2ePool();
+  try {
+    await signIn(page, USERS.viewer.email, `/login?callbackURL=${encodeURIComponent(`/shops/${MUG.domain}`)}`);
+    await expect(page.getByRole('heading', { name: MUG.domain })).toBeVisible();
+    await expect(page.getByRole('button', { name: /theo dõi/i })).toHaveCount(0);
+    await page.context().clearCookies();
+
+    await signIn(page, USERS.saver.email, `/login?callbackURL=${encodeURIComponent('/shops?followed=1')}`);
+    await expect(page.getByText('Store này chưa theo dõi shop nào.', { exact: false })).toBeVisible();
+    await page.goto(`/shops/${MUG.domain}`);
+    await page.getByRole('button', { name: `Theo dõi shop cho ${STORES.a.name}` }).click();
+    await expect(page.getByRole('button', { name: `Bỏ theo dõi cho ${STORES.a.name}` })).toBeVisible();
+    expect((await pool.query(`select store_id, landing_domain, created_by from shop_follows`)).rows).toEqual([
+      { store_id: STORES.a.id, landing_domain: MUG.domain, created_by: USERS.saver.id },
+    ]);
+
+    await page.goto('/shops');
+    await page.getByRole('navigation', { name: 'Xem shop' }).getByRole('link', { name: 'Shop đang theo dõi' }).click();
+    await expect(page).toHaveURL(/\/shops\?followed=1$/);
+    await expect(page.getByRole('heading', { name: `Shop ${STORES.a.name} đang theo dõi` })).toBeVisible();
+    await expect(page.getByRole('link', { name: MUG.domain, exact: true })).toBeVisible();
+    const links = page.getByRole('listitem').getByRole('link', { name: /^Best dog mom mug gift/ });
+    await expect(links).toHaveText(['Best dog mom mug gift 1', 'Best dog mom mug gift 2']);
+    await expect(links.first()).toHaveAttribute('href', '/ads/e2e_mug_1');
+    // A save from this list is an Ads save, never a briefing one.
+    await card(page, 'Best dog mom mug gift 2').getByRole('button', { name: 'Lưu' }).click();
+    const toast = page.locator('[data-sonner-toast]').filter({ hasText: 'Đã lưu vào Store A' });
+    await expect(toast).toBeVisible();
+    expect(await ideaRows('e2e_mug_2')).toEqual([expect.objectContaining({ store_id: STORES.a.id, via: 'ads' })]);
+    await toast.getByRole('button', { name: 'Hoàn tác' }).click();
+    await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Đã hoàn tác' })).toBeVisible();
+
+    await page.goto(`/shops/${MUG.domain}`);
+    await page.getByRole('button', { name: `Bỏ theo dõi cho ${STORES.a.name}` }).click();
+    await expect(page.getByRole('button', { name: `Theo dõi shop cho ${STORES.a.name}` })).toBeVisible();
+    expect((await pool.query(`select 1 from shop_follows`)).rowCount).toBe(0);
+  } finally {
+    await pool.query(`delete from shop_follows`);
+    await pool.query(`delete from saved_ideas where source_ref = 'e2e_mug_2'`);
+    await pool.end();
+  }
+});

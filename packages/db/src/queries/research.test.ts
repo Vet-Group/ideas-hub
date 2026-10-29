@@ -1,10 +1,10 @@
-import { DEFAULT_SETTINGS, momentumScore } from '@ideas-hub/core';
+import { DEFAULT_SETTINGS, type Viewer, momentumScore } from '@ideas-hub/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Db, createDb, createPool } from '../client';
 import { createTestDatabase, testDatabaseAvailable } from '../testing';
 import { risingNewAds } from './briefing';
-import { daySeries, getAd, listAds, listKeywords, listShops, marketReads, shopReads, titlePhrases } from './research';
+import { daySeries, followShop, followedShopAds, followedShops, getAd, listAds, listKeywords, listShops, marketReads, shopReads, titlePhrases, unfollowShop } from './research';
 
 const O = { today: '2026-10-20', staleAfterDays: 3, countries: ['US', 'GB'] };
 
@@ -267,5 +267,57 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     expect((await ids({ keywordId: 'kw_m', title: 'Sea glass!', sort: 'started' }))).toEqual(['m_new', 'm_before', 'm_app', 'm_long']);
     expect(await ids({ keywordId: 'kw_m', title: 'glass ornament', sort: 'started' })).toEqual(['m_new', 'm_before']);
     expect(await ids({ keywordId: 'kw_m', title: 'glass orn' })).toEqual([]);
+  });
+
+  it('follows a shop per store with `save`, lists its ads started in the last 7 days, and unfollows', async () => {
+    const tick = (storeId: string, save: boolean) => ({ storeId, view: true, save, keywords: false });
+    const admin: Viewer = { userId: 'u_admin', role: 'admin', memberships: [] };
+    const saveA: Viewer = { userId: 'u_save', role: 'member', memberships: [tick('st_a', true)] };
+    const viewA: Viewer = { userId: 'u_view', role: 'member', memberships: [tick('st_a', false)] };
+    const saveB: Viewer = { userId: 'u_saveb', role: 'member', memberships: [tick('st_b', true)] };
+    const none: Viewer = { userId: 'u_none', role: 'member', memberships: [] };
+    const at = new Date('2026-10-20T03:00:00Z');
+    await db.execute(sql`insert into users (id, email, name) values ('u_save', 'save@x.test', 'Save')`);
+    await db.execute(sql`insert into stores (id, name) values ('st_b', 'Store B')`);
+    await db.execute(sql`insert into shops (landing_domain, page_ids, first_seen_date, last_seen_date) values ('follow.example', '{pf}', '2026-10-01', '2026-10-20')`);
+    // f_edge started 7 days before today: outside the window. f_old's start is unknown, so its first crawl day counts.
+    await db.execute(sql`insert into ads (ad_archive_id, caption, page_name, landing_domain, start_date, end_date, seen_days, first_seen_date, last_seen_date, parsed) values
+      ('f_new', 'f new', 'Page', 'follow.example', '2026-10-18', '2026-10-20', 1, '2026-10-18', '2026-10-20', '{}'::jsonb),
+      ('f_in', 'f in', 'Page', 'follow.example', '2026-10-14', '2026-10-14', 1, '2026-10-14', '2026-10-14', '{}'::jsonb),
+      ('f_edge', 'f edge', 'Page', 'follow.example', '2026-10-13', '2026-10-20', 1, '2026-10-13', '2026-10-20', '{}'::jsonb),
+      ('f_nostart', 'f nostart', 'Page', 'follow.example', null, null, 1, '2026-10-19', '2026-10-20', '{}'::jsonb),
+      ('f_old', 'f old', 'Page', 'follow.example', null, null, 1, '2026-10-01', '2026-10-20', '{}'::jsonb),
+      ('f_other', 'f other', 'Page', 'other.example', '2026-10-19', '2026-10-20', 1, '2026-10-19', '2026-10-20', '{}'::jsonb)`);
+    const ads = async (v: Viewer, storeId = 'st_a') => (await followedShopAds(db, O, v, storeId)).map((a) => a.adArchiveId);
+
+    // Without `save` on the store, or for an unknown shop, nothing is written.
+    expect(await followShop(db, viewA, 'st_a', 'follow.example', at)).toBe(false);
+    expect(await followShop(db, saveB, 'st_a', 'follow.example', at)).toBe(false);
+    expect(await followShop(db, none, 'st_a', 'follow.example', at)).toBe(false);
+    expect(await followShop(db, saveA, 'st_a', 'nope.example', at)).toBe(false);
+    expect(await followedShops(db, admin, 'st_a')).toEqual([]);
+
+    expect(await followShop(db, saveA, 'st_a', 'follow.example', at)).toBe(true);
+    // Following again is a no-op.
+    expect(await followShop(db, saveA, 'st_a', 'follow.example', at)).toBe(true);
+    const { rows } = await db.execute<{ created_by: string; n: number }>(sql`select created_by, count(*) over ()::int as n from shop_follows`);
+    expect(rows).toEqual([{ created_by: 'u_save', n: 1 }]);
+    expect(await followedShops(db, viewA, 'st_a')).toEqual(['follow.example']);
+    // Per store: store B follows nothing, and a viewer outside store A sees nothing of it.
+    expect(await followedShops(db, admin, 'st_b')).toEqual([]);
+    expect(await followedShops(db, saveB, 'st_a')).toEqual([]);
+
+    expect(await ads(viewA)).toEqual(['f_nostart', 'f_new', 'f_in']);
+    const list = await followedShopAds(db, O, admin, 'st_a');
+    expect(list.map((a) => a.status)).toEqual(['running', 'running', 'stopped_or_unknown']);
+    expect(await ads(none)).toEqual([]);
+    expect(await ads(admin, 'st_b')).toEqual([]);
+    expect((await followedShopAds(db, O, admin, 'st_a', 30)).map((a) => a.adArchiveId)).toEqual(['f_nostart', 'f_new', 'f_in', 'f_edge', 'f_old']);
+
+    expect(await unfollowShop(db, viewA, 'st_a', 'follow.example')).toBe(false);
+    expect(await followedShops(db, admin, 'st_a')).toEqual(['follow.example']);
+    expect(await unfollowShop(db, saveA, 'st_a', 'follow.example')).toBe(true);
+    expect(await followedShops(db, admin, 'st_a')).toEqual([]);
+    expect(await ads(admin)).toEqual([]);
   });
 });
