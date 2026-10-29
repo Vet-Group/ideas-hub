@@ -68,6 +68,11 @@ describe('/ads/csv', () => {
     expect(q.listAds).toHaveBeenCalledWith({}, { today: '2026-10-21', staleAfterDays: 3, countries: ['US'] }, expect.objectContaining({ status: 'all', keywordId: 'kw_1', country: 'GB', proven: true, sort: 'days', page: 1, limit: 5000 }));
   });
 
+  it('leaves out the nonShopDomains ads, as the grid does', async () => {
+    await get(ads, '/ads/csv');
+    expect(q.listAds).toHaveBeenCalledWith({}, expect.anything(), expect.objectContaining({ shopsOnly: true, nonShopDomains: ['facebook.com'] }));
+  });
+
   it('writes one row per ad and escapes formula cells', async () => {
     q.listAds.mockResolvedValue({
       total: 1,
