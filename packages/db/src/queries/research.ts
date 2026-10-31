@@ -272,8 +272,8 @@ export async function adAngles(db: Db, ids: readonly string[]): Promise<Map<stri
 }
 
 /**
- * The next batch of the angle job: proven ads (isProven) without an angle row, then those whose call of an
- * earlier day failed (`tagged_at` null) and that were sent fewer than ANGLE_MAX_ATTEMPTS times; most recently seen first.
+ * The next batch of the angle job: proven ads (isProven) whose call of an earlier day failed (`tagged_at` null)
+ * and that were sent fewer than ANGLE_MAX_ATTEMPTS times, then those without an angle row; most recently seen first.
  */
 export async function untaggedProvenAds(db: Db, limit: number, today: string): Promise<AngleAd[]> {
   const { rows } = await db.execute<{ ad_archive_id: string; page_name: string | null; caption: string | null; title: string | null }>(sql`
@@ -281,7 +281,7 @@ export async function untaggedProvenAds(db: Db, limit: number, today: string): P
     left join ad_angles g on g.ad_archive_id = a.ad_archive_id
     where (g.ad_archive_id is null or (g.tagged_at is null and g.tagged_on < ${today} and g.attempts < ${ANGLE_MAX_ATTEMPTS}))
       and ${provenSql(sql`a.collation_count`, DAYS, sql`(select count(distinct s.country) from ad_sightings s where s.ad_archive_id = a.ad_archive_id)`)}
-    order by g.ad_archive_id is not null, a.last_seen_date desc, a.ad_archive_id limit ${limit}`);
+    order by g.ad_archive_id is null, a.last_seen_date desc, a.ad_archive_id limit ${limit}`);
   return rows.map((r) => ({ adArchiveId: r.ad_archive_id, pageName: r.page_name, caption: r.caption, title: r.title }));
 }
 

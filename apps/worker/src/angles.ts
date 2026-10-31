@@ -27,6 +27,8 @@ import { ANGLES, ANGLES_EXPIRY_SECONDS, BRIEFING } from './queues';
 /** While briefings are pending the job sends itself again this much later, the last start at ANGLES_CUTOFF_TIME. */
 export const ANGLES_RETRY_MINUTES = 30;
 export const ANGLES_CUTOFF_TIME = '12:00';
+/** Failed calls in a row that end the job: a provider outage cannot spend the rest of the daily cap. */
+export const ANGLES_MAX_FAILED_IN_A_ROW = 2;
 
 export type AnglesOutcome = 'done' | 'briefings_pending' | 'cap' | 'unconfigured' | 'failed';
 
@@ -39,20 +41,24 @@ async function briefingsPending(db: Db, date: string): Promise<boolean> {
 }
 
 /**
- * Tags batches until none is left, the cap is reached, or a call fails. Each batch is reserved first, under
- * the cost lock: the ready gate, the cap check and the `unclear` rows carrying the call's estimate commit
- * together, so a call cut by a crash or an error still counts and its ads are not sent again that day; a later
- * day reserves them again (untaggedProvenAds), up to ANGLE_MAX_ATTEMPTS calls.
+ * Tags batches until none is left, the cap is reached, or ANGLES_MAX_FAILED_IN_A_ROW calls in a row fail
+ * (outcome `failed`); a failed call (an error or a rejected reply) is counted in `failed` and the next batch is
+ * sent. Each batch is reserved first, under the cost lock: the ready gate, the cap check and the `unclear` rows
+ * carrying the call's estimate commit together, so a call cut by a crash or an error still counts and its ads
+ * are not sent again that day; a later day reserves them again (untaggedProvenAds, before the new ads), up to
+ * ANGLE_MAX_ATTEMPTS calls.
  */
 export async function tagAngles(
   ctx: Ctx,
   llm: LlmClient,
   signal: AbortSignal = new AbortController().signal,
-): Promise<{ outcome: AnglesOutcome; calls: number; tagged: number }> {
+): Promise<{ outcome: AnglesOutcome; calls: number; tagged: number; failed: number }> {
   const s = await bounded(ctx.pool, ({ db }) => loadSettings(db));
   let calls = 0;
   let tagged = 0;
-  const end = (outcome: AnglesOutcome) => ({ outcome, calls, tagged });
+  let failed = 0;
+  let failedInARow = 0;
+  const end = (outcome: AnglesOutcome) => ({ outcome, calls, tagged, failed });
   if (llm.configured === false) return end('unconfigured');
   for (;;) {
     signal.throwIfAborted();
@@ -79,20 +85,24 @@ export async function tagAngles(
     });
     if (reserved !== 'reserved') return end(reserved);
     calls += 1;
-    let angles: Map<string, AdAngle>;
+    let angles: Map<string, AdAngle> | null = null;
     try {
       const reply = await callLlm(llm, { model: s.llmModel, system: prompt.system, user: prompt.user, maxTokens: ANGLE_MAX_TOKENS }, s.llmCallTimeoutSeconds, signal);
       const parsed = parseAngles(reply, new Set(ads.map((a) => a.adArchiveId)));
-      if (!parsed.ok) {
-        ctx.log('angles: LLM reply rejected', { problem: parsed.problem });
-        return end('failed');
-      }
-      angles = parsed.angles;
+      if (parsed.ok) angles = parsed.angles;
+      else ctx.log('angles: LLM reply rejected', { problem: parsed.problem, replyChars: reply.length });
     } catch (e) {
       if (signal.aborted) throw e;
       ctx.log('angles: LLM call failed', { error: String(e) });
-      return end('failed');
     }
+    if (angles === null) {
+      // Its ads stay reserved for today (tagged_at null): a later day retries them.
+      failed += 1;
+      failedInARow += 1;
+      if (failedInARow >= ANGLES_MAX_FAILED_IN_A_ROW) return end('failed');
+      continue;
+    }
+    failedInARow = 0;
     const at = ctx.clock.now();
     await bounded(ctx.pool, async ({ db }) => {
       for (const a of ads) await db.execute(sql`update ad_angles set angle = ${angles.get(a.adArchiveId) ?? 'unclear'}, tagged_at = ${at} where ad_archive_id = ${a.adArchiveId}`);
