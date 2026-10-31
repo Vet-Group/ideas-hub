@@ -287,15 +287,15 @@ describe.skipIf(!testDatabaseAvailable())('research queries', () => {
     await db.execute(sql`delete from ad_angles`);
   });
 
-  it('the angle job retries a reservation of an earlier day whose call failed, after the new ads, up to the attempts cap', async () => {
-    await db.execute(sql`insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on, tagged_at) values ('m_long', 'unclear', 'm', 0.0004, '2026-10-19', null)`);
-    // Both are seen on 10-20 and m_long sorts first by id, but the never-tried m_new comes before the retry.
+  it('the angle job retries a reservation of an earlier day whose call failed, before the new ads, up to the attempts cap', async () => {
+    await db.execute(sql`insert into ad_angles (ad_archive_id, angle, model, cost_usd, tagged_on, tagged_at) values ('m_new', 'unclear', 'm', 0.0004, '2026-10-19', null)`);
+    // Both are seen on 10-20 and the never-tried m_long sorts first by id, but the retry m_new comes before it.
     expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new', 'm_long']);
     expect((await untaggedProvenAds(db, 1, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new']);
     await db.execute(sql`update ad_angles set attempts = ${ANGLE_MAX_ATTEMPTS - 1}`);
     expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new', 'm_long']);
     await db.execute(sql`update ad_angles set attempts = ${ANGLE_MAX_ATTEMPTS}`);
-    expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_new']);
+    expect((await untaggedProvenAds(db, 25, O.today)).map((a) => a.adArchiveId)).toEqual(['m_long']);
     await db.execute(sql`delete from ad_angles`);
   });
 

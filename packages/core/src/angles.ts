@@ -8,8 +8,11 @@ export type AdAngle = (typeof AD_ANGLES)[number];
 
 /** Ads per LLM call. */
 export const ANGLE_BATCH = 25;
-/** Output limit of one call: 25 short `{id, angle}` objects fit well inside it. */
-export const ANGLE_MAX_TOKENS = 1000;
+/**
+ * Output limit of one call: 25 short `{id, angle}` objects plus the reasoning tokens of a reasoning model
+ * (gpt-6-luna spent all of 1000 on reasoning and replied nothing; 25 ads took 868 with 512 reasoning).
+ */
+export const ANGLE_MAX_TOKENS = 4000;
 /** Calls one ad may be sent in before it is left untagged: a poison batch cannot block every later run. */
 export const ANGLE_MAX_ATTEMPTS = 3;
 /** Asia/Ho_Chi_Minh time the `angles.tag` job starts: after the briefing build and its Lark posts. */
